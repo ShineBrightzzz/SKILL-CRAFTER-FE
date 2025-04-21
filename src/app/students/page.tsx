@@ -39,7 +39,7 @@ export default function ScoresPage() {
 
   const columns: ColumnsType<Score> = [
     {
-      title: 'MSSV',
+      title: 'MSV',
       dataIndex: 'mssv',
       key: 'mssv',
       align: 'center',
