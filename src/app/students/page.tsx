@@ -46,6 +46,14 @@ export default function ScoresPage() {
       render: (_: any, record: Score) => <span>{record.studentId}</span>,
     },
     {
+      title: 'Điểm tự chấm', // Thêm cột mới
+      key: 'self',
+      align: 'center',
+      render: (_: any, record: Score) => (
+        <span>{record.scores.self_score ?? 'Chưa có điểm'}</span>
+      ),
+    },
+    {
       title: 'Điểm học tập',
       key: 'academic',
       align: 'center',
