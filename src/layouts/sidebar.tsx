@@ -3,12 +3,19 @@
 import React, { useState } from 'react';
 import { Layout, Menu, Typography } from 'antd';
 import {
-  HomeOutlined, CalendarOutlined, BookOutlined,
-  UploadOutlined, UserOutlined, KeyOutlined, TeamOutlined,
+  HomeOutlined,
+  CalendarOutlined,
+  BookOutlined,
+  UploadOutlined,
+  UserOutlined,
+  KeyOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
-import Image from 'next/image'; // Import Image component for SVG
-const { Sider, Content } = Layout;
+import Image from 'next/image';
+import Navbar from './navbar'; // Import Navbar component
+
+const { Sider, Content, Header } = Layout;
 const { Title } = Typography;
 
 interface DashboardLayoutProps {
@@ -47,6 +54,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
+      {/* Sidebar on the left */}
       <Sider
         collapsible
         collapsed={collapsed}
@@ -64,16 +72,16 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
             margin: 16,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: collapsed ? 'center' : 'flex-start', // Căn giữa khi ẩn
+            justifyContent: collapsed ? 'center' : 'flex-start',
             borderRadius: 8,
             overflow: 'hidden',
-            padding: collapsed ? 0 : '0 16px', // Thêm padding khi mở rộng
+            padding: collapsed ? 0 : '0 16px',
           }}
         >
           <Image
-            src="/HVNH.svg" // Đường dẫn đến ảnh trong thư mục public
+            src="/HVNH.svg"
             alt="BAV Logo"
-            width={collapsed ? 40 : 50} // Kích thước icon khi ẩn hoặc mở rộng
+            width={collapsed ? 40 : 50}
             height={collapsed ? 40 : 50}
             style={{ transition: 'width 0.3s, height 0.3s' }}
           />
@@ -100,13 +108,34 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
           items={menuItems}
           style={{
             fontSize: 16,
-            background: '#1468a2', // Đồng bộ màu nền với sidebar
-          color: '#fff', // Màu chữ trắng
+            background: '#1468a2',
+            color: '#fff',
           }}
         />
       </Sider>
 
+      {/* Main layout with Navbar and Content */}
       <Layout>
+        {/* Navbar at the top */}
+        <Header
+          style={{
+            background: '#1468a2',
+            display: 'flex',
+            justifyContent: 'space-between', // Căn đều hai bên
+            alignItems: 'center',
+            padding: '0 16px',
+            height: 64,
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          }}
+        >
+
+          {/* Avatar */}
+          <div style={{ marginLeft: 'auto' }}>
+            <Navbar />
+          </div>
+        </Header>
+
+        {/* Main content area */}
         <Content
           style={{
             margin: '24px',
