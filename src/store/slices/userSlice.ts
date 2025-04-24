@@ -46,8 +46,11 @@ const userSlice = createSlice({
     setPermissions: (state, action: PayloadAction<Permission[]>) => {
       state.permissions = action.payload;
     },
+    logout: (state) => {
+      return { ...initialState, isAuthenticated: false, token: null };
+    },
   },
 });
 
-export const { setUser, clearUser, updateUserProfile, setPermissions } = userSlice.actions;
+export const { setUser, clearUser, updateUserProfile, setPermissions,logout } = userSlice.actions;
 export default userSlice.reducer;
