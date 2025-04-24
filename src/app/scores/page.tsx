@@ -39,15 +39,15 @@ const handleUpload = async (file: File, metadata?: Record<string, any>) => {
 
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('semester_id', semesterId);
+  formData.append('semester_id', 'S1_2025');
 
   let uploadUrl = '';
   if (type === 'Điểm học tập') {
-    uploadUrl = 'http://localhost:8000/file-processing/academic';
+    uploadUrl = 'https://409f-2401-d800-3b1-ae48-40c5-d564-f1e7-a039.ngrok-free.app/file-processing/academic';
   } else if (type === 'Điểm NCKH') {
-    uploadUrl = 'http://localhost:8000/file-processing/research';
+    uploadUrl = 'https://409f-2401-d800-3b1-ae48-40c5-d564-f1e7-a039.ngrok-free.app/file-processing/research';
   } else if (type === 'Điểm CLB') {
-    uploadUrl = 'http://localhost:8000/file-processing/club';
+    uploadUrl = 'https://409f-2401-d800-3b1-ae48-40c5-d564-f1e7-a039.ngrok-free.app/file-processing/club';
   } else {
     toast.error('Không xác định được loại upload');
     return;
@@ -195,4 +195,5 @@ const handleUpload = async (file: File, metadata?: Record<string, any>) => {
   </Sidebar>
   );
 }
-export default withPermission(SemestersPage, Action.Read, Subject.Score)
+// export default withPermission(SemestersPage, Action.Read, Subject.Score)
+export default SemestersPage;

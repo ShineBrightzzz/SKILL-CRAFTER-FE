@@ -1,22 +1,34 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useLoginMutation } from '@/services/user.service';
+import { useLazyGetUserInfoQuery, useLoginMutation } from '@/services/user.service';
 import { useAppDispatch } from '@/store/hooks';
 import { setUser } from '@/store/slices/userSlice';
+import { setAbility } from '@/store/slices/abilitySlice';
 
 export default function Login() {
   const [login, { isLoading }] = useLoginMutation();
   const dispatch = useAppDispatch();
   const [error, setError] = useState('');
-
+  const [fetchUserInfo] = useLazyGetUserInfoQuery();
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.target as HTMLFormElement);
     const username = formData.get('username') as string;
     const password = formData.get('password') as string;
     try {
-      await login({ username, password }).unwrap();
+      const data = await login({ username, password }).unwrap();
+      const user = await fetchUserInfo({ studentId : username }).unwrap();
+
+      if (!user) {
+        console.log('Error', 'User not found');
+        return;
+      }
+      dispatch(setUser({
+        ...user.data,
+        isAuthenticated: true
+      }));
+      dispatch(setAbility(data?.data?.role?.permissions || []));
       window.location.href = '/';
     } catch (err: any) {
       setError('Invalid username or password');

@@ -196,21 +196,22 @@ const RoleManagement: React.FC = () => {
   
   const columns: ColumnsType<any> = [...baseColumns];
   
-  if (
-    ability.can(Action.Update, Subject.Role) ||
-    ability.can(Action.Delete, Subject.Role)
-  ) {
+  // if (
+  //   ability.can(Action.Update, Subject.Role) ||
+  //   ability.can(Action.Delete, Subject.Role)
+  // ) 
+  {
     columns.push({
       title: 'Actions',
       key: 'actions',
       render: (_: any, record: any) => (
         <>
-          {ability.can(Action.Update, Subject.Role) && (
+          {/* {ability.can(Action.Update, Subject.Role) && ( */}
             <Button type="link" onClick={() => openEditModal(record)}>✏️</Button>
-          )}
-          {ability.can(Action.Delete, Subject.Role) && (
+          {/* )} */}
+          {/* {ability.can(Action.Delete, Subject.Role) && ( */}
             <Button type="link" danger onClick={() => handleDelete(record.id)}>🗑</Button>
-          )}
+          {/* )} */}
         </>
       ),
     });
@@ -221,11 +222,12 @@ const RoleManagement: React.FC = () => {
       <div style={{ padding: 24 }}>
         <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
           <h3>Danh sách Roles (Vai Trò)</h3>
-          {ability.can(Action.Create, Subject.Role) && (
+          {/* {ability.can(Action.Create, Subject.Role) && ( */}
           <Button type="primary" onClick={openCreateModal}>+ Thêm mới</Button>
-          )}
+          {/* )} */}
         </div>
-        {ability.can('read','Role') && <Table dataSource={roles} columns={columns} rowKey="id" pagination={{ pageSize: 10 }} />}
+        {/* {ability.can('read','Role') &&  */}
+        <Table dataSource={roles} columns={columns} rowKey="id" pagination={{ pageSize: 10 }} />
         
 
         <Modal
@@ -254,4 +256,5 @@ const RoleManagement: React.FC = () => {
   );
 };
 
-export default withPermission(RoleManagement, Action.Read, Subject.Role);
+//export default withPermission(RoleManagement, Action.Read, Subject.Role);
+export default RoleManagement;

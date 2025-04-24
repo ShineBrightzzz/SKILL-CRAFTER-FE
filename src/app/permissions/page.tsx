@@ -197,4 +197,5 @@ const PermissionTable: React.FC = () => {
   );
 };
 
-export default withPermission(PermissionTable, Action.Read, Subject.Permission);
+//export default withPermission(PermissionTable, Action.Read, Subject.Permission);
+export default PermissionTable;
