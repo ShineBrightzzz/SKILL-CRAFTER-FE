@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ant-design/plots": "^2.3.3",
     "@casl/ability": "^6.7.3",
     "@casl/react": "^5.0.0",
     "@reduxjs/toolkit": "^2.6.1",

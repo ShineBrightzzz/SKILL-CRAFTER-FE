@@ -15,7 +15,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import Navbar from './navbar'; // Import Navbar component
 
-const { Sider, Content, Header } = Layout;
+const { Sider, Content } = Layout;
 const { Title } = Typography;
 
 interface DashboardLayoutProps {
@@ -63,6 +63,10 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
         style={{
           background: '#1468a2',
           boxShadow: '2px 0 8px rgba(0, 0, 0, 0.15)',
+          position: 'fixed', // Make the sidebar fixed
+          height: '100vh', // Ensure it spans the full height of the viewport
+          left: 0,
+          zIndex: 1000, // Ensure it stays above other content
         }}
       >
         <div
@@ -115,27 +119,8 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
       </Sider>
 
       {/* Main layout with Navbar and Content */}
-      <Layout>
-        {/* Navbar at the top */}
-        <Header
-          style={{
-            background: '#1468a2',
-            display: 'flex',
-            justifyContent: 'space-between', // Căn đều hai bên
-            alignItems: 'center',
-            padding: '0 16px',
-            height: 64,
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-          }}
-        >
-
-          {/* Avatar */}
-          <div style={{ marginLeft: 'auto' }}>
-            <Navbar />
-          </div>
-        </Header>
-
-        {/* Main content area */}
+      <Layout style={{ marginLeft: 250 }}> {/* Add margin to account for the fixed sidebar */}
+        <Navbar /> {/* Navbar at the top */}
         <Content
           style={{
             margin: '24px',
