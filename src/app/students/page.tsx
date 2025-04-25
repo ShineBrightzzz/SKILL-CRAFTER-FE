@@ -27,7 +27,7 @@ interface Score {
 }
 
 export default function ScoresPage() {
-  const [selectedSemesterId, setSelectedSemesterId] = useState<string>('S001');
+  const [selectedSemesterId, setSelectedSemesterId] = useState<string>('');
   const { data: semesterOptions, isLoading: isLoadingOptions } = useGetSemesterQuery();
   const { data: studentScoresData, isLoading: isLoadingScore } = useGetStudentScoresBySemesterQuery({
     semesterId: selectedSemesterId,

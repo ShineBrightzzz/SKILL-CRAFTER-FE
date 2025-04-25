@@ -1,6 +1,6 @@
+
 import apiSlice from './api';
-import { setUser } from '@/store/slices/userSlice';
-import { setRolePermissions } from '@/store/slices/abilitySlice';  
+
 export const userApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     login: builder.mutation<any, { username: string; password: string }>({
@@ -9,27 +9,12 @@ export const userApiSlice = apiSlice.injectEndpoints({
         method: 'POST',
         body,
       }),
-      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+      async onQueryStarted(arg, {dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-
-          // Lưu accessToken
-          await localStorage.setItem('accessToken', data.data.accessToken);
-
-          // Lưu user info
-          dispatch(setUser({
-            studentId: "ST001",
-            name: "Nguyễn Văn A",
-            avatar: "https://i.pinimg.com/originals/db/8e/0d/db8e0d7279eb0fb08fffb3b0d2f1d0e9.jpg",
-          }));
-
-          const permissions = data.data.permissions; 
-          
-          // Dispatch the permissions to the Redux store
-          dispatch(setRolePermissions(permissions));
-
+          localStorage.setItem('accessToken', data.data.accessToken);
         } catch (error) {
-          console.error("Error during login", error);
+          console.log('Error saving token:', error);
         }
       },
     }),
@@ -42,7 +27,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
     }),
 
     getUserInfo: builder.query({
-      query: ({ studentId }) => `/student/${studentId}`,
+      query: ({studentId}) => `/student/${studentId}`,
     }),
 
     createUser: builder.mutation<any, { name: string; email: string; password: string }>({
@@ -53,6 +38,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
       }),
     }),
 
+
     editUser: builder.mutation({
       query: ({ body }) => ({
         url: '/api/user',
@@ -60,14 +46,36 @@ export const userApiSlice = apiSlice.injectEndpoints({
         body,
       }),
     }),
+
+    registFace: builder.mutation({
+      query: ({ studentId, video }) => {
+        const formData = new FormData();
+        formData.append("id", studentId);
+        formData.append("video", {
+          uri: video.uri,
+          name: "video.mp4",
+          type: "video/mp4",
+        } as any);
+        return {
+          url: `/regist-face`,
+          method: "POST",
+          body: formData,
+          formData: true,
+        };
+      },
+    }),
+    
+
   }),
   overrideExisting: true,
 });
 
 export const {
   useLoginMutation,
+  useLazyGetUserInfoQuery,
   useGetUserInfoQuery,
   useCreateUserMutation,
   useEditUserMutation,
   useLogoutMutation,
+  useRegistFaceMutation,
 } = userApiSlice;

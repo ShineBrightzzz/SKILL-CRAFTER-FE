@@ -37,7 +37,7 @@ interface Event {
   start_time: string;
   end_time: string;
   location: string;
-  semesterId: string;
+  semester: string;
 }
 
 const EventsPage = () => {
@@ -54,6 +54,7 @@ const EventsPage = () => {
 
     if (!semesterId || !type) {
       toast.error('Thiếu thông tin học kỳ hoặc loại upload');
+      console.log(semesterId, type);  
       return;
     }
 
@@ -98,13 +99,13 @@ const EventsPage = () => {
   const columns = [
     {
       title: 'Tên sự kiện',
-      dataIndex: 'name',
-      key: 'name',
+      dataIndex: 'title',
+      key: 'title',
     },
     {
       title: 'Đơn vị tổ chức',
-      dataIndex: 'organizing_unit',
-      key: 'organizing_unit',
+      dataIndex: 'organizingUnit',
+      key: 'organizingUnit',
     },
     {
       title: 'Địa điểm',
@@ -130,7 +131,7 @@ const EventsPage = () => {
       render: (_: any, record: Event) => (
         <Button
           icon={<UploadOutlined />}
-          onClick={() => openUploadModal(record?.semesterId, 'Điểm sự kiện')}
+          onClick={() => openUploadModal(record?.semester, 'Điểm sự kiện')}
         />
       ),
     },
@@ -178,4 +179,5 @@ const EventsPage = () => {
   );
 };
 
-export default withPermission(EventsPage, Action.Read, Subject.Event);
+// export default withPermission(EventsPage, Action.Read, Subject.Event);
+export default EventsPage;
