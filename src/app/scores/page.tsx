@@ -9,6 +9,7 @@ import type { ColumnsType } from 'antd/es/table';
 import UploadModal from '@/components/UploadModal';
 import { toast } from 'react-toastify';
 import Loading from '@/components/Loading'; // Import the Loading component
+import ErrorHandler from '@/components/ErrorHandler'; // Import the ErrorHandler component
 
 interface Semester {
   id: string;
@@ -22,8 +23,8 @@ const SemestersPage = () => {
   const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
   const [uploadType, setUploadType] = useState<string>('');
 
-  const { data: semesterData, isLoading: isLoadingSemesters } = useGetSemesterQuery();
-  const { data: existScoreData, isLoading: isLoadingScores } = useGetExistsScoreQuery();
+  const { data: semesterData, isLoading: isLoadingSemesters, error: semesterError } = useGetSemesterQuery();
+  const { data: existScoreData, isLoading: isLoadingScores, error: scoreError } = useGetExistsScoreQuery();
 
   const handleUpload = async (file: File, metadata?: Record<string, any>) => {
     const semesterId = metadata?.semesterId;
@@ -151,6 +152,16 @@ const SemestersPage = () => {
       },
     },
   ];
+
+  // Check for errors and handle them
+  if (semesterError || scoreError) {
+    const status = (semesterError as any)?.status || (scoreError as any)?.status || 500;
+    return (
+      <Sidebar>
+        <ErrorHandler status={status} />
+      </Sidebar>
+    );
+  }
 
   return (
     <Sidebar>

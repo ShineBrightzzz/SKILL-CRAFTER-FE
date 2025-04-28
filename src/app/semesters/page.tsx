@@ -12,7 +12,8 @@ import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
-import Loading from '@/components/Loading';
+import Loading from '@/components/Loading'; // Import Loading component
+import ErrorHandler from '@/components/ErrorHandler'; // Import ErrorHandler component
 
 interface Semester {
   id: string;
@@ -27,7 +28,7 @@ export default function SemestersPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
 
-  const { data: semesterData, isLoading, refetch } = useGetSemesterQuery();
+  const { data: semesterData, isLoading, error } = useGetSemesterQuery(); // Include error handling
   const [createSemester] = useCreateSemesterMutation();
   const [updateSemester] = useUpdateSemesterMutation();
   const [deleteSemester] = useDeleteSemesterMutation();
@@ -118,6 +119,16 @@ export default function SemestersPage() {
       ),
     }
   ];
+
+  // Check for errors and handle them
+  if (error) {
+    const status = (error as any)?.status || 500; // Default to 500 if no status is provided
+    return (
+      <Sidebar>
+        <ErrorHandler status={status} />
+      </Sidebar>
+    );
+  }
 
   return (
     <Sidebar>

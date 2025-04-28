@@ -21,11 +21,11 @@ import {
   useDeletePermissionMutation,
   useCreatePermissionMutation,
 } from '@/services/permission.service';
-import withPermission from '@/hocs/withPermission';
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
 import { ColumnsType } from 'antd/es/table';
 import Loading from '@/components/Loading'; // Import the Loading component
+import ErrorHandler from '@/components/ErrorHandler'; // Import the ErrorHandler component
 
 const { Option } = Select;
 
@@ -37,7 +37,7 @@ const PermissionTable: React.FC = () => {
   const [form] = Form.useForm();
   const ability = useAbility();
 
-  const { data: permissionsData, isLoading } = useGetPermissionsQuery();
+  const { data: permissionsData, isLoading, error } = useGetPermissionsQuery(); // Include error handling
   const [updatePermission] = useUpdatePermissionMutation();
   const [deletePermission] = useDeletePermissionMutation();
   const [createPermission] = useCreatePermissionMutation();
@@ -140,6 +140,16 @@ const PermissionTable: React.FC = () => {
         </Space>
       ),
     });
+  }
+
+  // Check for errors and handle them
+  if (error) {
+    const status = (error as any).status || 500; // Default to 500 if no status is provided
+    return (
+      <Sidebar>
+        <ErrorHandler status={status} />
+      </Sidebar>
+    );
   }
 
   return (

@@ -13,7 +13,8 @@ import { UploadOutlined } from '@ant-design/icons';
 import UploadModal from '@/components/UploadModal';
 import { useGetEventsQuery } from '@/services/events.service';
 import { toast } from 'react-toastify';
-import Loading from '@/components/Loading'; // Import the Loading component
+import Loading from '@/components/Loading';
+import ErrorHandler from '@/components/ErrorHandler'; // Import the ErrorHandler component
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
 
@@ -37,7 +38,7 @@ const EventsPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
   const [uploadType, setUploadType] = useState<string>('');
-  const { data: eventData, isLoading } = useGetEventsQuery();
+  const { data: eventData, isLoading, error } = useGetEventsQuery(); // Include error handling
 
   const ability = useAbility();
 
@@ -128,6 +129,16 @@ const EventsPage = () => {
       ),
     },
   ];
+
+  // Check for errors and handle them
+  if (error) {
+    const status = (error as any).status || 500; // Default to 500 if no status is provided
+    return (
+      <Sidebar>
+        <ErrorHandler status={status} />
+      </Sidebar>
+    );
+  }
 
   return (
     <Sidebar>

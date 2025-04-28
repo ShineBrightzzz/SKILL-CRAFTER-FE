@@ -14,6 +14,7 @@ import {
 import { useGetPermissionsQuery } from '@/services/permission.service';
 import { Collapse, Typography } from 'antd';
 import Loading from '@/components/Loading'; // Import the Loading component
+import ErrorHandler from '@/components/ErrorHandler'; // Import the ErrorHandler component
 
 const { Panel } = Collapse;
 const { Text } = Typography;
@@ -25,10 +26,10 @@ const RoleManagement: React.FC = () => {
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<string[]>([]);
   const [groupedPermissions, setGroupedPermissions] = useState<{ [module: string]: any[] }>({});
 
-  const { data: rolesData, isLoading: isLoadingRoles, refetch } = useGetRoleQuery();
+  const { data: rolesData, isLoading: isLoadingRoles, error: rolesError, refetch } = useGetRoleQuery();
   const roles = rolesData?.data?.data || [];
 
-  const { data: permissionsData, isLoading: isLoadingPermissions } = useGetPermissionsQuery();
+  const { data: permissionsData, isLoading: isLoadingPermissions, error: permissionsError } = useGetPermissionsQuery();
   const permissions = permissionsData?.data?.data || [];
 
   const [createRole] = useCreateRoleMutation();
@@ -209,6 +210,16 @@ const RoleManagement: React.FC = () => {
       </>
     ),
   });
+
+  // Check for errors and handle them
+  if (rolesError || permissionsError) {
+    const status = (rolesError as any)?.status || (permissionsError as any)?.status || 500;
+    return (
+      <Sidebar>
+        <ErrorHandler status={status} />
+      </Sidebar>
+    );
+  }
 
   return (
     <Sidebar>

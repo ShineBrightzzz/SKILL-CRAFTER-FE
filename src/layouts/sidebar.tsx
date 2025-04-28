@@ -23,7 +23,7 @@ interface DashboardLayoutProps {
 }
 
 const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(false); // Sidebar collapsed state
   const router = useRouter();
   const pathname = usePathname();
 
@@ -112,15 +112,28 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
           items={menuItems}
           style={{
             fontSize: 16,
-            background: '#1468a2',
+            background: '#1468a2', // Sidebar background color
             color: '#fff',
           }}
+          subMenuOpenDelay={0.3} // Optional: Add a slight delay for submenu opening
+          subMenuCloseDelay={0.3} // Optional: Add a slight delay for submenu closing
+          expandIcon={({ isOpen }) => (
+            <span
+              style={{
+                color: '#fff', // Icon color
+                transition: 'transform 0.3s',
+                transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+              }}
+            >
+              ▶
+            </span>
+          )}
         />
       </Sider>
 
       {/* Main layout with Navbar and Content */}
-      <Layout style={{ marginLeft: 250 }}> {/* Add margin to account for the fixed sidebar */}
-        <Navbar /> {/* Navbar at the top */}
+      <Layout style={{ marginLeft: collapsed ? 80 : 250 }}> {/* Adjust margin based on collapsed state */}
+        <Navbar collapsed={collapsed} /> {/* Pass collapsed state to Navbar */}
         <Content
           style={{
             margin: '24px',

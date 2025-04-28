@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Sidebar from "@/layouts/sidebar";
 import { Card, Typography, Table, Select } from 'antd';
 import { useGetSemesterQuery, useGetStudentScoresBySemesterQuery } from '@/services/semester.service';
 import { ColumnsType } from 'antd/es/table';
-import Loading from '@/components/Loading'; // Import the Loading component
+import Loading from '@/components/Loading'; // Import Loading component
+import ErrorHandler from '@/components/ErrorHandler'; // Import ErrorHandler component
 
 const { Option } = Select;
 
@@ -23,8 +24,8 @@ interface Score {
 
 export default function ScoresPage() {
   const [selectedSemesterId, setSelectedSemesterId] = useState<string>('');
-  const { data: semesterOptions, isLoading: isLoadingOptions } = useGetSemesterQuery();
-  const { data: studentScoresData, isLoading: isLoadingScore } = useGetStudentScoresBySemesterQuery({
+  const { data: semesterOptions, isLoading: isLoadingOptions, error: semesterError } = useGetSemesterQuery();
+  const { data: studentScoresData, isLoading: isLoadingScore, error: scoreError } = useGetStudentScoresBySemesterQuery({
     semesterId: selectedSemesterId,
   });
 
@@ -89,6 +90,16 @@ export default function ScoresPage() {
       ),
     },
   ];
+
+  // Check for errors and handle them
+  if (semesterError || scoreError) {
+    const status = (semesterError as any)?.status || (scoreError as any)?.status || 500;
+    return (
+      <Sidebar>
+        <ErrorHandler status={status} />
+      </Sidebar>
+    );
+  }
 
   return (
     <Sidebar>
