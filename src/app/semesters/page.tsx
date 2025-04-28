@@ -12,6 +12,8 @@ import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
+import Loading from '@/components/Loading';
+
 interface Semester {
   id: string;
   number: number;
@@ -34,7 +36,7 @@ export default function SemestersPage() {
 
   const handleAddSemester = async (semester: Omit<Semester, 'id'>) => {
     try {
-      await createSemester({semesterId : semester, body:semester}).unwrap();
+      await createSemester({ semesterId: semester, body: semester }).unwrap();
       toast.success("Thêm học kỳ thành công");
       setIsAddModalOpen(false);
       refetch();
@@ -46,7 +48,6 @@ export default function SemestersPage() {
   const handleEditSemester = async (updatedData: Omit<Semester, 'id'>) => {
     if (!selectedSemester) return;
     try {
-      console.log(updatedData)
       await updateSemester({ semesterId: selectedSemester.id, body: updatedData }).unwrap();
       toast.success("Cập nhật học kỳ thành công");
       setIsEditModalOpen(false);
@@ -59,7 +60,7 @@ export default function SemestersPage() {
 
   const handleDeleteSemester = async (semester: Semester) => {
     try {
-      await deleteSemester({semesterId : semester.id}).unwrap();
+      await deleteSemester({ semesterId: semester.id }).unwrap();
       toast.success("Xóa học kỳ thành công");
       refetch();
     } catch (error) {
@@ -118,50 +119,53 @@ export default function SemestersPage() {
     }
   ];
 
-  if (!semesterData) return <div>Đang load thông tin học kì...</div>;
-
   return (
     <Sidebar>
-    <div style={{ padding: 24 }}>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-        <Typography.Title level={2} className="mb-6 text-center">
-          Học kỳ
-        </Typography.Title>
-        {ability.can(Action.Create, Subject.Semester) && (
-          <Button type="primary" onClick={() => setIsAddModalOpen(true)} icon={<PlusOutlined />}>
-            Thêm học kỳ
-          </Button>
+      <div style={{ padding: 24 }}>
+        {isLoading ? (
+          <Loading message="Đang tải thông tin học kỳ..." />
+        ) : (
+          <>
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+              <Typography.Title level={2} className="mb-6 text-center">
+                Học kỳ
+              </Typography.Title>
+              {ability.can(Action.Create, Subject.Semester) && (
+                <Button type="primary" onClick={() => setIsAddModalOpen(true)} icon={<PlusOutlined />}>
+                  Thêm học kỳ
+                </Button>
+              )}
+            </div>
+
+            <Card className="shadow-md">
+              <Table
+                columns={columns}
+                dataSource={semesterData?.data}
+                rowKey="id"
+                pagination={{ pageSize: 10 }}
+              />
+            </Card>
+          </>
         )}
       </div>
 
-      <Card className="shadow-md">
-        <Table
-          columns={columns}
-          dataSource={semesterData.data}
-          rowKey="id"
-          loading={isLoading}
-          pagination={{ pageSize: 10 }}
-        />
-      </Card>
-    </div>
+      {/* Add Semester Modal */}
+      <AddSemesterModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAddSemester={handleAddSemester}
+      />
 
-    {/* Add Semester Modal */}
-    <AddSemesterModal
-      isOpen={isAddModalOpen}
-      onClose={() => setIsAddModalOpen(false)}
-      onAddSemester={handleAddSemester}
-    />
-
-    {/* Edit Semester Modal */}
-    <EditSemesterModal
-      isOpen={isEditModalOpen}
-      semester={selectedSemester}
-      onClose={() => {
-        setIsEditModalOpen(false);
-        setSelectedSemester(null);
-      }}
-      onEditSemester={handleEditSemester}
-    />
-  </Sidebar>
+      {/* Edit Semester Modal */}
+      <EditSemesterModal
+        isOpen={isEditModalOpen}
+        semester={selectedSemester}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedSemester(null);
+        }}
+        onEditSemester={handleEditSemester}
+      />
+    </Sidebar>
   );
 }

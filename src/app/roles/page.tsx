@@ -12,10 +12,9 @@ import {
 } from '@/services/role.service';
 
 import { useGetPermissionsQuery } from '@/services/permission.service';
-import { useAbility } from '@/contexts/AbilityContext';
-import withPermission from '@/hocs/withPermission';
-import { Action, Subject } from '@/utils/ability';
 import { Collapse, Typography } from 'antd';
+import Loading from '@/components/Loading'; // Import the Loading component
+
 const { Panel } = Collapse;
 const { Text } = Typography;
 
@@ -26,20 +25,18 @@ const RoleManagement: React.FC = () => {
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<string[]>([]);
   const [groupedPermissions, setGroupedPermissions] = useState<{ [module: string]: any[] }>({});
 
-  const { data: rolesData, refetch } = useGetRoleQuery();
+  const { data: rolesData, isLoading: isLoadingRoles, refetch } = useGetRoleQuery();
   const roles = rolesData?.data?.data || [];
 
-  const { data: permissionsData, isSuccess: isPermissionSuccess } = useGetPermissionsQuery();
+  const { data: permissionsData, isLoading: isLoadingPermissions } = useGetPermissionsQuery();
   const permissions = permissionsData?.data?.data || [];
 
   const [createRole] = useCreateRoleMutation();
   const [updateRole] = useUpdateRoleMutation();
   const [deleteRole] = useDeleteRoleMutation();
 
-  const { ability } = useAbility();
-
   useEffect(() => {
-    if (isPermissionSuccess && permissions.length > 0) {
+    if (permissions.length > 0) {
       const grouped: { [key: string]: any[] } = {};
       permissions.forEach((perm: any) => {
         if (!grouped[perm.module]) grouped[perm.module] = [];
@@ -47,7 +44,7 @@ const RoleManagement: React.FC = () => {
       });
       setGroupedPermissions(grouped);
     }
-  }, [permissions, isPermissionSuccess]);
+  }, [permissions]);
 
   const openEditModal = (role: any) => {
     setEditingRole(role);
@@ -133,12 +130,14 @@ const RoleManagement: React.FC = () => {
       <Collapse>
         {Object.keys(groupedPermissions).map((mod) => (
           <Panel header={mod} key={mod}>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: '1fr 1fr', 
-              gap: '12px',
-              paddingTop: 8 
-            }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '12px',
+                paddingTop: 8,
+              }}
+            >
               {groupedPermissions[mod].map((perm) => (
                 <div
                   key={perm.id}
@@ -193,68 +192,70 @@ const RoleManagement: React.FC = () => {
     { title: 'CreatedAt', dataIndex: 'createdAt' },
     { title: 'UpdatedAt', dataIndex: 'updatedAt' },
   ];
-  
+
   const columns: ColumnsType<any> = [...baseColumns];
-  
-  // if (
-  //   ability.can(Action.Update, Subject.Role) ||
-  //   ability.can(Action.Delete, Subject.Role)
-  // ) 
-  {
-    columns.push({
-      title: 'Actions',
-      key: 'actions',
-      render: (_: any, record: any) => (
-        <>
-          {/* {ability.can(Action.Update, Subject.Role) && ( */}
-            <Button type="link" onClick={() => openEditModal(record)}>✏️</Button>
-          {/* )} */}
-          {/* {ability.can(Action.Delete, Subject.Role) && ( */}
-            <Button type="link" danger onClick={() => handleDelete(record.id)}>🗑</Button>
-          {/* )} */}
-        </>
-      ),
-    });
-  }
+
+  columns.push({
+    title: 'Actions',
+    key: 'actions',
+    render: (_: any, record: any) => (
+      <>
+        <Button type="link" onClick={() => openEditModal(record)}>
+          ✏️
+        </Button>
+        <Button type="link" danger onClick={() => handleDelete(record.id)}>
+          🗑
+        </Button>
+      </>
+    ),
+  });
 
   return (
     <Sidebar>
       <div style={{ padding: 24 }}>
-        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-          <h3>Danh sách Roles (Vai Trò)</h3>
-          {/* {ability.can(Action.Create, Subject.Role) && ( */}
-          <Button type="primary" onClick={openCreateModal}>+ Thêm mới</Button>
-          {/* )} */}
-        </div>
-        {/* {ability.can('read','Role') &&  */}
-        <Table dataSource={roles} columns={columns} rowKey="id" pagination={{ pageSize: 10 }} />
-        
+        {isLoadingRoles || isLoadingPermissions ? (
+          <Loading message="Đang tải danh sách vai trò..." />
+        ) : (
+          <>
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+              <h3>Danh sách Roles (Vai Trò)</h3>
+              <Button type="primary" onClick={openCreateModal}>
+                + Thêm mới
+              </Button>
+            </div>
+            <Table
+              dataSource={roles}
+              columns={columns}
+              rowKey="id"
+              pagination={{ pageSize: 10 }}
+            />
 
-        <Modal
-          title={editingRole ? 'Sửa Role' : 'Tạo mới Role'}
-          open={modalVisible}
-          onCancel={() => setModalVisible(false)}
-          onOk={handleSubmit}
-          width={800}
-        >
-          <Form layout="vertical" form={form}>
-            <Form.Item name="name" label="Tên Role" rules={[{ required: true }]}>
-              <Input />
-            </Form.Item>
-            <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}>
-              <Input.TextArea />
-            </Form.Item>
-            <Form.Item name="status" label="Trạng thái" valuePropName="checked">
-              <Switch checkedChildren="ACTIVE" unCheckedChildren="INACTIVE" />
-            </Form.Item>
-          </Form>
-          <h4>Quyền hạn</h4>
-          {renderPermissionGroups()}
-        </Modal>
+            <Modal
+              title={editingRole ? 'Sửa Role' : 'Tạo mới Role'}
+              open={modalVisible}
+              onCancel={() => setModalVisible(false)}
+              onOk={handleSubmit}
+              width={800}
+            >
+              <Form layout="vertical" form={form}>
+                <Form.Item name="name" label="Tên Role" rules={[{ required: true }]}>
+                  <Input />
+                </Form.Item>
+                <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}>
+                  <Input.TextArea />
+                </Form.Item>
+                <Form.Item name="status" label="Trạng thái" valuePropName="checked">
+                  <Switch checkedChildren="ACTIVE" unCheckedChildren="INACTIVE" />
+                </Form.Item>
+              </Form>
+              <h4>Quyền hạn</h4>
+              {renderPermissionGroups()}
+            </Modal>
+          </>
+        )}
       </div>
     </Sidebar>
   );
 };
 
-//export default withPermission(RoleManagement, Action.Read, Subject.Role);
 export default RoleManagement;

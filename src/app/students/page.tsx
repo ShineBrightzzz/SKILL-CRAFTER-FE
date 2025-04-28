@@ -2,15 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Sidebar from "@/layouts/sidebar";
-import {
-  Card,
-  Typography,
-  Table,
-  Select,
-  message,
-} from 'antd';
+import { Card, Typography, Table, Select } from 'antd';
 import { useGetSemesterQuery, useGetStudentScoresBySemesterQuery } from '@/services/semester.service';
 import { ColumnsType } from 'antd/es/table';
+import Loading from '@/components/Loading'; // Import the Loading component
 
 const { Option } = Select;
 
@@ -46,7 +41,7 @@ export default function ScoresPage() {
       render: (_: any, record: Score) => <span>{record.studentId}</span>,
     },
     {
-      title: 'Điểm tự chấm', // Thêm cột mới
+      title: 'Điểm tự chấm',
       key: 'self',
       align: 'center',
       render: (_: any, record: Score) => (
@@ -98,35 +93,40 @@ export default function ScoresPage() {
   return (
     <Sidebar>
       <div style={{ padding: 24 }}>
-        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-          <Typography.Title level={2} className="mb-6">
-            Điểm
-          </Typography.Title>
+        {isLoadingOptions || isLoadingScore ? (
+          <Loading message="Đang tải thông tin điểm sinh viên..." />
+        ) : (
+          <>
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+              <Typography.Title level={2} className="mb-6">
+                Điểm
+              </Typography.Title>
 
-          <Select
-            value={selectedSemesterId}
-            onChange={handleSemesterChange}
-            loading={isLoadingOptions}
-            style={{ width: 200 }}
-            placeholder="Chọn học kỳ"
-          >
-            {semesterOptions?.data?.map((option: any) => (
-              <Option key={option.id} value={option.id}>
-                Kì {option.number} năm {option.year}
-              </Option>
-            ))}
-          </Select>
-        </div>
+              <Select
+                value={selectedSemesterId}
+                onChange={handleSemesterChange}
+                loading={isLoadingOptions}
+                style={{ width: 200 }}
+                placeholder="Chọn học kỳ"
+              >
+                {semesterOptions?.data?.map((option: any) => (
+                  <Option key={option.id} value={option.id}>
+                    Kì {option.number} năm {option.year}
+                  </Option>
+                ))}
+              </Select>
+            </div>
 
-        <Card className="shadow-md">
-          <Table
-            columns={columns}
-            dataSource={studentScoresData?.data}
-            rowKey="studentId"
-            loading={isLoadingScore}
-            pagination={{ pageSize: 10 }}
-          />
-        </Card>
+            <Card className="shadow-md">
+              <Table
+                columns={columns}
+                dataSource={studentScoresData?.data}
+                rowKey="studentId"
+                pagination={{ pageSize: 10 }}
+              />
+            </Card>
+          </>
+        )}
       </div>
     </Sidebar>
   );

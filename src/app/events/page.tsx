@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Sidebar from "@/layouts/sidebar";
 import dayjs from 'dayjs';
 import {
@@ -8,21 +8,14 @@ import {
   Typography,
   Table,
   Button,
-  message,
-  Modal,
-  Form,
-  Input,
-  Select,
 } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import UploadModal from '@/components/UploadModal';
 import { useGetEventsQuery } from '@/services/events.service';
 import { toast } from 'react-toastify';
-import withPermission from '@/hocs/withPermission';
+import Loading from '@/components/Loading'; // Import the Loading component
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
-
-const { Option } = Select;
 
 interface Semester {
   id: string;
@@ -54,7 +47,6 @@ const EventsPage = () => {
 
     if (!semesterId || !type) {
       toast.error('Thiếu thông tin học kỳ hoặc loại upload');
-      console.log(semesterId, type);  
       return;
     }
 
@@ -140,29 +132,36 @@ const EventsPage = () => {
   return (
     <Sidebar>
       <div style={{ padding: 24 }}>
-        <div
-          style={{
-            marginBottom: 16,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <Typography.Title level={2} className="mb-6 text-center">
-            Danh sách Sự kiện
-          </Typography.Title>
-          {ability.can(Action.Create, Subject.Event) && (
-            <Button type="primary" onClick={() => {}}>+ Thêm sự kiện</Button>
-          )}
-        </div>
+        {isLoading ? (
+          <Loading message="Đang tải danh sách sự kiện..." />
+        ) : (
+          <>
+            <div
+              style={{
+                marginBottom: 16,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <Typography.Title level={2} className="mb-6 text-center">
+                Danh sách Sự kiện
+              </Typography.Title>
+              {ability.can(Action.Create, Subject.Event) && (
+                <Button type="primary" onClick={() => {}}>+ Thêm sự kiện</Button>
+              )}
+            </div>
 
-        <Table
-          columns={columns}
-          dataSource={eventData?.data}
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
-          loading={isLoading}
-        />
+            <Card className="shadow-md">
+              <Table
+                columns={columns}
+                dataSource={eventData?.data}
+                rowKey="id"
+                pagination={{ pageSize: 10 }}
+              />
+            </Card>
+          </>
+        )}
 
         <UploadModal
           isOpen={isModalOpen}
@@ -179,5 +178,4 @@ const EventsPage = () => {
   );
 };
 
-// export default withPermission(EventsPage, Action.Read, Subject.Event);
 export default EventsPage;

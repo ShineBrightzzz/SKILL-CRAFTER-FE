@@ -11,7 +11,6 @@ import {
   Space,
   Popconfirm,
   message,
-  Layout,
 } from 'antd';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setPermissions } from '@/store/slices/permissionSlice';
@@ -26,9 +25,9 @@ import withPermission from '@/hocs/withPermission';
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
 import { ColumnsType } from 'antd/es/table';
+import Loading from '@/components/Loading'; // Import the Loading component
 
 const { Option } = Select;
-const { Content } = Layout;
 
 const PermissionTable: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -38,7 +37,7 @@ const PermissionTable: React.FC = () => {
   const [form] = Form.useForm();
   const ability = useAbility();
 
-  const { data: permissionsData } = useGetPermissionsQuery();
+  const { data: permissionsData, isLoading } = useGetPermissionsQuery();
   const [updatePermission] = useUpdatePermissionMutation();
   const [deletePermission] = useDeletePermissionMutation();
   const [createPermission] = useCreatePermissionMutation();
@@ -113,9 +112,9 @@ const PermissionTable: React.FC = () => {
     },
     { title: 'Module', dataIndex: 'module', key: 'module' },
   ];
-  
+
   const columns: ColumnsType<any> = [...baseColumns];
-  
+
   if (
     ability.can(Action.Update, Subject.Permission) ||
     ability.can(Action.Delete, Subject.Permission)
@@ -146,56 +145,61 @@ const PermissionTable: React.FC = () => {
   return (
     <Sidebar>
       <div style={{ padding: 24 }}>
-        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-          <h3>Danh sách Permissions (Quyền hạn)</h3>
-          {ability.can(Action.Create, Subject.Permission) && (
-            <Button type="primary" onClick={handleAdd}>+ Thêm mới</Button>
-          )}
-        </div>
+        {isLoading ? (
+          <Loading message="Đang tải danh sách quyền hạn..." />
+        ) : (
+          <>
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+              <h3>Danh sách Permissions (Quyền hạn)</h3>
+              {ability.can(Action.Create, Subject.Permission) && (
+                <Button type="primary" onClick={handleAdd}>+ Thêm mới</Button>
+              )}
+            </div>
 
-        <Table
-          columns={columns}
-          dataSource={permissions}
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
-        />
+            <Table
+              columns={columns}
+              dataSource={permissions}
+              rowKey="id"
+              pagination={{ pageSize: 10 }}
+            />
 
-        <Modal
-          title={editingPermission ? 'Sửa Permission' : 'Tạo mới Permission'}
-          open={isModalVisible}
-          onCancel={() => setIsModalVisible(false)}
-          onOk={handleOk}
-          width={800}
-        >
-          <Form form={form} layout="vertical">
-            <Form.Item label="Tên Permission" name="name" rules={[{ required: true }]}>
-              <Input placeholder="Nhập tên Permission" />
-            </Form.Item>
+            <Modal
+              title={editingPermission ? 'Sửa Permission' : 'Tạo mới Permission'}
+              open={isModalVisible}
+              onCancel={() => setIsModalVisible(false)}
+              onOk={handleOk}
+              width={800}
+            >
+              <Form form={form} layout="vertical">
+                <Form.Item label="Tên Permission" name="name" rules={[{ required: true }]}>
+                  <Input placeholder="Nhập tên Permission" />
+                </Form.Item>
 
-            <Form.Item label="API Path" name="apiPath" rules={[{ required: true }]}>
-              <Input placeholder="Nhập path" />
-            </Form.Item>
+                <Form.Item label="API Path" name="apiPath" rules={[{ required: true }]}>
+                  <Input placeholder="Nhập path" />
+                </Form.Item>
 
-            <Form.Item label="Method" name="method" rules={[{ required: true }]}>
-              <Select placeholder="Chọn Method">
-                <Option value="GET">GET</Option>
-                <Option value="POST">POST</Option>
-                <Option value="PUT">PUT</Option>
-                <Option value="DELETE">DELETE</Option>
-              </Select>
-            </Form.Item>
+                <Form.Item label="Method" name="method" rules={[{ required: true }]}>
+                  <Select placeholder="Chọn Method">
+                    <Option value="GET">GET</Option>
+                    <Option value="POST">POST</Option>
+                    <Option value="PUT">PUT</Option>
+                    <Option value="DELETE">DELETE</Option>
+                  </Select>
+                </Form.Item>
 
-            <Form.Item label="Thuộc Module" name="module" rules={[{ required: true }]}>
-              <Select placeholder="Chọn Module">
-                <Option value="Quản lý sinh viên">Quản lý sinh viên</Option>
-              </Select>
-            </Form.Item>
-          </Form>
-        </Modal>
+                <Form.Item label="Thuộc Module" name="module" rules={[{ required: true }]}>
+                  <Select placeholder="Chọn Module">
+                    <Option value="Quản lý sinh viên">Quản lý sinh viên</Option>
+                  </Select>
+                </Form.Item>
+              </Form>
+            </Modal>
+          </>
+        )}
       </div>
     </Sidebar>
   );
 };
 
-//export default withPermission(PermissionTable, Action.Read, Subject.Permission);
 export default PermissionTable;
