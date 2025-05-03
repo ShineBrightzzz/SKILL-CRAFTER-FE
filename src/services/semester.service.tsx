@@ -35,7 +35,15 @@ const semesterService = apiSlice.injectEndpoints({
                 url: `/semester/delete-semester/${semesterId}`,
                 method: 'DELETE',
             }),
-          })
+          }),
+
+          updateScore: builder.mutation({
+            query: ({ studentId, semesterId,body }) => ({
+              url: `/score/${studentId}/${semesterId}`,
+              method: 'PUT',
+              body,
+            }),
+          }),
     }),
 });
 
@@ -46,5 +54,6 @@ export const {
     useGetStudentScoresBySemesterQuery, 
     useCreateSemesterMutation,
     useUpdateSemesterMutation,
-    useDeleteSemesterMutation 
+    useDeleteSemesterMutation ,
+    useUpdateScoreMutation
 } = semesterService;

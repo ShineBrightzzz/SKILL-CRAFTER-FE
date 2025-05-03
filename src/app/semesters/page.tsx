@@ -14,6 +14,7 @@ import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
 import Loading from '@/components/Loading'; // Import Loading component
 import ErrorHandler from '@/components/ErrorHandler'; // Import ErrorHandler component
+import withPermission from '@/hocs/withPermission';
 
 interface Semester {
   id: string;
@@ -23,12 +24,12 @@ interface Semester {
   endTime: string;
 }
 
-export default function SemestersPage() {
+const SemestersPage = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
 
-  const { data: semesterData, isLoading, error } = useGetSemesterQuery(); // Include error handling
+  const { data: semesterData, isLoading, error, refetch } = useGetSemesterQuery(); // Include refetch function
   const [createSemester] = useCreateSemesterMutation();
   const [updateSemester] = useUpdateSemesterMutation();
   const [deleteSemester] = useDeleteSemesterMutation();
@@ -180,3 +181,5 @@ export default function SemestersPage() {
     </Sidebar>
   );
 }
+
+export default withPermission(SemestersPage, Action.Read, Subject.Semester);

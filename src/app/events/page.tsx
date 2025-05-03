@@ -9,14 +9,16 @@ import {
   Table,
   Button,
 } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
+import { UploadOutlined, PlusOutlined } from '@ant-design/icons';
 import UploadModal from '@/components/UploadModal';
-import { useGetEventsQuery } from '@/services/events.service';
+import AddEventModal from '@/components/AddEventModal';
+import { useGetEventsQuery, useCreateEventMutation } from '@/services/events.service';
 import { toast } from 'react-toastify';
 import Loading from '@/components/Loading';
-import ErrorHandler from '@/components/ErrorHandler'; // Import the ErrorHandler component
+import ErrorHandler from '@/components/ErrorHandler';
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
+import withPermission from '@/hocs/withPermission';
 
 interface Semester {
   id: string;
@@ -35,12 +37,25 @@ interface Event {
 }
 
 const EventsPage = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isAddEventModalOpen, setIsAddEventModalOpen] = useState(false);
   const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
   const [uploadType, setUploadType] = useState<string>('');
-  const { data: eventData, isLoading, error } = useGetEventsQuery(); // Include error handling
+  const { data: eventData, isLoading, error, refetch } = useGetEventsQuery();
+  const [createEvent] = useCreateEventMutation();
 
   const ability = useAbility();
+
+  const handleAddEvent = async (eventData: any) => {
+    try {
+      await createEvent(eventData).unwrap();
+      toast.success("Thêm sự kiện thành công");
+      refetch();
+    } catch (error) {
+      toast.error("Lỗi khi thêm sự kiện");
+      console.error("Error creating event:", error);
+    }
+  };
 
   const handleUpload = async (file: File, metadata?: Record<string, any>) => {
     const semesterId = metadata?.semesterId;
@@ -86,7 +101,7 @@ const EventsPage = () => {
   const openUploadModal = (semesterId: string, type: string) => {
     setSelectedSemester({ id: semesterId, number: 0, year: 0 });
     setUploadType(type);
-    setIsModalOpen(true);
+    setIsUploadModalOpen(true);
   };
 
   const columns = [
@@ -159,7 +174,13 @@ const EventsPage = () => {
                 Danh sách Sự kiện
               </Typography.Title>
               {ability.can(Action.Create, Subject.Event) && (
-                <Button type="primary" onClick={() => {}}>+ Thêm sự kiện</Button>
+                <Button 
+                  type="primary" 
+                  icon={<PlusOutlined />} 
+                  onClick={() => setIsAddEventModalOpen(true)}
+                >
+                  Thêm sự kiện
+                </Button>
               )}
             </div>
 
@@ -175,18 +196,24 @@ const EventsPage = () => {
         )}
 
         <UploadModal
-          isOpen={isModalOpen}
+          isOpen={isUploadModalOpen}
           onClose={() => {
-            setIsModalOpen(false);
+            setIsUploadModalOpen(false);
             setSelectedSemester(null);
           }}
           semester={selectedSemester}
           uploadType={uploadType}
           onUpload={handleUpload}
         />
+
+        <AddEventModal
+          isOpen={isAddEventModalOpen}
+          onClose={() => setIsAddEventModalOpen(false)}
+          onAddEvent={handleAddEvent}
+        />
       </div>
     </Sidebar>
   );
 };
 
-export default EventsPage;
+export default withPermission(EventsPage, Action.Read, Subject.EventParticipation);

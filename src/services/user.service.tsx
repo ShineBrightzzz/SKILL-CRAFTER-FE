@@ -13,6 +13,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           localStorage.setItem('accessToken', data.data.accessToken);
+          localStorage.setItem('userId', data.data.username);
         } catch (error) {
           console.log('Error saving token:', error);
         }
@@ -27,7 +28,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
     }),
 
     getUserInfo: builder.query({
-      query: ({studentId}) => `/student/${studentId}`,
+      query: ({userId}) => `/student/${userId}`,
     }),
 
     createUser: builder.mutation<any, { name: string; email: string; password: string }>({
@@ -64,6 +65,26 @@ export const userApiSlice = apiSlice.injectEndpoints({
         };
       },
     }),
+
+    getUserPermissions: builder.query({
+      query: ({studentId}) => `/accounts/${studentId}/permissions`,
+    }),
+
+    getUserEmbedding: builder.query({
+      query: () => `/student/check-embedding`,
+    }),
+
+    getStudentInfoByClassId: builder.query({
+      query: ({ classId }) => `/student/by-class/${classId}`,
+    }),
+
+    getAllClassInfo: builder.query({
+      query: () => `/get-all-class-information`,
+    }),
+
+    getAllDepartmentInfo: builder.query({
+      query: () => `/get-all-department`,
+    }),
     
 
   }),
@@ -78,4 +99,10 @@ export const {
   useEditUserMutation,
   useLogoutMutation,
   useRegistFaceMutation,
+  useGetUserPermissionsQuery,
+  useLazyGetUserPermissionsQuery,
+  useGetUserEmbeddingQuery,
+  useGetStudentInfoByClassIdQuery,
+  useGetAllClassInfoQuery,
+  useGetAllDepartmentInfoQuery,
 } = userApiSlice;

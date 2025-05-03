@@ -11,6 +11,15 @@ const eventsService = apiSlice.injectEndpoints({
         getEventById: builder.query({
             query: ({eventId}) => `/eventDetails/${eventId}`,
         }),
+        createEvent: builder.mutation<any, any>({
+            query: (eventData) => {
+                return {
+                    url: `/eventDetails/create-event`,
+                    method: "POST",
+                    body: eventData,
+                };
+            },
+        }),
         registerEvent: builder.mutation<any, {studentId: string, eventId: string}>({
             query: ({studentId, eventId}) => {
                 return {
@@ -62,4 +71,13 @@ const eventsService = apiSlice.injectEndpoints({
     overrideExisting: true,
 });
 
-export const { useGetEventsQuery, useGetRegisteredEventsQuery, useGetEventByIdQuery, useRegisterEventMutation, useCheckinEventMutation, useGetCheckinCountQuery, useCheckoutEventMutation } = eventsService;
+export const { 
+    useGetEventsQuery, 
+    useGetRegisteredEventsQuery, 
+    useGetEventByIdQuery, 
+    useCreateEventMutation,
+    useRegisterEventMutation, 
+    useCheckinEventMutation, 
+    useGetCheckinCountQuery, 
+    useCheckoutEventMutation 
+} = eventsService;

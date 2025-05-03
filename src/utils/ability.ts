@@ -48,7 +48,7 @@ export enum Module {
 
 export type AppAbility = PureAbility<[Action, Subject]>;
 
-export const createAbility = (permissions: any[]) => {
+export const defineRulesFor = (permissions: any[]) => {
   const builder = new AbilityBuilder<AppAbility>(PureAbility as AbilityClass<AppAbility>);
   const { can, build } = builder;
 
@@ -62,6 +62,8 @@ export const createAbility = (permissions: any[]) => {
 
   return build();
 };
+
+export const createAbility = defineRulesFor;
 
 function mapApiMethodToAction(method: string, apiPath: string): Action | null {
   if (!method) return null;

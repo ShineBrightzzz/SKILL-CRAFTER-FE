@@ -18,8 +18,8 @@ export default function Login() {
     const password = formData.get('password') as string;
     try {
       const data = await login({ username, password }).unwrap();
-      const user = await fetchUserInfo({ studentId : username }).unwrap();
-
+      const user = await fetchUserInfo({ userId : username }).unwrap();
+      
       if (!user) {
         console.log('Error', 'User not found');
         return;

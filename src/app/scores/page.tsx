@@ -10,6 +10,8 @@ import UploadModal from '@/components/UploadModal';
 import { toast } from 'react-toastify';
 import Loading from '@/components/Loading'; // Import the Loading component
 import ErrorHandler from '@/components/ErrorHandler'; // Import the ErrorHandler component
+import { Action, Subject } from '@/utils/ability';
+import withPermission from '@/hocs/withPermission';
 
 interface Semester {
   id: string;
@@ -203,4 +205,5 @@ const SemestersPage = () => {
   );
 };
 
-export default SemestersPage;
+
+export default withPermission(SemestersPage, Action.Read, Subject.Score);

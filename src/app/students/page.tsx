@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Sidebar from "@/layouts/sidebar";
-import { Card, Typography, Table, Select } from 'antd';
+import { Card, Typography, Table, Select, Tag, Button } from 'antd';
 import { useGetSemesterQuery, useGetStudentScoresBySemesterQuery } from '@/services/semester.service';
 import { ColumnsType } from 'antd/es/table';
-import Loading from '@/components/Loading'; // Import Loading component
-import ErrorHandler from '@/components/ErrorHandler'; // Import ErrorHandler component
+import Loading from '@/components/Loading';
+import ErrorHandler from '@/components/ErrorHandler';
+import { EditOutlined } from '@ant-design/icons';
+import EditScoreModal from '@/components/EditScoreModal';
 
 const { Option } = Select;
 
@@ -24,16 +26,67 @@ interface Score {
 
 export default function ScoresPage() {
   const [selectedSemesterId, setSelectedSemesterId] = useState<string>('');
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Score | null>(null);
   const { data: semesterOptions, isLoading: isLoadingOptions, error: semesterError } = useGetSemesterQuery();
-  const { data: studentScoresData, isLoading: isLoadingScore, error: scoreError } = useGetStudentScoresBySemesterQuery({
+  const { data: studentScoresData, isLoading: isLoadingScore, error: scoreError, refetch } = useGetStudentScoresBySemesterQuery({
     semesterId: selectedSemesterId,
   });
+
+  // Set default semester when data is loaded
+  useEffect(() => {
+    if (semesterOptions?.data?.length > 0 && !selectedSemesterId) {
+      setSelectedSemesterId(semesterOptions.data[0].id);
+    }
+  }, [semesterOptions, selectedSemesterId]);
+
+  // Tính toán lại tổng điểm từ các thành phần điểm
+  const processedData = useMemo(() => {
+    if (!studentScoresData?.data) return [];
+    
+    return studentScoresData.data.map((student: Score) => {
+      // Lấy tất cả các điểm thành phần
+      const scores = {
+        self: student.scores.self_score || 0,
+        academic: student.scores.academic_score || 0,
+        research: student.scores.research_score || 0,
+        club: student.scores.club_score || 0,
+        event: student.scores.event_score || 0
+      };
+      
+      // Tính tổng điểm
+      const calculatedTotal = scores.self + scores.academic + scores.research + scores.club + scores.event;
+      
+      // Kiểm tra xem có điểm thành phần nào chưa
+      const hasAnyScore = Object.values(scores).some(score => score > 0);
+      
+      return {
+        ...student,
+        calculatedTotal: hasAnyScore ? calculatedTotal : undefined
+      };
+    });
+  }, [studentScoresData]);
 
   const handleSemesterChange = (value: string) => {
     setSelectedSemesterId(value);
   };
 
-  const columns: ColumnsType<Score> = [
+  const handleEditScore = (studentId: string) => {
+    const student = processedData.find((s: any) => s.studentId === studentId);
+    if (student) {
+      setSelectedStudent(student);
+      setIsEditModalVisible(true);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsEditModalVisible(false);
+    setSelectedStudent(null);
+    // Refresh the data after editing
+    refetch();
+  };
+
+  const columns: ColumnsType<Score & { calculatedTotal?: number }> = [
     {
       title: 'MSV',
       dataIndex: 'mssv',
@@ -46,7 +99,9 @@ export default function ScoresPage() {
       key: 'self',
       align: 'center',
       render: (_: any, record: Score) => (
-        <span>{record.scores.self_score ?? 'Chưa có điểm'}</span>
+        record.scores.self_score !== undefined ? 
+          <span>{record.scores.self_score}</span> : 
+          <Tag color="blue">Chưa có điểm</Tag>
       ),
     },
     {
@@ -54,7 +109,9 @@ export default function ScoresPage() {
       key: 'academic',
       align: 'center',
       render: (_: any, record: Score) => (
-        <span>{record.scores.academic_score ?? 'Chưa có điểm'}</span>
+        record.scores.academic_score !== undefined ? 
+          <span>{record.scores.academic_score}</span> : 
+          <Tag color="blue">Chưa có điểm</Tag>
       ),
     },
     {
@@ -62,7 +119,9 @@ export default function ScoresPage() {
       key: 'research',
       align: 'center',
       render: (_: any, record: Score) => (
-        <span>{record.scores.research_score ?? 'Chưa có điểm'}</span>
+        record.scores.research_score !== undefined ? 
+          <span>{record.scores.research_score}</span> : 
+          <Tag color="blue">Chưa có điểm</Tag>
       ),
     },
     {
@@ -70,7 +129,9 @@ export default function ScoresPage() {
       key: 'club',
       align: 'center',
       render: (_: any, record: Score) => (
-        <span>{record.scores.club_score ?? 'Chưa có điểm'}</span>
+        record.scores.club_score !== undefined ? 
+          <span>{record.scores.club_score}</span> : 
+          <Tag color="blue">Chưa có điểm</Tag>
       ),
     },
     {
@@ -78,15 +139,32 @@ export default function ScoresPage() {
       key: 'event',
       align: 'center',
       render: (_: any, record: Score) => (
-        <span>{record.scores.event_score ?? 'Chưa có điểm'}</span>
+        record.scores.event_score !== undefined ? 
+          <span>{record.scores.event_score}</span> : 
+          <Tag color="blue">Chưa có điểm</Tag>
       ),
     },
     {
       title: 'Tổng điểm',
       key: 'total',
       align: 'center',
+      render: (_: any, record: any) => (
+        record.calculatedTotal !== undefined ? 
+          <span>{record.calculatedTotal}</span> : 
+          <Tag color="blue">Chưa có điểm</Tag>
+      ),
+    },
+    {
+      title: 'Hành động',
+      key: 'actions',
+      align: 'center',
       render: (_: any, record: Score) => (
-        <span>{record.total_score ?? 'Chưa có điểm'}</span>
+        <div className="flex justify-center">
+          <Button
+            icon={<EditOutlined />}
+            onClick={() => handleEditScore(record.studentId)}
+          />
+        </div>
       ),
     },
   ];
@@ -131,11 +209,21 @@ export default function ScoresPage() {
             <Card className="shadow-md">
               <Table
                 columns={columns}
-                dataSource={studentScoresData?.data}
+                dataSource={processedData}
                 rowKey="studentId"
                 pagination={{ pageSize: 10 }}
               />
             </Card>
+
+            {selectedStudent && (
+              <EditScoreModal
+                isVisible={isEditModalVisible}
+                onClose={handleCloseModal}
+                studentId={selectedStudent.studentId}
+                semesterId={selectedSemesterId}
+                initialScores={selectedStudent.scores}
+              />
+            )}
           </>
         )}
       </div>
