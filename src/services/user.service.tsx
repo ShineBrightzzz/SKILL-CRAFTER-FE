@@ -1,4 +1,3 @@
-
 import apiSlice from './api';
 
 export const userApiSlice = apiSlice.injectEndpoints({
@@ -31,14 +30,13 @@ export const userApiSlice = apiSlice.injectEndpoints({
       query: ({userId}) => `/student/${userId}`,
     }),
 
-    createUser: builder.mutation<any, { name: string; email: string; password: string }>({
-      query: (body) => ({
-        url: '/api/auth/register',
+    createUser: builder.mutation({
+      query: ({body}) => ({
+        url: '/accounts',
         method: 'POST',
         body,
       }),
     }),
-
 
     editUser: builder.mutation({
       query: ({ body }) => ({
@@ -46,24 +44,6 @@ export const userApiSlice = apiSlice.injectEndpoints({
         method: 'PATCH',
         body,
       }),
-    }),
-
-    registFace: builder.mutation({
-      query: ({ studentId, video }) => {
-        const formData = new FormData();
-        formData.append("id", studentId);
-        formData.append("video", {
-          uri: video.uri,
-          name: "video.mp4",
-          type: "video/mp4",
-        } as any);
-        return {
-          url: `/regist-face`,
-          method: "POST",
-          body: formData,
-          formData: true,
-        };
-      },
     }),
 
     getUserPermissions: builder.query({
@@ -85,7 +65,25 @@ export const userApiSlice = apiSlice.injectEndpoints({
     getAllDepartmentInfo: builder.query({
       query: () => `/get-all-department`,
     }),
+
+    getAllUser : builder.query({
+      query: () => `/accounts`,
+    }),
     
+    deleteUser: builder.mutation({
+      query: ({ username }) => ({
+        url: `/accounts/${username}`,
+        method: 'DELETE',
+      }),
+    }),
+
+    updateUser: builder.mutation({
+      query: ({ username, body }) => ({
+        url: `/accounts/${username}`,
+        method: 'PUT',
+        body,
+      }),
+    }),
 
   }),
   overrideExisting: true,
@@ -105,4 +103,7 @@ export const {
   useGetStudentInfoByClassIdQuery,
   useGetAllClassInfoQuery,
   useGetAllDepartmentInfoQuery,
+  useGetAllUserQuery,
+  useDeleteUserMutation,
+  useUpdateUserMutation,
 } = userApiSlice;

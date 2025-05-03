@@ -1,14 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Sidebar from "@/layouts/sidebar";
-import { Card, Typography, Table, Button, message } from 'antd';
+import { Card, Typography, Table, Button, message, Input, Space, Popconfirm } from 'antd';
 import { useGetSemesterQuery, useCreateSemesterMutation, useUpdateSemesterMutation, useDeleteSemesterMutation } from '@/services/semester.service';
 import type { ColumnsType } from 'antd/es/table';
 import { toast } from 'react-toastify';
 import AddSemesterModal from '@/components/AddSemesterModal';
 import EditSemesterModal from '@/components/EditSemesterModal';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
@@ -28,6 +28,7 @@ const SemestersPage = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
+  const [searchText, setSearchText] = useState('');
 
   const { data: semesterData, isLoading, error, refetch } = useGetSemesterQuery(); // Include refetch function
   const [createSemester] = useCreateSemesterMutation();
@@ -35,6 +36,14 @@ const SemestersPage = () => {
   const [deleteSemester] = useDeleteSemesterMutation();
 
   const ability = useAbility();
+  
+  // Filter data based on search text
+  const filteredData = semesterData?.data?.filter((semester: Semester) => {
+    if (!searchText) return true;
+    const searchTermLower = searchText.toLowerCase();
+    const semesterText = `kì ${semester.number} năm ${semester.year}`.toLowerCase();
+    return semesterText.includes(searchTermLower);
+  });
 
   const handleAddSemester = async (semester: Omit<Semester, 'id'>) => {
     try {
@@ -62,11 +71,20 @@ const SemestersPage = () => {
 
   const handleDeleteSemester = async (semester: Semester) => {
     try {
-      await deleteSemester({ semesterId: semester.id }).unwrap();
-      toast.success("Xóa học kỳ thành công");
+      // Removing window.confirm logic as we're using Popconfirm now
+      const response = await deleteSemester({ semesterId: semester.id }).unwrap();
+      console.log("Xóa học kỳ:", response);
+      if (response) {
+        toast.success("Xóa học kỳ thành công");
+        refetch(); // Làm mới dữ liệu
+      } else {
+        toast.error("Không thể xóa học kỳ");
+      }
+    } catch (error: any) {
+      console.error("Lỗi khi xóa học kỳ:", error);
+      toast.error(error?.data?.message || "Lỗi khi xóa học kỳ");
+      // Vẫn làm mới dữ liệu để đồng bộ với DB trong trường hợp API trả về lỗi nhưng vẫn xóa được
       refetch();
-    } catch (error) {
-      toast.error("Lỗi khi xóa học kỳ");
     }
   };
 
@@ -110,11 +128,17 @@ const SemestersPage = () => {
             />
           )}
           {ability.can(Action.Delete, Subject.Semester) && (
-            <Button
-              icon={<DeleteOutlined />}
-              danger
-              onClick={() => handleDeleteSemester(record)}
-            />
+            <Popconfirm
+              title={`Bạn có chắc chắn muốn xóa học kỳ ${record.number} năm ${record.year} không?`}
+              onConfirm={() => handleDeleteSemester(record)}
+              okText="Có"
+              cancelText="Không"
+            >
+              <Button
+                icon={<DeleteOutlined />}
+                danger
+              />
+            </Popconfirm>
           )}
         </div>
       ),
@@ -150,9 +174,19 @@ const SemestersPage = () => {
             </div>
 
             <Card className="shadow-md">
+              <div style={{ marginBottom: 16 }}>
+                <Input
+                  placeholder="Tìm kiếm học kỳ..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  style={{ width: 300 }}
+                  allowClear
+                />
+              </div>
               <Table
                 columns={columns}
-                dataSource={semesterData?.data}
+                dataSource={filteredData}
                 rowKey="id"
                 pagination={{ pageSize: 10 }}
               />

@@ -1,4 +1,3 @@
-
 import { PureAbility, AbilityBuilder, Ability, AbilityClass, Subject as CaslSubject } from '@casl/ability';
 
 export enum Action {
@@ -18,6 +17,7 @@ export enum Subject {
   Score = 'Score',
   Club = 'Club',
   Form = 'Form',
+  User = 'User',
   All = 'all', 
 }
 
@@ -69,7 +69,13 @@ function mapApiMethodToAction(method: string): Action {
 function mapApiPathToSubject(path: string): Subject {
   if (path === '/**') return Subject.All;
   
-  if (path.includes('/accounts')) return Subject.Account;
+  if (path.includes('/accounts')) {
+    // Differentiate between Account and User
+    if (path.includes('/accounts') && !path.includes('/permissions')) {
+      return Subject.User;
+    }
+    return Subject.Account;
+  }
   if (path.includes('/roles')) return Subject.Role;
   if (path.includes('/permissions')) return Subject.Permission;
   if (path.includes('/students')) return Subject.Student;

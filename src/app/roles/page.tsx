@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Button, Table, Modal, Form, Input, Switch, Tag, message } from 'antd';
+import { Button, Table, Modal, Form, Input, Switch, Tag, message, Card, Popconfirm } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import Sidebar from '@/layouts/sidebar';
 import {
@@ -12,9 +12,13 @@ import {
 } from '@/services/role.service';
 
 import { useGetPermissionsQuery } from '@/services/permission.service';
-import { Collapse, Typography } from 'antd';
+import { Collapse, Typography, Space } from 'antd';
 import Loading from '@/components/Loading'; // Import the Loading component
 import ErrorHandler from '@/components/ErrorHandler'; // Import the ErrorHandler component
+import { Action, Subject } from '@/utils/ability';
+import { useAbility } from '@/hooks/useAbility';
+import withPermission from '@/hocs/withPermission';
+import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 
 const { Panel } = Collapse;
 const { Text } = Typography;
@@ -25,12 +29,25 @@ const RoleManagement: React.FC = () => {
   const [editingRole, setEditingRole] = useState<any | null>(null);
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<string[]>([]);
   const [groupedPermissions, setGroupedPermissions] = useState<{ [module: string]: any[] }>({});
+  const [searchText, setSearchText] = useState('');
 
   const { data: rolesData, isLoading: isLoadingRoles, error: rolesError, refetch } = useGetRoleQuery();
   const roles = rolesData?.data?.data || [];
 
   const { data: permissionsData, isLoading: isLoadingPermissions, error: permissionsError } = useGetPermissionsQuery();
   const permissions = permissionsData?.data?.data || [];
+
+  const ability = useAbility(); // Add useAbility hook
+
+  // Filter roles based on search text
+  const filteredRoles = roles.filter((role: any) => {
+    if (!searchText) return true;
+    const searchTermLower = searchText.toLowerCase();
+    return (
+      (role.name && role.name.toLowerCase().includes(searchTermLower)) ||
+      (role.description && role.description.toLowerCase().includes(searchTermLower))
+    );
+  });
 
   const [createRole] = useCreateRoleMutation();
   const [updateRole] = useUpdateRoleMutation();
@@ -52,7 +69,7 @@ const RoleManagement: React.FC = () => {
     form.setFieldsValue({
       name: role.name,
       description: role.description,
-      status: role.status,
+      active: role.active,
     });
     setSelectedPermissionIds(role.permissionIds || []);
     setModalVisible(true);
@@ -71,7 +88,7 @@ const RoleManagement: React.FC = () => {
       const rolePayload = {
         ...values,
         permissionIds: selectedPermissionIds,
-        status: values.status || false,
+        active: values.active || false,
       };
 
       if (editingRole) {
@@ -89,20 +106,26 @@ const RoleManagement: React.FC = () => {
     }
   };
 
-  const handleDelete = (id: number) => {
-    Modal.confirm({
-      title: 'Xác nhận xóa',
-      content: 'Bạn có chắc chắn muốn xóa vai trò này?',
-      onOk: async () => {
-        try {
-          await deleteRole(id).unwrap();
-          message.success('Đã xóa');
-          refetch();
-        } catch {
-          message.error('Xóa thất bại');
-        }
-      },
-    });
+  const handleDelete = async (id: number) => {
+    try {
+      // Chuyển đổi id thành string nếu cần thiết
+      const stringId = id.toString();
+      console.log('Attempting to delete role with ID:', stringId);
+      
+      const response = await deleteRole({ id: stringId }).unwrap();
+      console.log("Xóa vai trò:", response);
+      if (response) {
+        message.success("Xóa vai trò thành công");
+        refetch(); // Làm mới dữ liệu
+      } else {
+        message.error("Không thể xóa vai trò");
+      }
+    } catch (error: any) {
+      console.error("Lỗi khi xóa vai trò:", error);
+      message.error(error?.data?.message || "Lỗi khi xóa vai trò");
+      // Vẫn làm mới dữ liệu để đồng bộ với DB trong trường hợp API trả về lỗi nhưng vẫn xóa được
+      refetch();
+    }
   };
 
   const togglePermission = (id: string) => {
@@ -179,37 +202,55 @@ const RoleManagement: React.FC = () => {
   };
 
   const baseColumns: ColumnsType<any> = [
-    { title: 'Id', dataIndex: 'id' },
-    { title: 'Name', dataIndex: 'name' },
+    // ID column removed
+    { title: 'Tên vai trò', dataIndex: 'name' },
     {
       title: 'Trạng thái',
-      dataIndex: 'status',
+      dataIndex: 'active',
       render: (active: boolean) => (
         <Tag color={active ? 'green' : 'red'}>
           {active ? 'ACTIVE' : 'INACTIVE'}
         </Tag>
       ),
     },
-    { title: 'CreatedAt', dataIndex: 'createdAt' },
-    { title: 'UpdatedAt', dataIndex: 'updatedAt' },
   ];
 
   const columns: ColumnsType<any> = [...baseColumns];
 
-  columns.push({
-    title: 'Actions',
-    key: 'actions',
-    render: (_: any, record: any) => (
-      <>
-        <Button type="link" onClick={() => openEditModal(record)}>
-          ✏️
-        </Button>
-        <Button type="link" danger onClick={() => handleDelete(record.id)}>
-          🗑
-        </Button>
-      </>
-    ),
-  });
+  // Only add actions column if user has permission to edit or delete
+  if (ability.can(Action.Update, Subject.Role) || ability.can(Action.Delete, Subject.Role)) {
+    columns.push({
+      title: 'Hành động',
+      key: 'actions',
+      align: 'center',
+      render: (_: any, record: any) => {
+        console.log(record.id);
+        return (
+        
+        <div className="flex justify-center gap-2">
+          {ability.can(Action.Update, Subject.Role) && (
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => openEditModal(record)}
+            />
+          )}
+          {ability.can(Action.Delete, Subject.Role) && (
+            <Popconfirm
+              title="Bạn có chắc chắn muốn xóa vai trò này không?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="Có"
+              cancelText="Không"
+            >
+              <Button
+                icon={<DeleteOutlined />}
+                danger
+              />
+            </Popconfirm>
+          )}
+        </div>
+      );}
+    });
+  }
 
   // Check for errors and handle them
   if (rolesError || permissionsError) {
@@ -229,17 +270,34 @@ const RoleManagement: React.FC = () => {
         ) : (
           <>
             <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-              <h3>Danh sách Roles (Vai Trò)</h3>
-              <Button type="primary" onClick={openCreateModal}>
-                + Thêm mới
-              </Button>
+              <Typography.Title level={2} className="mb-6 text-center">
+                Danh sách Roles (Vai Trò)
+              </Typography.Title>
+              {ability.can(Action.Create, Subject.Role) && (
+                <Button type="primary" onClick={openCreateModal} icon={<PlusOutlined />}>
+                  Thêm vai trò
+                </Button>
+              )}
             </div>
-            <Table
-              dataSource={roles}
-              columns={columns}
-              rowKey="id"
-              pagination={{ pageSize: 10 }}
-            />
+
+            <Card className="shadow-md">
+              <div style={{ marginBottom: 16 }}>
+                <Input
+                  placeholder="Tìm kiếm vai trò..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  style={{ width: 300 }}
+                  allowClear
+                />
+              </div>
+              <Table
+                dataSource={filteredRoles}
+                columns={columns}
+                rowKey="id"
+                pagination={{ pageSize: 10 }}
+              />
+            </Card>
 
             <Modal
               title={editingRole ? 'Sửa Role' : 'Tạo mới Role'}
@@ -255,7 +313,7 @@ const RoleManagement: React.FC = () => {
                 <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}>
                   <Input.TextArea />
                 </Form.Item>
-                <Form.Item name="status" label="Trạng thái" valuePropName="checked">
+                <Form.Item name="active" label="Trạng thái" valuePropName="checked">
                   <Switch checkedChildren="ACTIVE" unCheckedChildren="INACTIVE" />
                 </Form.Item>
               </Form>
@@ -269,4 +327,4 @@ const RoleManagement: React.FC = () => {
   );
 };
 
-export default RoleManagement;
+export default withPermission(RoleManagement, Action.Read, Subject.Role);

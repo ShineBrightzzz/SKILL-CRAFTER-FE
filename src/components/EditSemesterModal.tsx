@@ -46,7 +46,7 @@ export default function EditSemesterModal({ isOpen, onClose, semester, onEditSem
         initialValues={{
           number: semester?.number,
           year: semester?.year,
-          startTime: semester?.startTime ? dayjs(semester.startTime) : null, // ✅ Convert to dayjs
+          startTime: semester?.startTime ? dayjs(semester.startTime) : null, 
           endTime: semester?.endTime ? dayjs(semester.endTime) : null,
         }}
       >

@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Sidebar from "@/layouts/sidebar";
-import { Card, Typography, Table, Select, Tag, Button } from 'antd';
+import { Card, Typography, Table, Select, Tag, Button, Input } from 'antd';
 import { useGetSemesterQuery, useGetStudentScoresBySemesterQuery } from '@/services/semester.service';
 import { ColumnsType } from 'antd/es/table';
 import Loading from '@/components/Loading';
 import ErrorHandler from '@/components/ErrorHandler';
-import { EditOutlined } from '@ant-design/icons';
+import { EditOutlined, SearchOutlined } from '@ant-design/icons';
 import EditScoreModal from '@/components/EditScoreModal';
 
 const { Option } = Select;
@@ -28,6 +28,8 @@ export default function ScoresPage() {
   const [selectedSemesterId, setSelectedSemesterId] = useState<string>('');
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Score | null>(null);
+  const [searchText, setSearchText] = useState('');
+  
   const { data: semesterOptions, isLoading: isLoadingOptions, error: semesterError } = useGetSemesterQuery();
   const { data: studentScoresData, isLoading: isLoadingScore, error: scoreError, refetch } = useGetStudentScoresBySemesterQuery({
     semesterId: selectedSemesterId,
@@ -55,7 +57,7 @@ export default function ScoresPage() {
       };
       
       // Tính tổng điểm
-      const calculatedTotal = scores.self + scores.academic + scores.research + scores.club + scores.event;
+      const calculatedTotal = Math.min(scores.self + scores.academic + scores.research + scores.club + scores.event, 100);
       
       // Kiểm tra xem có điểm thành phần nào chưa
       const hasAnyScore = Object.values(scores).some(score => score > 0);
@@ -66,6 +68,19 @@ export default function ScoresPage() {
       };
     });
   }, [studentScoresData]);
+
+  // Filter data based on search text
+  const filteredData = useMemo(() => {
+    if (!processedData) return [];
+    
+    return processedData.filter((student: any) => {
+      if (!searchText) return true;
+      const searchTermLower = searchText.toLowerCase();
+      
+      // Search by student ID
+      return student.studentId.toLowerCase().includes(searchTermLower);
+    });
+  }, [processedData, searchText]);
 
   const handleSemesterChange = (value: string) => {
     setSelectedSemesterId(value);
@@ -207,9 +222,19 @@ export default function ScoresPage() {
             </div>
 
             <Card className="shadow-md">
+              <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+                <Input
+                  placeholder="Tìm kiếm theo mã sinh viên..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  style={{ width: 300 }}
+                  allowClear
+                />
+              </div>
               <Table
                 columns={columns}
-                dataSource={processedData}
+                dataSource={filteredData}
                 rowKey="studentId"
                 pagination={{ pageSize: 10 }}
               />

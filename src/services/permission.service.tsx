@@ -27,7 +27,7 @@ const permissionSlice = apiSlice.injectEndpoints({
             invalidatesTags: ['Permission'], 
         }),
         deletePermission: builder.mutation({
-            query: (id) => ({
+            query: ({ id }) => ({
                 url: `/permissions/${id}`,
                 method: 'DELETE',
             }),

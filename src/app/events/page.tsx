@@ -8,8 +8,9 @@ import {
   Typography,
   Table,
   Button,
+  Input,
 } from 'antd';
-import { UploadOutlined, PlusOutlined } from '@ant-design/icons';
+import { UploadOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import UploadModal from '@/components/UploadModal';
 import AddEventModal from '@/components/AddEventModal';
 import { useGetEventsQuery, useCreateEventMutation } from '@/services/events.service';
@@ -30,8 +31,8 @@ interface Event {
   id: string;
   name: string;
   organizing_unit: string;
-  start_time: string;
-  end_time: string;
+  startTime: string;
+  endTime: string;
   location: string;
   semester: string;
 }
@@ -41,8 +42,11 @@ const EventsPage = () => {
   const [isAddEventModalOpen, setIsAddEventModalOpen] = useState(false);
   const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
   const [uploadType, setUploadType] = useState<string>('');
+  const [searchText, setSearchText] = useState('');
+  
   const { data: eventData, isLoading, error, refetch } = useGetEventsQuery();
   const [createEvent] = useCreateEventMutation();
+
 
   const ability = useAbility();
 
@@ -104,16 +108,30 @@ const EventsPage = () => {
     setIsUploadModalOpen(true);
   };
 
+  // Filter events based on search text
+  const filteredEvents = eventData?.data?.filter((event: any) => {
+    if (!searchText) return true;
+    const searchTermLower = searchText.toLowerCase();
+    
+    return (
+      (event.title && event.title.toLowerCase().includes(searchTermLower)) ||
+      (event.organizingUnit && event.organizingUnit.toLowerCase().includes(searchTermLower)) ||
+      (event.location && event.location.toLowerCase().includes(searchTermLower))
+    );
+  });
+
   const columns = [
     {
       title: 'Tên sự kiện',
       dataIndex: 'title',
       key: 'title',
+      width: 200,
     },
     {
       title: 'Đơn vị tổ chức',
       dataIndex: 'organizingUnit',
       key: 'organizingUnit',
+      width: 180,
     },
     {
       title: 'Địa điểm',
@@ -122,13 +140,13 @@ const EventsPage = () => {
     },
     {
       title: 'Thời gian bắt đầu',
-      dataIndex: 'start_time',
+      dataIndex: 'startTime',
       key: 'start_time',
       render: (text: string) => dayjs(text).format('DD/MM/YYYY HH:mm'),
     },
     {
       title: 'Thời gian kết thúc',
-      dataIndex: 'end_time',
+      dataIndex: 'endTime',
       key: 'end_time',
       render: (text: string) => dayjs(text).format('DD/MM/YYYY HH:mm'),
     },
@@ -145,9 +163,8 @@ const EventsPage = () => {
     },
   ];
 
-  // Check for errors and handle them
   if (error) {
-    const status = (error as any).status || 500; // Default to 500 if no status is provided
+    const status = (error as any).status || 500; 
     return (
       <Sidebar>
         <ErrorHandler status={status} />
@@ -185,9 +202,19 @@ const EventsPage = () => {
             </div>
 
             <Card className="shadow-md">
+              <div style={{ marginBottom: 16 }}>
+                <Input
+                  placeholder="Tìm kiếm sự kiện..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  style={{ width: 300 }}
+                  allowClear
+                />
+              </div>
               <Table
                 columns={columns}
-                dataSource={eventData?.data}
+                dataSource={filteredEvents}
                 rowKey="id"
                 pagination={{ pageSize: 10 }}
               />

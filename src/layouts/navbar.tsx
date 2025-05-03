@@ -5,17 +5,27 @@ import { Layout, Avatar, Dropdown, Menu, Typography } from 'antd';
 import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
-import  {logout}  from '@/store/slices/userSlice';
+import { logout } from '@/store/slices/userSlice';
+import { useRouter } from 'next/navigation';
 
 const { Header } = Layout;
 const { Text } = Typography;
 
 const Navbar: React.FC = () => {
   const dispatch = useDispatch();
+  const router = useRouter();
   const user = useSelector((state: any) => state.user);
 
   const handleLogout = () => {
+    // Clear localStorage items
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('userId');
+    
+    // Dispatch logout action to reset Redux state
     dispatch(logout());
+    
+    // Redirect to login page
+    router.push('/login');
   };
 
   const menu = (
