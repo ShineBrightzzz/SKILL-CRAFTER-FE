@@ -10,10 +10,15 @@ import {
   UserOutlined,
   KeyOutlined,
   TeamOutlined,
+  LockOutlined,
+  IdcardOutlined,
+  UsergroupAddOutlined,
+  DownOutlined,
+  RightOutlined
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
-import Navbar from './navbar'; // Import Navbar component
+import Navbar from './navbar'; 
 
 const { Sider, Content } = Layout;
 const { Title } = Typography;
@@ -24,14 +29,27 @@ interface DashboardLayoutProps {
 
 const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false); // Sidebar collapsed state
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
   const router = useRouter();
   const pathname = usePathname();
+
+  // Set initial open keys based on the current path
+  React.useEffect(() => {
+    if (['/permissions', '/roles', '/users'].includes(pathname)) {
+      setOpenKeys(['admin']);
+    }
+  }, [pathname]);
 
   const getOpenKeysFromPath = (path: string) => {
     if (['/permissions', '/roles', '/users'].includes(path)) {
       return ['admin'];
     }
     return [];
+  };
+
+  // Function to handle submenu opening/closing
+  const onOpenChange = (keys: string[]) => {
+    setOpenKeys(keys);
   };
 
   const menuItems = [
@@ -42,18 +60,57 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
     { key: '/students', label: 'Điểm sinh viên', icon: <UserOutlined /> },
     {
       key: 'admin',
-      label: 'Quản trị hệ thống',
-      icon: <KeyOutlined />,
+      label: (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+          <span>Quản trị hệ thống</span>
+          {openKeys.includes('admin') ? 
+            <DownOutlined style={{ fontSize: '12px' }} /> : 
+            <RightOutlined style={{ fontSize: '12px' }} />
+          }
+        </div>
+      ),
+      icon: <LockOutlined />,
       children: [
         { key: '/permissions', label: 'Quản lý quyền', icon: <KeyOutlined /> },
-        { key: '/roles', label: 'Quản lý vai trò', icon: <KeyOutlined /> },
-        { key: '/users', label: 'Quản lý người dùng', icon: <TeamOutlined /> },
+        { key: '/roles', label: 'Quản lý vai trò', icon: <IdcardOutlined /> },
+        { key: '/users', label: 'Quản lý người dùng', icon: <UsergroupAddOutlined /> },
       ],
     },
   ];
 
+  // Custom styles for the submenu items
+  const menuStyles = `
+    /* Change submenu item text color to light blue */
+    .ant-menu-dark .ant-menu-submenu-title {
+      color: #fff !important;
+    }
+    
+    /* Change submenu dropdown background color */
+    .ant-menu-dark .ant-menu-sub {
+      background-color: #1f7bc4 !important;
+    }
+    
+    /* Change submenu item color to light blue */
+    .ant-menu-dark .ant-menu-item {
+      color: #a6d1ff !important;
+    }
+    
+    /* Remove submenu arrows */
+    .ant-menu-submenu-arrow {
+      display: none !important;
+    }
+    
+    /* Styling for the expand indicator */
+    .ant-menu-submenu-title:hover {
+      background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+  `;
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
+      {/* Add custom styles */}
+      <style>{menuStyles}</style>
+      
       {/* Sidebar on the left */}
       <Sider
         collapsible
@@ -107,7 +164,8 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
           theme="dark"
           mode="inline"
           selectedKeys={[pathname]}
-          defaultOpenKeys={getOpenKeysFromPath(pathname)}
+          openKeys={openKeys}
+          onOpenChange={onOpenChange}
           onClick={({ key }) => router.push(key)}
           items={menuItems}
           style={{
@@ -117,23 +175,17 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
           }}
           subMenuOpenDelay={0.3} // Optional: Add a slight delay for submenu opening
           subMenuCloseDelay={0.3} // Optional: Add a slight delay for submenu closing
-          expandIcon={({ isOpen }) => (
-            <span
-              style={{
-                color: '#fff', // Icon color
-                transition: 'transform 0.3s',
-                transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
-              }}
-            >
-              ▶
-            </span>
-          )}
+          // Remove the expandIcon prop to remove the arrow
+          expandIcon={null}
         />
       </Sider>
 
       {/* Main layout with Navbar and Content */}
-      <Layout style={{ marginLeft: collapsed ? 80 : 250 }}> {/* Adjust margin based on collapsed state */}
-        <Navbar collapsed={collapsed} /> {/* Pass collapsed state to Navbar */}
+      <Layout 
+        style={{ marginLeft: collapsed ? 80 : 250 }}
+        className="site-layout" 
+      > 
+        <Navbar collapsed={collapsed} /> 
         <Content
           style={{
             margin: '24px',

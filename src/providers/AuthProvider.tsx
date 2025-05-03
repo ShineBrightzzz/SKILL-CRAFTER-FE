@@ -16,6 +16,7 @@ import { setUser, clearUser } from '@/store/slices/userSlice';
 import { useDispatch } from 'react-redux';
 import { setAbility } from '@/store/slices/abilitySlice';
 import { useGetUserPermissionsQuery, useLazyGetUserInfoQuery, useLazyGetUserPermissionsQuery } from '@/services/user.service';
+
 const AuthContext = createContext<{
   signIn: (token: string) => void;
   signOut: () => void;
@@ -47,50 +48,69 @@ export default function AuthProvider({ children }: { children: ReactNode }): Rea
   useEffect(() => {
     (async (): Promise<void> => {
       try {
+        // Set initial loading state to true
+        setIsLoading(true);
+        
         // Use localStorage for browser instead of AsyncStorage
         const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+        const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
         tokenRef.current = token || '';
         
-        if (token) {
+        if (token && userId) {
           // Fetch user data to validate token
-          const userId = localStorage.getItem('userId');
-          console.log("User ID:", userId);
-          const user = await fetchUserInfo({ userId }).unwrap();
-          const data  = await getUserPermissions({studentId : userId}).unwrap();
+          try {
+            const user = await fetchUserInfo({ userId }).unwrap();
+            const data = await getUserPermissions({studentId: userId}).unwrap();
 
-          if (user && !isError) {
-            dispatch(setUser({
-              ...user.data,
-              isAuthenticated: true
-            }));
-            setIsAuthenticated(true);
-            dispatch(setAbility(data?.data?.data || []));
-          } else {
-            // Token is invalid or expired
-            console.log("Token invalid or expired");
-            if (typeof window !== 'undefined') localStorage.removeItem('accessToken');
-            tokenRef.current = null;
-            dispatch(clearUser());
-            router.push('/login');
+            if (user && !isError) {
+              dispatch(setUser({
+                ...user.data,
+                isAuthenticated: true
+              }));
+              setIsAuthenticated(true);
+              dispatch(setAbility(data?.data?.data || []));
+            } else {
+              // Token is invalid or expired
+              console.log("Token invalid or expired");
+              handleAuthFailure();
+            }
+          } catch (error) {
+            console.log("Error during token validation:", error);
+            handleAuthFailure();
           }
+        } else {
+          // No token found, clear any stale data and set authenticated to false
+          console.log("No token found");
+          handleAuthFailure(false); // false means don't redirect if we're already on a public page
         }
-        
-        setIsLoading(false);
       } catch (error) {
         console.log("Error validating token:", error);
-        // Handle error - token validation failed
-        if (typeof window !== 'undefined'){
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('userId');
-        }
-
-        tokenRef.current = null;
-        dispatch(clearUser());
-        router.push('/login');
+        handleAuthFailure();
+      } finally {
+        // Always set loading to false when we're done
         setIsLoading(false);
       }
     })();
   }, []);
+  
+  // Helper function to handle authentication failures
+  const handleAuthFailure = useCallback((shouldRedirect = true) => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('userId');
+    }
+    tokenRef.current = null;
+    dispatch(clearUser());
+    setIsAuthenticated(false);
+    
+    // Only redirect if explicitly told to (prevents redirect loops)
+    if (shouldRedirect) {
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/login' && currentPath !== '/register') {
+        router.push('/login');
+      }
+    }
+  }, [dispatch, router]);
 
   const signIn = useCallback(async (token: string) => {
     if (typeof window !== 'undefined') localStorage.setItem('accessToken', token);

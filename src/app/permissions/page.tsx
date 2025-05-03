@@ -11,6 +11,8 @@ import {
   Space,
   Popconfirm,
   message,
+  Typography,
+  Card,
 } from 'antd';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setPermissions } from '@/store/slices/permissionSlice';
@@ -26,6 +28,8 @@ import { useAbility } from '@/hooks/useAbility';
 import { ColumnsType } from 'antd/es/table';
 import Loading from '@/components/Loading'; // Import the Loading component
 import ErrorHandler from '@/components/ErrorHandler'; // Import the ErrorHandler component
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import withPermission from '@/hocs/withPermission';
 
 const { Option } = Select;
 
@@ -36,6 +40,7 @@ const PermissionTable: React.FC = () => {
   const [editingPermission, setEditingPermission] = useState<any>(null);
   const [form] = Form.useForm();
   const ability = useAbility();
+  const [searchText, setSearchText] = useState('');
 
   const { data: permissionsData, isLoading, error } = useGetPermissionsQuery(); // Include error handling
   const [updatePermission] = useUpdatePermissionMutation();
@@ -47,6 +52,18 @@ const PermissionTable: React.FC = () => {
       dispatch(setPermissions(permissionsData.data.data));
     }
   }, [permissionsData, dispatch]);
+
+  // Filter permissions based on search text
+  const filteredPermissions = permissions.filter((permission: any) => {
+    if (!searchText) return true;
+    const searchTermLower = searchText.toLowerCase();
+    return (
+      (permission.name && permission.name.toLowerCase().includes(searchTermLower)) ||
+      (permission.apiPath && permission.apiPath.toLowerCase().includes(searchTermLower)) ||
+      (permission.method && permission.method.toLowerCase().includes(searchTermLower)) ||
+      (permission.module && permission.module.toLowerCase().includes(searchTermLower))
+    );
+  });
 
   const handleEdit = (record: any) => {
     setEditingPermission(record);
@@ -62,7 +79,7 @@ const PermissionTable: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await deletePermission(id).unwrap();
+      await deletePermission({ id }).unwrap();
       message.success('Permission deleted successfully');
     } catch (error) {
       message.error('Failed to delete permission');
@@ -102,10 +119,10 @@ const PermissionTable: React.FC = () => {
   };
 
   const baseColumns: ColumnsType<any> = [
-    { title: 'Name', dataIndex: 'name', key: 'name' },
-    { title: 'API', dataIndex: 'apiPath', key: 'apiPath' },
+    { title: 'Tên quyền hạn', dataIndex: 'name', key: 'name' },
+    { title: 'Đường dẫn API', dataIndex: 'apiPath', key: 'apiPath' },
     {
-      title: 'Method',
+      title: 'Phương thức',
       dataIndex: 'method',
       key: 'method',
       render: (text: string) => <span style={{ color: methodColor(text) }}>{text}</span>,
@@ -120,12 +137,16 @@ const PermissionTable: React.FC = () => {
     ability.can(Action.Delete, Subject.Permission)
   ) {
     columns.push({
-      title: 'Actions',
+      title: 'Hành động',
       key: 'actions',
+      align: 'center',
       render: (_: any, record: any) => (
-        <Space>
-          {ability.can(Action.Create, Subject.Permission) && (
-            <Button type="link" onClick={() => handleEdit(record)}>✏️</Button>
+        <div className="flex justify-center gap-2">
+          {ability.can(Action.Update, Subject.Permission) && (
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+            />
           )}
           {ability.can(Action.Delete, Subject.Permission) && (
             <Popconfirm
@@ -134,10 +155,13 @@ const PermissionTable: React.FC = () => {
               okText="Yes"
               cancelText="No"
             >
-              <Button type="link" danger>🗑️</Button>
+              <Button
+                icon={<DeleteOutlined />}
+                danger
+              />
             </Popconfirm>
           )}
-        </Space>
+        </div>
       ),
     });
   }
@@ -160,18 +184,34 @@ const PermissionTable: React.FC = () => {
         ) : (
           <>
             <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-              <h3>Danh sách Permissions (Quyền hạn)</h3>
+              <Typography.Title level={2} className="mb-6 text-center">
+                Danh sách Permissions (Quyền hạn)
+              </Typography.Title>
               {ability.can(Action.Create, Subject.Permission) && (
-                <Button type="primary" onClick={handleAdd}>+ Thêm mới</Button>
+                <Button type="primary" onClick={handleAdd} icon={<PlusOutlined />}>
+                  Thêm mới
+                </Button>
               )}
             </div>
 
-            <Table
-              columns={columns}
-              dataSource={permissions}
-              rowKey="id"
-              pagination={{ pageSize: 10 }}
-            />
+            <Card className="shadow-md">
+              <div style={{ marginBottom: 16 }}>
+                <Input
+                  placeholder="Tìm kiếm quyền hạn..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  style={{ width: 300 }}
+                  allowClear
+                />
+              </div>
+              <Table
+                columns={columns}
+                dataSource={filteredPermissions}
+                rowKey="id"
+                pagination={{ pageSize: 10 }}
+              />
+            </Card>
 
             <Modal
               title={editingPermission ? 'Sửa Permission' : 'Tạo mới Permission'}
@@ -212,4 +252,4 @@ const PermissionTable: React.FC = () => {
   );
 };
 
-export default PermissionTable;
+export default withPermission(PermissionTable, Action.Read, Subject.Permission);

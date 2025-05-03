@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import Sidebar from "@/layouts/sidebar";
-import { Card, Typography, Table, Button, Tag } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
+import { Card, Typography, Table, Button, Tag, Input } from 'antd';
+import { UploadOutlined, SearchOutlined } from '@ant-design/icons';
 import { useGetExistsScoreQuery, useGetSemesterQuery } from '@/services/semester.service';
 import type { ColumnsType } from 'antd/es/table';
 import UploadModal from '@/components/UploadModal';
@@ -24,6 +24,7 @@ const SemestersPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
   const [uploadType, setUploadType] = useState<string>('');
+  const [searchText, setSearchText] = useState('');
 
   const { data: semesterData, isLoading: isLoadingSemesters, error: semesterError } = useGetSemesterQuery();
   const { data: existScoreData, isLoading: isLoadingScores, error: scoreError } = useGetExistsScoreQuery();
@@ -155,6 +156,14 @@ const SemestersPage = () => {
     },
   ];
 
+  // Filter semesters based on search text
+  const filteredSemesters = semesterData?.data?.filter((semester: Semester) => {
+    if (!searchText) return true;
+    const searchTermLower = searchText.toLowerCase();
+    const semesterText = `kì ${semester.number} năm ${semester.year}`.toLowerCase();
+    return semesterText.includes(searchTermLower);
+  });
+
   // Check for errors and handle them
   if (semesterError || scoreError) {
     const status = (semesterError as any)?.status || (scoreError as any)?.status || 500;
@@ -179,9 +188,19 @@ const SemestersPage = () => {
             </div>
 
             <Card className="shadow-md">
+              <div style={{ marginBottom: 16 }}>
+                <Input
+                  placeholder="Tìm kiếm học kỳ..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  style={{ width: 300 }}
+                  allowClear
+                />
+              </div>
               <Table
                 columns={columns}
-                dataSource={semesterData?.data}
+                dataSource={filteredSemesters}
                 rowKey="id"
                 pagination={{ pageSize: 10 }}
               />
