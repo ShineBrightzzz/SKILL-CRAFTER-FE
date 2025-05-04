@@ -181,7 +181,7 @@ const UsersManagement: React.FC = () => {
       ),
     });
   }
-
+  console.log(error)
   // Check for errors and handle them
   if (error) {
     const status = (error as any)?.status || 500;

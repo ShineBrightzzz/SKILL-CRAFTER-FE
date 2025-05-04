@@ -2,7 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Typography, Row, Col, Statistic, Divider, Badge, List, Tooltip, Button, Space, Avatar } from 'antd';
-import { Column, Pie, Area } from '@ant-design/plots';
+import dynamic from 'next/dynamic';
+// Replace direct imports with dynamic imports
+const Column = dynamic(() => import('@ant-design/plots').then(mod => mod.Column), { ssr: false });
+const Pie = dynamic(() => import('@ant-design/plots').then(mod => mod.Pie), { ssr: false });
+const Area = dynamic(() => import('@ant-design/plots').then(mod => mod.Area), { ssr: false });
+
 import Sidebar from '@/layouts/sidebar';
 import { 
   TeamOutlined, 

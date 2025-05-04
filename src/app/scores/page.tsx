@@ -25,6 +25,7 @@ const SemestersPage = () => {
   const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
   const [uploadType, setUploadType] = useState<string>('');
   const [searchText, setSearchText] = useState('');
+  const [localUploadStatus, setLocalUploadStatus] = useState<Record<string, Record<string, boolean>>>({});
 
   const { data: semesterData, isLoading: isLoadingSemesters, error: semesterError } = useGetSemesterQuery();
   const { data: existScoreData, isLoading: isLoadingScores, error: scoreError } = useGetExistsScoreQuery();
@@ -43,12 +44,16 @@ const SemestersPage = () => {
     formData.append('semester_id', semesterId);
 
     let uploadUrl = '';
+    let scoreType = '';
     if (type === 'Điểm học tập') {
-      uploadUrl = 'https://example.com/file-processing/academic';
+      uploadUrl = 'http://localhost:8000/file-processing/academic';
+      scoreType = 'academic_score';
     } else if (type === 'Điểm NCKH') {
-      uploadUrl = 'https://example.com/file-processing/research';
+      uploadUrl = 'http://localhost:8000/file-processing/research';
+      scoreType = 'research_score';
     } else if (type === 'Điểm CLB') {
-      uploadUrl = 'https://example.com/file-processing/club';
+      uploadUrl = 'http://localhost:8000/file-processing/club';
+      scoreType = 'club_score';
     } else {
       toast.error('Không xác định được loại upload');
       return;
@@ -64,6 +69,15 @@ const SemestersPage = () => {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Upload failed');
       }
+
+      // Cập nhật trạng thái upload thành công ở local
+      setLocalUploadStatus(prev => ({
+        ...prev,
+        [semesterId]: {
+          ...(prev[semesterId] || {}),
+          [scoreType]: true
+        }
+      }));
 
       toast.success(`Tải lên ${type} thành công`);
     } catch (error) {
@@ -93,7 +107,11 @@ const SemestersPage = () => {
       key: 'academic',
       align: 'center',
       render: (_: any, record: Semester) => {
-        const uploaded = existScoreData?.data[record.id]?.academic_score;
+        // Kiểm tra cả trạng thái server và local
+        const uploadedServer = existScoreData?.data[record.id]?.academic_score;
+        const uploadedLocal = localUploadStatus[record.id]?.academic_score;
+        const uploaded = uploadedServer || uploadedLocal;
+        
         return (
           <div className="flex justify-center items-center gap-2">
             {uploaded ? (
@@ -115,7 +133,11 @@ const SemestersPage = () => {
       key: 'research',
       align: 'center',
       render: (_: any, record: Semester) => {
-        const uploaded = existScoreData?.data[record.id]?.research_score;
+        // Kiểm tra cả trạng thái server và local
+        const uploadedServer = existScoreData?.data[record.id]?.research_score;
+        const uploadedLocal = localUploadStatus[record.id]?.research_score;
+        const uploaded = uploadedServer || uploadedLocal;
+        
         return (
           <div className="flex justify-center items-center gap-2">
             {uploaded ? (
@@ -137,7 +159,11 @@ const SemestersPage = () => {
       key: 'club',
       align: 'center',
       render: (_: any, record: Semester) => {
-        const uploaded = existScoreData?.data[record.id]?.club_score;
+        // Kiểm tra cả trạng thái server và local
+        const uploadedServer = existScoreData?.data[record.id]?.club_score;
+        const uploadedLocal = localUploadStatus[record.id]?.club_score;
+        const uploaded = uploadedServer || uploadedLocal;
+        
         return (
           <div className="flex justify-center items-center gap-2">
             {uploaded ? (

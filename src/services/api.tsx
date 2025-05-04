@@ -1,6 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 
-// Tạo baseQuery tùy chỉnh để xử lý phản hồi text
 const customBaseQuery = fetchBaseQuery({
   baseUrl: 'http://localhost:8080',
   prepareHeaders: async (headers) => {
