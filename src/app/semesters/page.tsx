@@ -1,118 +1,191 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import Sidebar from "@/layouts/sidebar";
-import { Card, Typography, Table, Button, message, Input, Space, Popconfirm } from 'antd';
+import { Card, Typography, Table, Button, Tag, Input, Modal, Form, message, Popconfirm } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import { useGetSemesterQuery, useCreateSemesterMutation, useUpdateSemesterMutation, useDeleteSemesterMutation } from '@/services/semester.service';
 import type { ColumnsType } from 'antd/es/table';
-import { toast } from 'react-toastify';
-import AddSemesterModal from '@/components/AddSemesterModal';
-import EditSemesterModal from '@/components/EditSemesterModal';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
-import dayjs from 'dayjs';
+import Loading from '@/components/Loading';
+import ErrorHandler from '@/components/ErrorHandler';
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
-import Loading from '@/components/Loading'; // Import Loading component
-import ErrorHandler from '@/components/ErrorHandler'; // Import ErrorHandler component
 import withPermission from '@/hocs/withPermission';
+import AddSemesterModal from '@/components/AddSemesterModal';
+import EditSemesterModal from '@/components/EditSemesterModal';
+import dayjs from 'dayjs';
 
 interface Semester {
   id: string;
   number: number;
   year: number;
-  startTime: string;
-  endTime: string;
+  startTime?: string;
+  endTime?: string;
 }
 
-const SemestersPage = () => {
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
+const SemestersPage: React.FC = () => {
+  // Table states
   const [searchText, setSearchText] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'ascend' | 'descend' | null>(null);
 
-  const { data: semesterData, isLoading, error, refetch } = useGetSemesterQuery(); // Include refetch function
+  // Modal states
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
+
+  // Form states
+  const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
+
+  // Data fetching states
+  const { data: semesterData, isLoading, error, refetch } = useGetSemesterQuery();
   const [createSemester] = useCreateSemesterMutation();
   const [updateSemester] = useUpdateSemesterMutation();
   const [deleteSemester] = useDeleteSemesterMutation();
 
   const ability = useAbility();
-  
-  // Filter data based on search text
-  const filteredData = semesterData?.data?.filter((semester: Semester) => {
-    if (!searchText) return true;
-    const searchTermLower = searchText.toLowerCase();
-    const semesterText = `kì ${semester.number} năm ${semester.year}`.toLowerCase();
-    return semesterText.includes(searchTermLower);
-  });
 
-  const handleAddSemester = async (semester: Omit<Semester, 'id'>) => {
-    try {
-      await createSemester({ semesterId: semester, body: semester }).unwrap();
-      toast.success("Thêm học kỳ thành công");
-      setIsAddModalOpen(false);
-      refetch();
-    } catch (error) {
-      toast.error("Lỗi khi thêm học kỳ");
-    }
-  };
-
-  const handleEditSemester = async (updatedData: Omit<Semester, 'id'>) => {
-    if (!selectedSemester) return;
-    try {
-      await updateSemester({ semesterId: selectedSemester.id, body: updatedData }).unwrap();
-      toast.success("Cập nhật học kỳ thành công");
-      setIsEditModalOpen(false);
-      setSelectedSemester(null);
-      refetch();
-    } catch (error) {
-      toast.error("Lỗi khi cập nhật học kỳ");
-    }
-  };
-
-  const handleDeleteSemester = async (semester: Semester) => {
-    try {
-      // Removing window.confirm logic as we're using Popconfirm now
-      const response = await deleteSemester({ semesterId: semester.id }).unwrap();
-      console.log("Xóa học kỳ:", response);
-      if (response) {
-        toast.success("Xóa học kỳ thành công");
-        refetch(); // Làm mới dữ liệu
-      } else {
-        toast.error("Không thể xóa học kỳ");
+  // Filter semesters based on search text and sort by endTime
+  const filteredSemesters = semesterData?.data
+    ?.filter((semester: Semester) => {
+      if (!searchText) return true;
+      const searchTermLower = searchText.toLowerCase();
+      const semesterText = `học kỳ ${semester.number} năm ${semester.year}`.toLowerCase();
+      return semesterText.includes(searchTermLower);
+    })
+    ?.sort((a: Semester, b: Semester) => {
+      // Sort by endTime in descending order (newest first)
+      if (a.endTime && b.endTime) {
+        return new Date(b.endTime).getTime() - new Date(a.endTime).getTime();
+      } 
+      // If endTime is not available but startTime is, use startTime
+      else if (a.startTime && b.startTime) {
+        return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
       }
-    } catch (error: any) {
-      console.error("Lỗi khi xóa học kỳ:", error);
-      toast.error(error?.data?.message || "Lỗi khi xóa học kỳ");
-      // Vẫn làm mới dữ liệu để đồng bộ với DB trong trường hợp API trả về lỗi nhưng vẫn xóa được
-      refetch();
+      // If neither time is available, fall back to year and number
+      if (a.year !== b.year) return b.year - a.year;
+      return b.number - a.number;
+    });
+
+  // Handle table pagination change
+  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
+    setCurrentPage(pagination.current);
+    setPageSize(pagination.pageSize);
+    
+    if (sorter.field) {
+      setSortField(sorter.field);
+      setSortOrder(sorter.order);
+    } else {
+      setSortField(null);
+      setSortOrder(null);
     }
   };
 
+  // Handle opening the edit modal
+  const handleEdit = (semester: Semester) => {
+    setSelectedSemester(semester);
+    editForm.setFieldsValue({
+      number: semester.number,
+      year: semester.year,
+      startTime: semester.startTime ? dayjs(semester.startTime) : null,
+      endTime: semester.endTime ? dayjs(semester.endTime) : null
+    });
+    setEditModalVisible(true);
+  };
+
+  // Handle semester deletion
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteSemester({ semesterId: id }).unwrap();
+      message.success('Xóa học kỳ thành công');
+      refetch();
+    } catch (error: any) {
+      message.error(error?.data?.message || 'Có lỗi khi xóa học kỳ');
+    }
+  };
+
+  // Handle form submission for adding a semester
+  const handleAddSubmit = async (values: any) => {
+    try {
+      await createSemester({ body: values }).unwrap();
+      message.success('Thêm học kỳ thành công');
+      setAddModalVisible(false);
+      form.resetFields();
+      refetch();
+    } catch (error: any) {
+      message.error(error?.data?.message || 'Có lỗi khi thêm học kỳ');
+    }
+  };
+
+  // Handle form submission for editing a semester
+  const handleEditSubmit = async (values: any) => {
+    if (!selectedSemester) return;
+    
+    try {
+      await updateSemester({ 
+        id: selectedSemester.id, 
+        body: values 
+      }).unwrap();
+      
+      message.success('Cập nhật học kỳ thành công');
+      setEditModalVisible(false);
+      refetch();
+    } catch (error: any) {
+      message.error(error?.data?.message || 'Có lỗi khi cập nhật học kỳ');
+    }
+  };
+
+  // Define table columns
   const columns: ColumnsType<Semester> = [
     {
       title: 'Học kỳ',
-      dataIndex: 'name',
-      key: 'name',
-      align: 'center',
+      key: 'semester',
       render: (_: any, record: Semester) => (
         <span>Kì {record.number} năm {record.year}</span>
       ),
+      sorter: (a, b) => {
+        // Sort by year first, then by number
+        if (a.year !== b.year) return a.year - b.year;
+        return a.number - b.number;
+      },
     },
     {
       title: 'Thời gian bắt đầu',
-      dataIndex: 'startTime',
       key: 'startTime',
-      align: 'center',
-      render: (text: string) => dayjs(text).format('DD/MM/YYYY HH:mm'),
+      dataIndex: 'startTime',
+      render: (startTime: string) => (
+        <span>{startTime ? new Date(startTime).toLocaleDateString('vi-VN') : 'Chưa xác định'}</span>
+      ),
+      sorter: (a, b) => {
+        if (a.startTime && b.startTime) {
+          return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+        }
+        return 0;
+      },
     },
     {
       title: 'Thời gian kết thúc',
-      dataIndex: 'endTime',
       key: 'endTime',
-      align: 'center',
-      render: (text: string) => dayjs(text).format('DD/MM/YYYY HH:mm'),
-    },
-    {
+      dataIndex: 'endTime',
+      render: (endTime: string) => (
+        <span>{endTime ? new Date(endTime).toLocaleDateString('vi-VN') : 'Chưa xác định'}</span>
+      ),
+      sorter: (a, b) => {
+        if (a.endTime && b.endTime) {
+          return new Date(a.endTime).getTime() - new Date(b.endTime).getTime();
+        }
+        return 0;
+      },
+      defaultSortOrder: 'descend' as 'descend',
+    }
+  ];
+
+  // Add actions column if user has permission
+  if (ability.can(Action.Update, Subject.Semester) || ability.can(Action.Delete, Subject.Semester)) {
+    columns.push({
       title: 'Hành động',
       key: 'actions',
       align: 'center',
@@ -121,16 +194,13 @@ const SemestersPage = () => {
           {ability.can(Action.Update, Subject.Semester) && (
             <Button
               icon={<EditOutlined />}
-              onClick={() => {
-                setSelectedSemester(record);
-                setIsEditModalOpen(true);
-              }}
+              onClick={() => handleEdit(record)}
             />
           )}
           {ability.can(Action.Delete, Subject.Semester) && (
             <Popconfirm
-              title={`Bạn có chắc chắn muốn xóa học kỳ ${record.number} năm ${record.year} không?`}
-              onConfirm={() => handleDeleteSemester(record)}
+              title="Bạn có chắc chắn muốn xóa học kỳ này?"
+              onConfirm={() => handleDelete(record.id)}
               okText="Có"
               cancelText="Không"
             >
@@ -142,12 +212,12 @@ const SemestersPage = () => {
           )}
         </div>
       ),
-    }
-  ];
+    });
+  }
 
   // Check for errors and handle them
   if (error) {
-    const status = (error as any)?.status || 500; // Default to 500 if no status is provided
+    const status = (error as any)?.status || 500;
     return (
       <Sidebar>
         <ErrorHandler status={status} />
@@ -159,15 +229,19 @@ const SemestersPage = () => {
     <Sidebar>
       <div style={{ padding: 24 }}>
         {isLoading ? (
-          <Loading message="Đang tải thông tin học kỳ..." />
+          <Loading message="Đang tải danh sách học kỳ..." />
         ) : (
           <>
             <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-              <Typography.Title level={2} className="mb-6 text-center">
-                Học kỳ
+              <Typography.Title level={2} className="mb-6">
+                Danh sách học kỳ
               </Typography.Title>
               {ability.can(Action.Create, Subject.Semester) && (
-                <Button type="primary" onClick={() => setIsAddModalOpen(true)} icon={<PlusOutlined />}>
+                <Button 
+                  type="primary" 
+                  onClick={() => setAddModalVisible(true)}
+                  icon={<PlusOutlined />}
+                >
                   Thêm học kỳ
                 </Button>
               )}
@@ -185,35 +259,41 @@ const SemestersPage = () => {
                 />
               </div>
               <Table
+                dataSource={filteredSemesters}
                 columns={columns}
-                dataSource={filteredData}
                 rowKey="id"
-                pagination={{ pageSize: 10 }}
+                pagination={{ 
+                  pageSize: pageSize, 
+                  current: currentPage,
+                  total: filteredSemesters?.length,
+                  onChange: (page) => setCurrentPage(page),
+                  onShowSizeChange: (_, size) => setPageSize(size)
+                }}
+                onChange={handleTableChange}
               />
             </Card>
+
+            {/* Add Semester Modal */}
+            <AddSemesterModal
+              visible={addModalVisible}
+              onCancel={() => setAddModalVisible(false)}
+              onSubmit={handleAddSubmit}
+              form={form}
+            />
+
+            {/* Edit Semester Modal */}
+            <EditSemesterModal
+              visible={editModalVisible}
+              onCancel={() => setEditModalVisible(false)}
+              onSubmit={handleEditSubmit}
+              form={editForm}
+              initialValues={selectedSemester}
+            />
           </>
         )}
       </div>
-
-      {/* Add Semester Modal */}
-      <AddSemesterModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onAddSemester={handleAddSemester}
-      />
-
-      {/* Edit Semester Modal */}
-      <EditSemesterModal
-        isOpen={isEditModalOpen}
-        semester={selectedSemester}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setSelectedSemester(null);
-        }}
-        onEditSemester={handleEditSemester}
-      />
     </Sidebar>
   );
-}
+};
 
 export default withPermission(SemestersPage, Action.Read, Subject.Semester);

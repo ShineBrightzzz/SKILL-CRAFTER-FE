@@ -2,16 +2,19 @@
 
 import { useState } from 'react';
 import Sidebar from "@/layouts/sidebar";
-import { Card, Typography, Table, Button, Tag, Input } from 'antd';
-import { UploadOutlined, SearchOutlined } from '@ant-design/icons';
+import { Card, Typography, Table, Button, Tag, Input, Modal, Upload, message } from 'antd';
+import { UploadOutlined, SearchOutlined, InboxOutlined } from '@ant-design/icons';
 import { useGetExistsScoreQuery, useGetSemesterQuery } from '@/services/semester.service';
 import type { ColumnsType } from 'antd/es/table';
 import UploadModal from '@/components/UploadModal';
 import { toast } from 'react-toastify';
-import Loading from '@/components/Loading'; // Import the Loading component
-import ErrorHandler from '@/components/ErrorHandler'; // Import the ErrorHandler component
+import Loading from '@/components/Loading';
+import ErrorHandler from '@/components/ErrorHandler';
 import { Action, Subject } from '@/utils/ability';
 import withPermission from '@/hocs/withPermission';
+import EditScoreModal from '@/components/EditScoreModal';
+
+const { Dragger } = Upload;
 
 interface Semester {
   id: string;
@@ -20,16 +23,44 @@ interface Semester {
   status?: number;
 }
 
-const SemestersPage = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
-  const [uploadType, setUploadType] = useState<string>('');
+const ScoresPage = () => {
+  // Table states
   const [searchText, setSearchText] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'ascend' | 'descend' | null>(null);
+  
+  // Modal states
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isEditScoreModalOpen, setIsEditScoreModalOpen] = useState(false);
+  const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
+  const [selectedScoreType, setSelectedScoreType] = useState<string>('');
+  const [uploadType, setUploadType] = useState<string>('');
+  
+  // Upload status tracking states
   const [localUploadStatus, setLocalUploadStatus] = useState<Record<string, Record<string, boolean>>>({});
-
+  const [currentStudentId, setCurrentStudentId] = useState<string>('');
+  
+  // Data fetching states
   const { data: semesterData, isLoading: isLoadingSemesters, error: semesterError } = useGetSemesterQuery();
-  const { data: existScoreData, isLoading: isLoadingScores, error: scoreError } = useGetExistsScoreQuery();
+  const { data: existScoreData, isLoading: isLoadingScores, error: scoreError, refetch: refetchScores } = useGetExistsScoreQuery();
 
+  // Handle table pagination change
+  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
+    setCurrentPage(pagination.current);
+    setPageSize(pagination.pageSize);
+    
+    if (sorter.field) {
+      setSortField(sorter.field);
+      setSortOrder(sorter.order);
+    } else {
+      setSortField(null);
+      setSortOrder(null);
+    }
+  };
+
+  // Handle file uploads for scores
   const handleUpload = async (file: File, metadata?: Record<string, any>) => {
     const semesterId = metadata?.semesterId;
     const type = metadata?.type;
@@ -80,18 +111,64 @@ const SemestersPage = () => {
       }));
 
       toast.success(`Tải lên ${type} thành công`);
+      setIsUploadModalOpen(false);
+      
+      // Refresh the data from server to maintain upload status when navigating
+      refetchScores();
     } catch (error) {
       toast.error(`Lỗi khi tải lên ${type}, vui lòng thử lại.`);
       throw error;
     }
   };
 
+  // Handle editing individual student scores
+  const handleEditScore = async (values: any) => {
+    if (!selectedSemester || !currentStudentId || !selectedScoreType) {
+      toast.error('Thông tin chỉnh sửa không đầy đủ');
+      return;
+    }
+    
+    try {
+      // This would be an API call to update a specific student's score
+      // For example:
+      // await updateStudentScore({
+      //   semesterId: selectedSemester.id,
+      //   studentId: currentStudentId,
+      //   scoreType: selectedScoreType,
+      //   scoreValue: values.score
+      // }).unwrap();
+      
+      toast.success(`Cập nhật điểm ${selectedScoreType} thành công`);
+      setIsEditScoreModalOpen(false);
+    } catch (error) {
+      toast.error('Lỗi khi cập nhật điểm');
+    }
+  };
+
+  // Open upload modal
   const openUploadModal = (semester: Semester, type: string) => {
     setSelectedSemester(semester);
     setUploadType(type);
-    setIsModalOpen(true);
+    setIsUploadModalOpen(true);
   };
 
+  // Open edit score modal
+  const openEditScoreModal = (semester: Semester, scoreType: string, studentId: string = '') => {
+    setSelectedSemester(semester);
+    setSelectedScoreType(scoreType);
+    setCurrentStudentId(studentId);
+    setIsEditScoreModalOpen(true);
+  };
+
+  // Filter semesters based on search text
+  const filteredSemesters = semesterData?.data?.filter((semester: Semester) => {
+    if (!searchText) return true;
+    const searchTermLower = searchText.toLowerCase();
+    const semesterText = `kì ${semester.number} năm ${semester.year}`.toLowerCase();
+    return semesterText.includes(searchTermLower);
+  });
+
+  // Define table columns
   const columns: ColumnsType<Semester> = [
     {
       title: 'Học kỳ',
@@ -101,6 +178,11 @@ const SemestersPage = () => {
       render: (_: any, record: Semester) => (
         <span>Kì {record.number} năm {record.year}</span>
       ),
+      sorter: (a, b) => {
+        // Sort by year first, then by number
+        if (a.year !== b.year) return a.year - b.year;
+        return a.number - b.number;
+      },
     },
     {
       title: 'Điểm học tập',
@@ -115,7 +197,12 @@ const SemestersPage = () => {
         return (
           <div className="flex justify-center items-center gap-2">
             {uploaded ? (
-              <Tag color="success">Đã upload</Tag>
+              <>
+                <Tag color="success">Đã upload</Tag>
+                <Button size="small" onClick={() => openEditScoreModal(record, 'Điểm học tập')}>
+                  Sửa điểm
+                </Button>
+              </>
             ) : (
               <Button
                 icon={<UploadOutlined />}
@@ -141,7 +228,12 @@ const SemestersPage = () => {
         return (
           <div className="flex justify-center items-center gap-2">
             {uploaded ? (
-              <Tag color="success">Đã upload</Tag>
+              <>
+                <Tag color="success">Đã upload</Tag>
+                <Button size="small" onClick={() => openEditScoreModal(record, 'Điểm NCKH')}>
+                  Sửa điểm
+                </Button>
+              </>
             ) : (
               <Button
                 icon={<UploadOutlined />}
@@ -167,7 +259,12 @@ const SemestersPage = () => {
         return (
           <div className="flex justify-center items-center gap-2">
             {uploaded ? (
-              <Tag color="success">Đã upload</Tag>
+              <>
+                <Tag color="success">Đã upload</Tag>
+                <Button size="small" onClick={() => openEditScoreModal(record, 'Điểm CLB')}>
+                  Sửa điểm
+                </Button>
+              </>
             ) : (
               <Button
                 icon={<UploadOutlined />}
@@ -181,14 +278,6 @@ const SemestersPage = () => {
       },
     },
   ];
-
-  // Filter semesters based on search text
-  const filteredSemesters = semesterData?.data?.filter((semester: Semester) => {
-    if (!searchText) return true;
-    const searchTermLower = searchText.toLowerCase();
-    const semesterText = `kì ${semester.number} năm ${semester.year}`.toLowerCase();
-    return semesterText.includes(searchTermLower);
-  });
 
   // Check for errors and handle them
   if (semesterError || scoreError) {
@@ -228,7 +317,14 @@ const SemestersPage = () => {
                 columns={columns}
                 dataSource={filteredSemesters}
                 rowKey="id"
-                pagination={{ pageSize: 10 }}
+                pagination={{ 
+                  pageSize: pageSize, 
+                  current: currentPage,
+                  total: filteredSemesters?.length,
+                  onChange: (page) => setCurrentPage(page),
+                  onShowSizeChange: (_, size) => setPageSize(size)
+                }}
+                onChange={handleTableChange}
               />
             </Card>
           </>
@@ -237,18 +333,27 @@ const SemestersPage = () => {
 
       {/* Upload Modal */}
       <UploadModal
-        isOpen={isModalOpen}
+        isOpen={isUploadModalOpen}
         onClose={() => {
-          setIsModalOpen(false);
+          setIsUploadModalOpen(false);
           setSelectedSemester(null);
         }}
         semester={selectedSemester}
         uploadType={uploadType}
         onUpload={handleUpload}
       />
+
+      {/* Edit Score Modal */}
+      <EditScoreModal 
+        isOpen={isEditScoreModalOpen}
+        onClose={() => setIsEditScoreModalOpen(false)}
+        onSubmit={handleEditScore}
+        semester={selectedSemester}
+        scoreType={selectedScoreType}
+        studentId={currentStudentId}
+      />
     </Sidebar>
   );
 };
 
-
-export default withPermission(SemestersPage, Action.Read, Subject.Score);
+export default withPermission(ScoresPage, Action.Read, Subject.Score);

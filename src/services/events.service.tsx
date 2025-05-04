@@ -20,6 +20,23 @@ const eventsService = apiSlice.injectEndpoints({
                 };
             },
         }),
+        updateEvent: builder.mutation<any, { id: string; body: any }>({
+            query: ({ id, body }) => {
+                return {
+                    url: `/eventDetails/update-event/${id}`,
+                    method: "PUT",
+                    body,
+                };
+            },
+        }),
+        deleteEvent: builder.mutation<any, { id: string }>({
+            query: ({ id }) => {
+                return {
+                    url: `/eventDetails/delete-event/${id}`,
+                    method: "DELETE",
+                };
+            },
+        }),
         registerEvent: builder.mutation<any, {studentId: string, eventId: string}>({
             query: ({studentId, eventId}) => {
                 return {
@@ -76,6 +93,8 @@ export const {
     useGetRegisteredEventsQuery, 
     useGetEventByIdQuery, 
     useCreateEventMutation,
+    useUpdateEventMutation,
+    useDeleteEventMutation,
     useRegisterEventMutation, 
     useCheckinEventMutation, 
     useGetCheckinCountQuery, 

@@ -8,7 +8,6 @@ import {
   Form,
   Input,
   Select,
-  Space,
   Popconfirm,
   message,
   Typography,
@@ -26,32 +25,59 @@ import {
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
 import { ColumnsType } from 'antd/es/table';
-import Loading from '@/components/Loading'; // Import the Loading component
-import ErrorHandler from '@/components/ErrorHandler'; // Import the ErrorHandler component
+import Loading from '@/components/Loading';
+import ErrorHandler from '@/components/ErrorHandler';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import withPermission from '@/hocs/withPermission';
 
 const { Option } = Select;
 
 const PermissionTable: React.FC = () => {
+  // Redux state management
   const dispatch = useAppDispatch();
   const permissions = useAppSelector((state) => state.permission.permissions);
+  
+  // Table states
+  const [searchText, setSearchText] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'ascend' | 'descend' | null>(null);
+  
+  // Modal states
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingPermission, setEditingPermission] = useState<any>(null);
+  
+  // Form states
   const [form] = Form.useForm();
-  const ability = useAbility();
-  const [searchText, setSearchText] = useState('');
-
-  const { data: permissionsData, isLoading, error } = useGetPermissionsQuery(); // Include error handling
+  
+  // Data fetching states
+  const { data: permissionsData, isLoading, error, refetch } = useGetPermissionsQuery();
   const [updatePermission] = useUpdatePermissionMutation();
   const [deletePermission] = useDeletePermissionMutation();
   const [createPermission] = useCreatePermissionMutation();
+  
+  const ability = useAbility();
 
   useEffect(() => {
     if (permissionsData) {
       dispatch(setPermissions(permissionsData.data.data));
     }
   }, [permissionsData, dispatch]);
+
+  // Handle table pagination change
+  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
+    setCurrentPage(pagination.current);
+    setPageSize(pagination.pageSize);
+    
+    if (sorter.field) {
+      setSortField(sorter.field);
+      setSortOrder(sorter.order);
+    } else {
+      setSortField(null);
+      setSortOrder(null);
+    }
+  };
 
   // Filter permissions based on search text
   const filteredPermissions = permissions.filter((permission: any) => {
@@ -65,44 +91,51 @@ const PermissionTable: React.FC = () => {
     );
   });
 
+  // Handle edit button click
   const handleEdit = (record: any) => {
     setEditingPermission(record);
     form.setFieldsValue(record);
     setIsModalVisible(true);
   };
 
+  // Handle add button click
   const handleAdd = () => {
     setEditingPermission(null);
     form.resetFields();
     setIsModalVisible(true);
   };
 
+  // Handle delete permission
   const handleDelete = async (id: string) => {
     try {
       await deletePermission({ id }).unwrap();
-      message.success('Permission deleted successfully');
-    } catch (error) {
-      message.error('Failed to delete permission');
+      message.success('Xóa quyền hạn thành công');
+      refetch();
+    } catch (error: any) {
+      message.error(error?.data?.message || 'Lỗi khi xóa quyền hạn');
     }
   };
 
+  // Handle form submission
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
       if (editingPermission) {
         await updatePermission({ id: editingPermission.id, body: values }).unwrap();
-        message.success('Permission updated successfully');
+        message.success('Cập nhật quyền hạn thành công');
       } else {
         await createPermission({ body: values }).unwrap();
-        message.success('Permission added successfully');
+        message.success('Thêm quyền hạn thành công');
       }
       setIsModalVisible(false);
       form.resetFields();
-    } catch (error) {
-      message.error('Something went wrong');
+      refetch();
+    } catch (error: any) {
+      message.error(error?.data?.message || 'Có lỗi xảy ra');
     }
   };
 
+  // Get color for HTTP method
   const methodColor = (method: string) => {
     switch (method) {
       case 'POST':
@@ -118,20 +151,47 @@ const PermissionTable: React.FC = () => {
     }
   };
 
+  // Define table columns
   const baseColumns: ColumnsType<any> = [
-    { title: 'Tên quyền hạn', dataIndex: 'name', key: 'name' },
-    { title: 'Đường dẫn API', dataIndex: 'apiPath', key: 'apiPath' },
+    { 
+      title: 'Tên quyền hạn', 
+      dataIndex: 'name', 
+      key: 'name',
+      sorter: (a, b) => a.name.localeCompare(b.name)
+    },
+    { 
+      title: 'Đường dẫn API', 
+      dataIndex: 'apiPath', 
+      key: 'apiPath',
+      ellipsis: true
+    },
     {
       title: 'Phương thức',
       dataIndex: 'method',
       key: 'method',
       render: (text: string) => <span style={{ color: methodColor(text) }}>{text}</span>,
+      filters: [
+        { text: 'GET', value: 'GET' },
+        { text: 'POST', value: 'POST' },
+        { text: 'PUT', value: 'PUT' },
+        { text: 'DELETE', value: 'DELETE' },
+      ],
+      onFilter: (value, record) => record.method === value,
     },
-    { title: 'Module', dataIndex: 'module', key: 'module' },
+    { 
+      title: 'Module', 
+      dataIndex: 'module', 
+      key: 'module',
+      filters: Array.from(new Set(permissions.map((p: any) => p.module)))
+        .filter(Boolean)
+        .map(module => ({ text: module, value: module })),
+      onFilter: (value, record) => record.module === value,
+    },
   ];
 
   const columns: ColumnsType<any> = [...baseColumns];
 
+  // Add actions column if user has permission
   if (
     ability.can(Action.Update, Subject.Permission) ||
     ability.can(Action.Delete, Subject.Permission)
@@ -150,10 +210,10 @@ const PermissionTable: React.FC = () => {
           )}
           {ability.can(Action.Delete, Subject.Permission) && (
             <Popconfirm
-              title="Are you sure to delete this permission?"
+              title="Bạn có chắc chắn muốn xóa quyền hạn này?"
               onConfirm={() => handleDelete(record.id)}
-              okText="Yes"
-              cancelText="No"
+              okText="Có"
+              cancelText="Không"
             >
               <Button
                 icon={<DeleteOutlined />}
@@ -168,13 +228,16 @@ const PermissionTable: React.FC = () => {
 
   // Check for errors and handle them
   if (error) {
-    const status = (error as any).status || 500; // Default to 500 if no status is provided
+    const status = (error as any).status || 500;
     return (
       <Sidebar>
         <ErrorHandler status={status} />
       </Sidebar>
     );
   }
+
+  // Derive modules from permissions for dropdown
+  const modules = Array.from(new Set(permissions.map((p: any) => p.module))).filter(Boolean);
 
   return (
     <Sidebar>
@@ -209,7 +272,14 @@ const PermissionTable: React.FC = () => {
                 columns={columns}
                 dataSource={filteredPermissions}
                 rowKey="id"
-                pagination={{ pageSize: 10 }}
+                pagination={{ 
+                  pageSize: pageSize, 
+                  current: currentPage,
+                  total: filteredPermissions.length,
+                  onChange: (page) => setCurrentPage(page),
+                  onShowSizeChange: (_, size) => setPageSize(size)
+                }}
+                onChange={handleTableChange}
               />
             </Card>
 
@@ -221,15 +291,15 @@ const PermissionTable: React.FC = () => {
               width={800}
             >
               <Form form={form} layout="vertical">
-                <Form.Item label="Tên Permission" name="name" rules={[{ required: true }]}>
+                <Form.Item label="Tên Permission" name="name" rules={[{ required: true, message: 'Vui lòng nhập tên quyền hạn' }]}>
                   <Input placeholder="Nhập tên Permission" />
                 </Form.Item>
 
-                <Form.Item label="API Path" name="apiPath" rules={[{ required: true }]}>
+                <Form.Item label="API Path" name="apiPath" rules={[{ required: true, message: 'Vui lòng nhập đường dẫn API' }]}>
                   <Input placeholder="Nhập path" />
                 </Form.Item>
 
-                <Form.Item label="Method" name="method" rules={[{ required: true }]}>
+                <Form.Item label="Method" name="method" rules={[{ required: true, message: 'Vui lòng chọn phương thức' }]}>
                   <Select placeholder="Chọn Method">
                     <Option value="GET">GET</Option>
                     <Option value="POST">POST</Option>
@@ -238,11 +308,21 @@ const PermissionTable: React.FC = () => {
                   </Select>
                 </Form.Item>
 
-                <Form.Item label="Thuộc Module" name="module" rules={[{ required: true }]}>
+                <Form.Item label="Thuộc Module" name="module" rules={[{ required: true, message: 'Vui lòng chọn module' }]}>
                   <Select placeholder="Chọn Module">
+                    {modules.map(module => (
+                      <Option key={module} value={module}>{module}</Option>
+                    ))}
                     <Option value="Quản lý sinh viên">Quản lý sinh viên</Option>
+                    <Option value="New">Thêm module mới</Option>
                   </Select>
                 </Form.Item>
+                
+                {form.getFieldValue('module') === 'New' && (
+                  <Form.Item label="Module mới" name="newModule" rules={[{ required: true, message: 'Vui lòng nhập tên module mới' }]}>
+                    <Input placeholder="Nhập tên module mới" />
+                  </Form.Item>
+                )}
               </Form>
             </Modal>
           </>

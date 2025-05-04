@@ -5,31 +5,36 @@ import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { useGetSemesterQuery } from '@/services/semester.service';
 
+interface Event {
+  eventId: string;
+  title: string;
+  organizingUnit: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  description?: string;
+  participationMethod?: string;
+  semester: string;
+}
+
 interface AddEventModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddEvent: (event: {
-    event_id: string;
-    name: string;
-    organizing_unit: string;
-    start_time: string;
-    end_time: string;
-    description: string;
-    location: string;
-    parti_method: string;
-    semester_id: string;
-  }) => void;
+  onAddEvent: (event: any) => void;
+  initialValues?: Event;
+  isEditing?: boolean;
 }
 
 const AddEventModal: React.FC<AddEventModalProps> = ({
   isOpen,
   onClose,
   onAddEvent,
+  initialValues,
+  isEditing = false
 }) => {
   const [form] = Form.useForm();
   const { data: semesterData, isLoading } = useGetSemesterQuery();
   const [semesters, setSemesters] = useState<Array<{ value: string; label: string }>>([]);
-
   useEffect(() => {
     if (semesterData?.data?.length) {
       const semesterOptions = semesterData.data.map((semester: any) => ({
@@ -39,6 +44,25 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
       setSemesters(semesterOptions);
     }
   }, [semesterData]);
+
+  useEffect(() => {
+    if (initialValues && isOpen) {
+      // When editing, populate form with existing values including the event ID
+      form.setFieldsValue({
+        event_id: initialValues.eventId, // Use the existing event ID
+        name: initialValues.title,
+        organizing_unit: initialValues.organizingUnit,
+        start_time: initialValues.startTime ? dayjs(initialValues.startTime) : null,
+        end_time: initialValues.endTime ? dayjs(initialValues.endTime) : null,
+        description: initialValues.description,
+        location: initialValues.location,
+        parti_method: initialValues.participationMethod,
+        semester_id: initialValues.semester
+      });
+    } else if (isOpen) {
+      form.resetFields();
+    }
+  }, [initialValues, isOpen, form]);
 
   const handleOk = () => {
     form
@@ -50,7 +74,9 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           end_time: values.end_time.format('YYYY-MM-DD HH:mm:ss'),
         };
         onAddEvent(formattedValues);
-        form.resetFields();
+        if (!isEditing) {
+          form.resetFields();
+        }
         onClose();
       })
       .catch((info) => {
@@ -59,13 +85,15 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
   };
 
   const handleCancel = () => {
-    form.resetFields();
+    if (!isEditing) {
+      form.resetFields();
+    }
     onClose();
   };
 
   return (
     <Modal
-      title="Thêm sự kiện mới"
+      title={isEditing ? "Chỉnh sửa sự kiện" : "Thêm sự kiện mới"}
       open={isOpen}
       onOk={handleOk}
       onCancel={handleCancel}
@@ -75,7 +103,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           Hủy
         </Button>,
         <Button key="submit" type="primary" onClick={handleOk}>
-          Thêm
+          {isEditing ? "Lưu thay đổi" : "Thêm"}
         </Button>,
       ]}
     >
@@ -85,7 +113,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           name="event_id"
           rules={[{ required: true, message: 'Vui lòng nhập mã sự kiện!' }]}
         >
-          <Input placeholder="VD: EV01" />
+          <Input placeholder="VD: EV01" disabled={isEditing} />
         </Form.Item>
 
         <Form.Item
@@ -158,9 +186,9 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           <Select
             placeholder="Chọn phương thức tham gia"
             options={[
-              { value: '1', label: 'Trực tiếp' },
-              { value: '2', label: 'Trực tuyến' },
-              { value: '3', label: 'Kết hợp' },
+              { value: '0', label: 'Trực tiếp' },
+              { value: '1', label: 'Trực tuyến' },
+              { value: '2', label: 'Kết hợp' },
             ]}
           />
         </Form.Item>

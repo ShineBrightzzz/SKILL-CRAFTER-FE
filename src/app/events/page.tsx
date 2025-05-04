@@ -9,11 +9,13 @@ import {
   Table,
   Button,
   Input,
+  message,
+  Popconfirm
 } from 'antd';
-import { UploadOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { UploadOutlined, PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import UploadModal from '@/components/UploadModal';
 import AddEventModal from '@/components/AddEventModal';
-import { useGetEventsQuery, useCreateEventMutation } from '@/services/events.service';
+import { useGetEventsQuery, useCreateEventMutation, useUpdateEventMutation, useDeleteEventMutation } from '@/services/events.service';
 import { toast } from 'react-toastify';
 import Loading from '@/components/Loading';
 import ErrorHandler from '@/components/ErrorHandler';
@@ -28,32 +30,60 @@ interface Semester {
 }
 
 interface Event {
-  id: string;
-  name: string;
-  organizing_unit: string;
+  eventId: string;
+  title: string;
+  organizingUnit: string;
   startTime: string;
   endTime: string;
   location: string;
   semester: string;
+  participationMethod?: string;
 }
 
 const EventsPage = () => {
+  // Table states
+  const [searchText, setSearchText] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'ascend' | 'descend' | null>(null);
+  
+  // Modal states
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isAddEventModalOpen, setIsAddEventModalOpen] = useState(false);
+  const [isEditEventModalOpen, setIsEditEventModalOpen] = useState(false);
   const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [uploadType, setUploadType] = useState<string>('');
-  const [searchText, setSearchText] = useState('');
   
+  // Data fetching states
   const { data: eventData, isLoading, error, refetch } = useGetEventsQuery();
   const [createEvent] = useCreateEventMutation();
-
+  const [updateEvent] = useUpdateEventMutation();
+  const [deleteEvent] = useDeleteEventMutation();
 
   const ability = useAbility();
 
+  // Handle table pagination change
+  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
+    setCurrentPage(pagination.current);
+    setPageSize(pagination.pageSize);
+    
+    if (sorter.field) {
+      setSortField(sorter.field);
+      setSortOrder(sorter.order);
+    } else {
+      setSortField(null);
+      setSortOrder(null);
+    }
+  };
+
+  // Handle add event submission
   const handleAddEvent = async (eventData: any) => {
     try {
       await createEvent(eventData).unwrap();
       toast.success("Thêm sự kiện thành công");
+      setIsAddEventModalOpen(false);
       refetch();
     } catch (error) {
       toast.error("Lỗi khi thêm sự kiện");
@@ -61,6 +91,43 @@ const EventsPage = () => {
     }
   };
 
+  // Handle edit event submission
+  const handleEditEvent = async (eventData: any) => {
+    if (!selectedEvent) return;
+    
+    try {
+      await updateEvent({ 
+        id: selectedEvent.eventId, 
+        body: eventData 
+      }).unwrap();
+      
+      toast.success("Cập nhật sự kiện thành công");
+      setIsEditEventModalOpen(false);
+      refetch();
+    } catch (error) {
+      toast.error("Lỗi khi cập nhật sự kiện");
+      console.error("Error updating event:", error);
+    }
+  };
+
+  // Handle delete event
+  const handleDeleteEvent = async (eventId: string) => {
+    try {
+      await deleteEvent({ id: eventId }).unwrap();
+      message.success("Xóa sự kiện thành công");
+      refetch();
+    } catch (error: any) {
+      message.error(error?.data?.message || "Lỗi khi xóa sự kiện");
+    }
+  };
+
+  // Handle opening edit modal
+  const handleEditEventClick = (event: Event) => {
+    setSelectedEvent(event);
+    setIsEditEventModalOpen(true);
+  };
+
+  // Handle file uploads
   const handleUpload = async (file: File, metadata?: Record<string, any>) => {
     const semesterId = metadata?.semesterId;
     const type = metadata?.type;
@@ -96,12 +163,14 @@ const EventsPage = () => {
       }
 
       toast.success(`Tải lên ${type} thành công`);
+      setIsUploadModalOpen(false);
     } catch (error) {
       toast.error(`Lỗi khi tải lên ${type}, vui lòng thử lại.`);
       throw error;
     }
   };
 
+  // Open upload modal
   const openUploadModal = (semesterId: string, type: string) => {
     setSelectedSemester({ id: semesterId, number: 0, year: 0 });
     setUploadType(type);
@@ -120,12 +189,14 @@ const EventsPage = () => {
     );
   });
 
+  // Define table columns
   const columns = [
     {
       title: 'Tên sự kiện',
       dataIndex: 'title',
       key: 'title',
       width: 200,
+      sorter: (a: Event, b: Event) => a.title.localeCompare(b.title),
     },
     {
       title: 'Đơn vị tổ chức',
@@ -143,6 +214,7 @@ const EventsPage = () => {
       dataIndex: 'startTime',
       key: 'start_time',
       render: (text: string) => dayjs(text).format('DD/MM/YYYY HH:mm'),
+      sorter: (a: Event, b: Event) => dayjs(a.startTime).unix() - dayjs(b.startTime).unix(),
     },
     {
       title: 'Thời gian kết thúc',
@@ -150,19 +222,50 @@ const EventsPage = () => {
       key: 'end_time',
       render: (text: string) => dayjs(text).format('DD/MM/YYYY HH:mm'),
     },
-    {
-      title: 'Điểm sự kiện',
-      key: 'eventScore',
-      align: 'center' as const,
-      render: (_: any, record: Event) => (
-        <Button
-          icon={<UploadOutlined />}
-          onClick={() => openUploadModal(record?.semester, 'Điểm sự kiện')}
-        />
-      ),
-    },
   ];
 
+  // Add actions column if user has permission
+  if (ability.can(Action.Update, Subject.Event) || 
+      ability.can(Action.Delete, Subject.Event) || 
+      ability.can(Action.Create, Subject.EventScore)) {
+    
+    columns.push({
+      title: 'Hành động',
+      key: 'actions',
+      align: 'center' as const,
+      render: (_: any, record: Event) => (
+        <div className="flex justify-center gap-2">
+          {ability.can(Action.Update, Subject.Event) && (
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => handleEditEventClick(record)}
+            />
+          )}
+          {ability.can(Action.Delete, Subject.Event) && (
+            <Popconfirm
+              title="Bạn có chắc chắn muốn xóa sự kiện này?"
+              onConfirm={() => handleDeleteEvent(record.eventId)}
+              okText="Có"
+              cancelText="Không"
+            >
+              <Button
+                icon={<DeleteOutlined />}
+                danger
+              />
+            </Popconfirm>
+          )}
+          {ability.can(Action.Create, Subject.EventScore) && (
+            <Button
+              icon={<UploadOutlined />}
+              onClick={() => openUploadModal(record?.semester, 'Điểm sự kiện')}
+            />
+          )}
+        </div>
+      ),
+    });
+  }
+
+  // Check for errors and handle them
   if (error) {
     const status = (error as any).status || 500; 
     return (
@@ -215,13 +318,21 @@ const EventsPage = () => {
               <Table
                 columns={columns}
                 dataSource={filteredEvents}
-                rowKey="id"
-                pagination={{ pageSize: 10 }}
+                rowKey="eventId"
+                pagination={{ 
+                  pageSize: pageSize, 
+                  current: currentPage,
+                  total: filteredEvents?.length,
+                  onChange: (page) => setCurrentPage(page),
+                  onShowSizeChange: (_, size) => setPageSize(size)
+                }}
+                onChange={handleTableChange}
               />
             </Card>
           </>
         )}
 
+        {/* Upload Modal */}
         <UploadModal
           isOpen={isUploadModalOpen}
           onClose={() => {
@@ -233,11 +344,23 @@ const EventsPage = () => {
           onUpload={handleUpload}
         />
 
+        {/* Add Event Modal */}
         <AddEventModal
           isOpen={isAddEventModalOpen}
           onClose={() => setIsAddEventModalOpen(false)}
           onAddEvent={handleAddEvent}
         />
+
+        {/* Edit Event Modal - Similar to AddEventModal but with pre-filled values */}
+        {selectedEvent && (
+          <AddEventModal
+            isOpen={isEditEventModalOpen}
+            onClose={() => setIsEditEventModalOpen(false)}
+            onAddEvent={handleEditEvent}
+            initialValues={selectedEvent}
+            isEditing={true}
+          />
+        )}
       </div>
     </Sidebar>
   );

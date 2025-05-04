@@ -55,6 +55,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
 
   const menuItems = [
     { key: '/', label: 'Trang chủ', icon: <HomeOutlined /> },
+    { key: '/forms', label: 'Form', icon: <FormOutlined /> }, // Add the Form router
     { key: '/events', label: 'Sự kiện', icon: <CalendarOutlined /> },
     { key: '/semesters', label: 'Học kì', icon: <BookOutlined /> },
     { key: '/scores', label: 'Upload điểm', icon: <UploadOutlined /> },
@@ -77,7 +78,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
         { key: '/users', label: 'Quản lý người dùng', icon: <UsergroupAddOutlined /> },
       ],
     },
-    { key: '/form', label: 'Form', icon: <FormOutlined /> }, // Add the Form router
+    
   ];
 
   // Custom styles for the submenu items

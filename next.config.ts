@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   /* config options here */
   transpilePackages: ["@ant-design/plots"],
   webpack: (config) => {
@@ -9,6 +10,7 @@ const nextConfig: NextConfig = {
     config.module.exprContextCritical = false;
     return config;
   }
+  
 };
 
 export default nextConfig;

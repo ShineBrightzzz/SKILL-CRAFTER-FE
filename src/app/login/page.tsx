@@ -94,13 +94,6 @@ export default function Login() {
             {isLoading || isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
           {error && <p className="text-red-500 mt-2 text-sm text-center">{error}</p>}
-          <div className="text-center mt-3">
-            <a href="/forgot-password" className="text-blue-500 hover:underline">Quên mật khẩu?</a>
-          </div>
-          <div className="text-center mt-3">
-            <span>Chưa có tài khoản? </span>
-            <a href="/register" className="text-blue-500 hover:underline">Đăng ký</a>
-          </div>
         </form>
       </div>
     </div>
