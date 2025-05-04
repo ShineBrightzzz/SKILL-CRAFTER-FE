@@ -10,8 +10,10 @@ import { useRouter } from 'next/navigation';
 
 const { Header } = Layout;
 const { Text } = Typography;
-
-const Navbar: React.FC = () => {
+interface NavbarProps {
+  collapsed: boolean;
+}
+const Navbar: React.FC<NavbarProps> = ({ collapsed }) => {
   const dispatch = useDispatch();
   const router = useRouter();
   const user = useSelector((state: any) => state.user);
