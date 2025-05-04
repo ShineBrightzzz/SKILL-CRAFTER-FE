@@ -240,6 +240,8 @@ export default function ScoresPage() {
               />
             </Card>
 
+
+            {/* // sửa điểm rèn luyện cần có service hoặc API nữa */}
             {selectedStudent && (
               <EditScoreModal
                 isVisible={isEditModalVisible}
@@ -247,6 +249,10 @@ export default function ScoresPage() {
                 studentId={selectedStudent.studentId}
                 semesterId={selectedSemesterId}
                 initialScores={selectedStudent.scores}
+                onSubmit={async (values) => {
+                  console.log('Submitted values:', values);
+                }} // Updated to return a Promise<void>
+                scoreType="custom" // Added scoreType prop
               />
             )}
           </>

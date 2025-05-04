@@ -275,10 +275,12 @@ const SemestersPage: React.FC = () => {
 
             {/* Add Semester Modal */}
             <AddSemesterModal
-              visible={addModalVisible}
+              isOpen={addModalVisible}
               onCancel={() => setAddModalVisible(false)}
               onSubmit={handleAddSubmit}
               form={form}
+              onClose={() => setAddModalVisible(false)} // Added onClose prop
+              onAddSemester={handleAddSubmit} // Added onAddSemester prop
             />
 
             {/* Edit Semester Modal */}

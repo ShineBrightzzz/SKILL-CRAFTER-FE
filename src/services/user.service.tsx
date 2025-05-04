@@ -96,7 +96,6 @@ export const {
   useCreateUserMutation,
   useEditUserMutation,
   useLogoutMutation,
-  useRegistFaceMutation,
   useGetUserPermissionsQuery,
   useLazyGetUserPermissionsQuery,
   useGetUserEmbeddingQuery,

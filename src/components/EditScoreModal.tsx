@@ -14,6 +14,8 @@ interface EditScoreModalProps {
     research_score?: number;
     club_score?: number;
   };
+  onSubmit: (values: any) => Promise<void>; // Added onSubmit prop
+  scoreType: string; // Added scoreType prop
 }
 
 const EditScoreModal: React.FC<EditScoreModalProps> = ({
@@ -21,7 +23,8 @@ const EditScoreModal: React.FC<EditScoreModalProps> = ({
   onClose,
   studentId,
   semesterId,
-  initialScores
+  initialScores,
+  onSubmit // Destructure the new onSubmit prop
 }) => {
   const [form] = Form.useForm();
   const [updateScore, { isLoading }] = useUpdateScoreMutation();
@@ -41,19 +44,7 @@ const EditScoreModal: React.FC<EditScoreModalProps> = ({
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      
-      // Filter out undefined values
-      const scoreData = Object.fromEntries(
-        Object.entries(values).filter(([_, value]) => value !== undefined)
-      );
-      
-      await updateScore({
-        studentId,
-        semesterId,
-        body: scoreData
-      }).unwrap();
-      
-      message.success('Cập nhật điểm thành công');
+      await onSubmit(values); // Use the onSubmit prop for external handling
       onClose();
     } catch (error) {
       console.error('Failed to update scores:', error);

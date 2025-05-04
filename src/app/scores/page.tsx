@@ -44,7 +44,7 @@ const ScoresPage = () => {
   
   // Data fetching states
   const { data: semesterData, isLoading: isLoadingSemesters, error: semesterError } = useGetSemesterQuery();
-  const { data: existScoreData, isLoading: isLoadingScores, error: scoreError, refetch: refetchScores } = useGetExistsScoreQuery();
+  const { data: existScoreData, isLoading: isLoadingScores, error: scoreError, refetch: refetchScores } = useGetExistsScoreQuery({});
 
   // Handle table pagination change
   const handleTableChange = (pagination: any, filters: any, sorter: any) => {
@@ -345,12 +345,19 @@ const ScoresPage = () => {
 
       {/* Edit Score Modal */}
       <EditScoreModal 
-        isOpen={isEditScoreModalOpen}
+        isVisible={isEditScoreModalOpen}
         onClose={() => setIsEditScoreModalOpen(false)}
         onSubmit={handleEditScore}
-        semester={selectedSemester}
+        semesterId={selectedSemester?.id || ''} // Updated from semester to semesterId
         scoreType={selectedScoreType}
         studentId={currentStudentId}
+        initialScores={{
+          self_score: undefined,
+          academic_score: undefined,
+          event_score: undefined,
+          research_score: undefined,
+          club_score: undefined,
+        }} // Added initialScores prop
       />
     </Sidebar>
   );

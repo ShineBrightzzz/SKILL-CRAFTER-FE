@@ -27,7 +27,7 @@ const UsersManagement: React.FC = () => {
   const [createForm] = Form.useForm();
   
   // Fetch users data
-  const { data: usersResponse, isLoading, error, refetch } = useGetAllUserQuery();
+  const { data: usersResponse, isLoading, error, refetch } = useGetAllUserQuery(undefined); // Pass undefined explicitly to match the expected argument structure
   
   // Fetch roles data for dropdown
   const { data: rolesData, isLoading: isLoadingRoles } = useGetRoleQuery();

@@ -4,8 +4,9 @@ import React, { createContext, useState, useEffect } from 'react';
 import { createContextualCan } from '@casl/react';
 import { AppAbility, defineRulesFor } from '@/utils/ability';
 import { useSelector } from 'react-redux';
+import { PureAbility } from '@casl/ability';
 
-export const AbilityContext = createContext<AppAbility | undefined>(undefined);
+export const AbilityContext = createContext<AppAbility>(defineRulesFor([]));
 
 export const Can = createContextualCan(AbilityContext.Consumer);
 

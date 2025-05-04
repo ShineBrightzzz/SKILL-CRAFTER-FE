@@ -30,6 +30,8 @@ export enum Subject {
   Auth = 'Auth',
   All = 'all',
   Unknown = 'unknown',
+  EventScore = "EventScore",
+  User = 'User',
 }
 
 export enum Module {

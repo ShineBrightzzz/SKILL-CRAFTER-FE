@@ -1,6 +1,6 @@
 'use client';
 
-import { Modal, Form, InputNumber, DatePicker, Button } from 'antd';
+import { Modal, Form, InputNumber, DatePicker, Button, FormInstance } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect } from 'react';
 
@@ -13,6 +13,9 @@ interface AddSemesterModalProps {
     startTime: string;
     endTime: string;
   }) => void;
+  onCancel: () => void; // Added onCancel prop
+  onSubmit: (values: any) => Promise<void>; // Added onSubmit prop
+  form: FormInstance<any>; // Added form prop
 }
 
 const AddSemesterModal: React.FC<AddSemesterModalProps> = ({

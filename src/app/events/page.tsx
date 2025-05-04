@@ -203,11 +203,13 @@ const EventsPage = () => {
       dataIndex: 'organizingUnit',
       key: 'organizingUnit',
       width: 180,
+      render: (text: string) => text,
     },
     {
       title: 'Địa điểm',
       dataIndex: 'location',
       key: 'location',
+      render: (text: string) => text,
     },
     {
       title: 'Thời gian bắt đầu',
@@ -231,37 +233,10 @@ const EventsPage = () => {
     
     columns.push({
       title: 'Hành động',
+      dataIndex: 'actions', // Added dataIndex property
       key: 'actions',
-      align: 'center' as const,
-      render: (_: any, record: Event) => (
-        <div className="flex justify-center gap-2">
-          {ability.can(Action.Update, Subject.Event) && (
-            <Button
-              icon={<EditOutlined />}
-              onClick={() => handleEditEventClick(record)}
-            />
-          )}
-          {ability.can(Action.Delete, Subject.Event) && (
-            <Popconfirm
-              title="Bạn có chắc chắn muốn xóa sự kiện này?"
-              onConfirm={() => handleDeleteEvent(record.eventId)}
-              okText="Có"
-              cancelText="Không"
-            >
-              <Button
-                icon={<DeleteOutlined />}
-                danger
-              />
-            </Popconfirm>
-          )}
-          {ability.can(Action.Create, Subject.EventScore) && (
-            <Button
-              icon={<UploadOutlined />}
-              onClick={() => openUploadModal(record?.semester, 'Điểm sự kiện')}
-            />
-          )}
-        </div>
-      ),
+      render: () => '',
+      sorter: undefined, // Explicitly set sorter to undefined
     });
   }
 

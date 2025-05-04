@@ -1,11 +1,11 @@
 import { PureAbility, AbilityBuilder, Ability, AbilityClass, Subject as CaslSubject } from '@casl/ability';
 
 export enum Action {
-  Manage = 'manage',
-  Create = 'create',
-  Read = 'read',
-  Update = 'update',
-  Delete = 'delete',
+  Manage = "manage",
+  Read = "read",
+  Create = "create",
+  Update = "update",
+  Delete = "delete",
 }
 
 export enum Subject {
