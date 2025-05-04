@@ -14,7 +14,8 @@ import {
   IdcardOutlined,
   UsergroupAddOutlined,
   DownOutlined,
-  RightOutlined
+  RightOutlined,
+  FormOutlined
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
@@ -76,6 +77,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
         { key: '/users', label: 'Quản lý người dùng', icon: <UsergroupAddOutlined /> },
       ],
     },
+    { key: '/form', label: 'Form', icon: <FormOutlined /> }, // Add the Form router
   ];
 
   // Custom styles for the submenu items
