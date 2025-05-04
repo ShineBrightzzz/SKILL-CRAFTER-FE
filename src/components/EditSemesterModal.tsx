@@ -1,20 +1,21 @@
-import { Modal, Form, Input, DatePicker, FormInstance } from 'antd';
+import { Modal, Form, InputNumber, DatePicker, Button } from 'antd';
+import React, { useEffect } from 'react';
+import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
-
-interface Semester {
-  id: string;
-  number: number;
-  year: number;
-  startTime?: string;
-  endTime?: string;
-}
 
 interface EditSemesterModalProps {
   visible: boolean;
   onCancel: () => void;
   onSubmit: (values: any) => void;
-  form: FormInstance;
-  initialValues: Semester | null;
+  form: any;
+  initialValues: any;
+}
+
+interface EditFormValues {
+  number: number;
+  year: number;
+  startTime: Dayjs | null | undefined;
+  endTime: Dayjs | null | undefined;
 }
 
 const EditSemesterModal: React.FC<EditSemesterModalProps> = ({
@@ -24,52 +25,76 @@ const EditSemesterModal: React.FC<EditSemesterModalProps> = ({
   form,
   initialValues
 }) => {
-  const handleSubmit = () => {
-    form.validateFields()
-      .then(values => {
-        // Convert dayjs objects to ISO strings if they exist
-        const formattedValues = {
-          ...values,
-          startTime: values.startTime?.toISOString(),
-          endTime: values.endTime?.toISOString(),
-        };
-        onSubmit(formattedValues);
-      })
-      .catch(info => {
-        console.log('Validate Failed:', info);
+  useEffect(() => {
+    if (visible && initialValues) {
+      form.setFieldsValue({
+        number: initialValues.number,
+        year: initialValues.year,
+        startTime: initialValues.startTime ? dayjs(initialValues.startTime) : undefined,
+        endTime: initialValues.endTime ? dayjs(initialValues.endTime) : undefined
       });
+    }
+  }, [visible, initialValues, form]);
+
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      onSubmit(values);
+    } catch (error) {
+      console.error("Validation failed:", error);
+    }
   };
 
   return (
     <Modal
       title="Chỉnh sửa học kỳ"
       open={visible}
-      onOk={handleSubmit}
       onCancel={onCancel}
-      okText="Lưu thay đổi"
-      cancelText="Hủy"
+      footer={[
+        <Button key="back" onClick={onCancel}>
+          Hủy
+        </Button>,
+        <Button key="submit" type="primary" onClick={handleSubmit}>
+          Cập nhật
+        </Button>,
+      ]}
     >
       <Form
         form={form}
         layout="vertical"
         initialValues={{
-          number: initialValues?.number,
-          year: initialValues?.year,
-          startTime: initialValues?.startTime ? dayjs(initialValues.startTime) : null,
-          endTime: initialValues?.endTime ? dayjs(initialValues.endTime) : null,
+          number: 1,
+          year: new Date().getFullYear(),
         }}
       >
-        <Form.Item label="Số học kỳ" name="number" rules={[{ required: true, message: 'Vui lòng nhập số học kỳ!' }]}>
-          <Input type="number" />
+        <Form.Item
+          name="number"
+          label="Số học kỳ"
+          rules={[{ required: true, message: 'Vui lòng nhập số học kỳ!' }]}
+        >
+          <InputNumber min={1} max={3} style={{ width: '100%' }} />
         </Form.Item>
-        <Form.Item label="Năm" name="year" rules={[{ required: true, message: 'Vui lòng nhập năm!' }]}>
-          <Input type="number" />
+
+        <Form.Item
+          name="year"
+          label="Năm học"
+          rules={[{ required: true, message: 'Vui lòng nhập năm học!' }]}
+        >
+          <InputNumber style={{ width: '100%' }} />
         </Form.Item>
-        <Form.Item label="Ngày bắt đầu" name="startTime" rules={[{ required: true, message: 'Vui lòng chọn ngày bắt đầu!' }]}>
-          <DatePicker format="YYYY-MM-DD" style={{ width: '100%' }} />
+
+        <Form.Item
+          name="startTime"
+          label="Thời gian bắt đầu"
+        >
+          <DatePicker style={{ width: '100%' }} />
         </Form.Item>
-        <Form.Item label="Ngày kết thúc" name="endTime" rules={[{ required: true, message: 'Vui lòng chọn ngày kết thúc!' }]}>
-          <DatePicker format="YYYY-MM-DD" style={{ width: '100%' }} />
+
+        <Form.Item
+          name="endTime"
+          label="Thời gian kết thúc"
+        >
+          <DatePicker style={{ width: '100%' }} />
         </Form.Item>
       </Form>
     </Modal>

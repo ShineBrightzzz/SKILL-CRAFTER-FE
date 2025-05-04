@@ -7,6 +7,8 @@ interface EditScoreModalProps {
   onClose: () => void;
   studentId: string;
   semesterId: string;
+  scoreType?: string; // Add scoreType as optional prop
+  onSubmit?: (values: any) => Promise<void>; // Add onSubmit as optional prop
   initialScores: {
     self_score?: number;
     academic_score?: number;
@@ -14,8 +16,6 @@ interface EditScoreModalProps {
     research_score?: number;
     club_score?: number;
   };
-  onSubmit: (values: any) => Promise<void>; // Added onSubmit prop
-  scoreType: string; // Added scoreType prop
 }
 
 const EditScoreModal: React.FC<EditScoreModalProps> = ({
@@ -23,8 +23,9 @@ const EditScoreModal: React.FC<EditScoreModalProps> = ({
   onClose,
   studentId,
   semesterId,
-  initialScores,
-  onSubmit // Destructure the new onSubmit prop
+  scoreType,
+  onSubmit,
+  initialScores
 }) => {
   const [form] = Form.useForm();
   const [updateScore, { isLoading }] = useUpdateScoreMutation();
@@ -44,7 +45,26 @@ const EditScoreModal: React.FC<EditScoreModalProps> = ({
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      await onSubmit(values); // Use the onSubmit prop for external handling
+      
+      // If onSubmit prop is provided, use it instead of internal implementation
+      if (onSubmit) {
+        await onSubmit(values);
+        return;
+      }
+      
+      // Default internal implementation
+      // Filter out undefined values
+      const scoreData = Object.fromEntries(
+        Object.entries(values).filter(([_, value]) => value !== undefined)
+      );
+      
+      await updateScore({
+        studentId,
+        semesterId,
+        body: scoreData
+      }).unwrap();
+      
+      message.success('Cập nhật điểm thành công');
       onClose();
     } catch (error) {
       console.error('Failed to update scores:', error);
@@ -52,9 +72,21 @@ const EditScoreModal: React.FC<EditScoreModalProps> = ({
     }
   };
 
+  // Generate a more descriptive title based on available info
+  const getModalTitle = () => {
+    let title = `Cập nhật điểm cho sinh viên`;
+    if (studentId) {
+      title += ` ${studentId}`;
+    }
+    if (scoreType) {
+      title += ` - ${scoreType}`;
+    }
+    return title;
+  };
+
   return (
     <Modal
-      title={`Cập nhật điểm cho sinh viên ${studentId}`}
+      title={getModalTitle()}
       open={isVisible}
       onCancel={onClose}
       footer={[

@@ -90,8 +90,8 @@ const SemestersPage: React.FC = () => {
     editForm.setFieldsValue({
       number: semester.number,
       year: semester.year,
-      startTime: semester.startTime ? dayjs(semester.startTime) : null,
-      endTime: semester.endTime ? dayjs(semester.endTime) : null
+      startTime: semester.startTime ? dayjs(semester.startTime) : undefined,
+      endTime: semester.endTime ? dayjs(semester.endTime) : undefined
     });
     setEditModalVisible(true);
   };
@@ -126,9 +126,10 @@ const SemestersPage: React.FC = () => {
     
     try {
       await updateSemester({ 
-        id: selectedSemester.id, 
+        semesterId: selectedSemester.id, 
         body: values 
       }).unwrap();
+      
       
       message.success('Cập nhật học kỳ thành công');
       setEditModalVisible(false);
