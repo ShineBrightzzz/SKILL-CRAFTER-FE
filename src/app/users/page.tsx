@@ -159,16 +159,16 @@ const UsersManagement: React.FC = () => {
 
   return (
     <Sidebar>
-      <div className="flex flex-col justify-center items-center min-h-screen px-4 sm:px-6 lg:px-8 bg-[#f8f9fa]">
-        <div className="p-4 shadow-lg rounded w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-4xl">
-          <Typography.Title level={2} className="text-center sm:text-left">Danh sách Người dùng</Typography.Title>
+      <div className="flex flex-col min-h-screen bg-[#f8f9fa] px-4 py-6 sm:px-8 lg:px-12">
+        <div className="w-full max-w-7xl mx-auto">
+          <Typography.Title level={2} className="text-center sm:text-left mb-6">Danh sách Người dùng</Typography.Title>
 
           {isLoading || isLoadingRoles ? (
             <Loading message="Đang tải danh sách người dùng..." />
           ) : (
             <>
               <Card className="shadow-md">
-                <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+                <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-4">
                   <Input
                     placeholder="Tìm kiếm người dùng..."
                     prefix={<SearchOutlined />}
@@ -192,6 +192,7 @@ const UsersManagement: React.FC = () => {
                   columns={columns}
                   rowKey="username"
                   pagination={{ pageSize: 10 }}
+                  scroll={{ x: 'max-content' }}
                   className="w-full"
                 />
               </Card>
