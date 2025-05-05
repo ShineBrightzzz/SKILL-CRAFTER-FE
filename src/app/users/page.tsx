@@ -167,7 +167,7 @@ const UsersManagement: React.FC = () => {
             <Loading message="Đang tải danh sách người dùng..." />
           ) : (
             <>
-              <Card className="shadow-md">
+              <div className="border rounded-md bg-white p-4">
                 <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-4">
                   <Input
                     placeholder="Tìm kiếm người dùng..."
@@ -195,7 +195,7 @@ const UsersManagement: React.FC = () => {
                   scroll={{ x: 'max-content' }}
                   className="w-full"
                 />
-              </Card>
+              </div>
 
               {/* Edit User Modal */}
               <Modal
