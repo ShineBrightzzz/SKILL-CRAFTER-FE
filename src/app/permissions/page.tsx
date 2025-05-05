@@ -243,8 +243,8 @@ const PermissionTable: React.FC = () => {
     <Sidebar>
       <div className="flex flex-col justify-center items-center min-h-screen px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#f8f9fa" }}>
         <div className="p-4 shadow-lg rounded w-full sm:max-w-2xl">
-          <div className="flex justify-between items-center mb-4">
-            <Typography.Title level={2} className="text-center">Danh sách Permissions (Quyền hạn)</Typography.Title>
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
+            <Typography.Title level={2} className="text-center sm:text-left">Danh sách Permissions (Quyền hạn)</Typography.Title>
             {ability.can(Action.Create, Subject.Permission) && (
               <Button type="primary" onClick={handleAdd} icon={<PlusOutlined />}>Thêm mới</Button>
             )}

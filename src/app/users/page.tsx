@@ -27,7 +27,7 @@ const UsersManagement: React.FC = () => {
   const [createForm] = Form.useForm();
   
   // Fetch users data
-  const { data: usersResponse, isLoading, error, refetch } = useGetAllUserQuery(undefined); // Pass undefined explicitly to match the expected argument structure
+  const { data: usersResponse, isLoading, error, refetch } = useGetAllUserQuery(undefined);
   
   // Fetch roles data for dropdown
   const { data: rolesData, isLoading: isLoadingRoles } = useGetRoleQuery();
@@ -150,7 +150,6 @@ const UsersManagement: React.FC = () => {
     },
   ];
 
-  // Add actions column if user has permission
   if (ability.can(Action.Update, Subject.Account) || ability.can(Action.Delete, Subject.Account)) {
     columns.push({
       title: 'Hành động',
@@ -181,8 +180,7 @@ const UsersManagement: React.FC = () => {
       ),
     });
   }
-  console.log(error)
-  // Check for errors and handle them
+
   if (error) {
     const status = (error as any)?.status || 500;
     return (

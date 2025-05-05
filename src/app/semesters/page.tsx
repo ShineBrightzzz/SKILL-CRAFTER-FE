@@ -57,15 +57,11 @@ const SemestersPage: React.FC = () => {
       return semesterText.includes(searchTermLower);
     })
     ?.sort((a: Semester, b: Semester) => {
-      // Sort by endTime in descending order (newest first)
       if (a.endTime && b.endTime) {
         return new Date(b.endTime).getTime() - new Date(a.endTime).getTime();
-      } 
-      // If endTime is not available but startTime is, use startTime
-      else if (a.startTime && b.startTime) {
+      } else if (a.startTime && b.startTime) {
         return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
       }
-      // If neither time is available, fall back to year and number
       if (a.year !== b.year) return b.year - a.year;
       return b.number - a.number;
     });
@@ -90,8 +86,8 @@ const SemestersPage: React.FC = () => {
     editForm.setFieldsValue({
       number: semester.number,
       year: semester.year,
-      startTime: semester.startTime ? dayjs(semester.startTime) : null,
-      endTime: semester.endTime ? dayjs(semester.endTime) : null
+      startTime: semester.startTime ? dayjs(semester.startTime) : undefined,
+      endTime: semester.endTime ? dayjs(semester.endTime) : undefined
     });
     setEditModalVisible(true);
   };
@@ -126,9 +122,10 @@ const SemestersPage: React.FC = () => {
     
     try {
       await updateSemester({ 
-        id: selectedSemester.id, 
+        semesterId: selectedSemester.id, 
         body: values 
       }).unwrap();
+      
       
       message.success('Cập nhật học kỳ thành công');
       setEditModalVisible(false);
@@ -147,7 +144,6 @@ const SemestersPage: React.FC = () => {
         <span>Kì {record.number} năm {record.year}</span>
       ),
       sorter: (a, b) => {
-        // Sort by year first, then by number
         if (a.year !== b.year) return a.year - b.year;
         return a.number - b.number;
       },
@@ -183,7 +179,6 @@ const SemestersPage: React.FC = () => {
     }
   ];
 
-  // Add actions column if user has permission
   if (ability.can(Action.Update, Subject.Semester) || ability.can(Action.Delete, Subject.Semester)) {
     columns.push({
       title: 'Hành động',
@@ -215,7 +210,6 @@ const SemestersPage: React.FC = () => {
     });
   }
 
-  // Check for errors and handle them
   if (error) {
     const status = (error as any)?.status || 500;
     return (
@@ -263,8 +257,8 @@ const SemestersPage: React.FC = () => {
             onCancel={() => setAddModalVisible(false)}
             onSubmit={handleAddSubmit}
             form={form}
-            onClose={() => setAddModalVisible(false)} // Added onClose prop
-            onAddSemester={handleAddSubmit} // Added onAddSemester prop
+            onClose={() => setAddModalVisible(false)}
+            onAddSemester={handleAddSubmit}
           />
 
           {/* Edit Semester Modal */}
