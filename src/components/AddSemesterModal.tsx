@@ -3,7 +3,6 @@
 import { Modal, Form, InputNumber, DatePicker, Button, FormInstance } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect } from 'react';
-import { useMediaQuery } from 'react-responsive';
 
 interface AddSemesterModalProps {
   isOpen: boolean;
@@ -25,7 +24,6 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({
   onAddSemester,
 }) => {
   const [form] = Form.useForm();
-  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
 
   const handleOk = () => {
     form
@@ -56,7 +54,6 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({
       open={isOpen}
       onOk={handleOk}
       onCancel={handleCancel}
-      width={isMobile ? '100%' : 700}
       footer={[
         <Button key="back" onClick={handleCancel}>
           Hủy
@@ -72,7 +69,7 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({
           name="number"
           rules={[{ required: true, message: 'Vui lòng nhập học kỳ!' }]}
         >
-          <InputNumber min={1} max={3} style={{ width: '100%', fontSize: isMobile ? '14px' : '16px' }} />
+          <InputNumber min={1} max={3} style={{ width: '100%' }} />
         </Form.Item>
 
         <Form.Item
@@ -80,7 +77,7 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({
           name="year"
           rules={[{ required: true, message: 'Vui lòng nhập năm!' }]}
         >
-          <InputNumber min={2000} max={2100} style={{ width: '100%', fontSize: isMobile ? '14px' : '16px' }} />
+          <InputNumber min={2000} max={2100} style={{ width: '100%' }} />
         </Form.Item>
 
         <Form.Item
@@ -88,7 +85,7 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({
           name="startTime"
           rules={[{ required: true, message: 'Vui lòng chọn ngày bắt đầu!' }]}
         >
-          <DatePicker style={{ width: '100%', fontSize: isMobile ? '14px' : '16px' }} format="YYYY-MM-DD" />
+          <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
         </Form.Item>
 
         <Form.Item
@@ -96,7 +93,7 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({
           name="endTime"
           rules={[{ required: true, message: 'Vui lòng chọn ngày kết thúc!' }]}
         >
-          <DatePicker style={{ width: '100%', fontSize: isMobile ? '14px' : '16px' }} format="YYYY-MM-DD" />
+          <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
         </Form.Item>
       </Form>
     </Modal>
