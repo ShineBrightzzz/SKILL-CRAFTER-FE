@@ -19,11 +19,14 @@ import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
 import withPermission from '@/hocs/withPermission';
 import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { useMediaQuery } from 'react-responsive';
 
 const { Panel } = Collapse;
 const { Text } = Typography;
 
 const RoleManagement: React.FC = () => {
+  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
+
   const [form] = Form.useForm();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingRole, setEditingRole] = useState<any | null>(null);
@@ -264,17 +267,30 @@ const RoleManagement: React.FC = () => {
 
   return (
     <Sidebar>
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: isMobile ? 16 : 24 }}>
         {isLoadingRoles || isLoadingPermissions ? (
           <Loading message="Đang tải danh sách vai trò..." />
         ) : (
           <>
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+            <div
+              style={{
+                marginBottom: 16,
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                justifyContent: 'space-between',
+                alignItems: isMobile ? 'flex-start' : 'center',
+              }}
+            >
               <Typography.Title level={2} className="mb-6 text-center">
                 Danh sách Roles (Vai Trò)
               </Typography.Title>
               {ability.can(Action.Create, Subject.Role) && (
-                <Button type="primary" onClick={openCreateModal} icon={<PlusOutlined />}>
+                <Button 
+                  type="primary" 
+                  onClick={openCreateModal} 
+                  icon={<PlusOutlined />} 
+                  style={{ marginTop: isMobile ? 16 : 0 }}
+                >
                   Thêm vai trò
                 </Button>
               )}
@@ -287,7 +303,7 @@ const RoleManagement: React.FC = () => {
                   prefix={<SearchOutlined />}
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: 300 }}
+                  style={{ width: isMobile ? '100%' : 300 }}
                   allowClear
                 />
               </div>
@@ -296,6 +312,7 @@ const RoleManagement: React.FC = () => {
                 columns={columns}
                 rowKey="id"
                 pagination={{ pageSize: 10 }}
+                scroll={isMobile ? { x: true } : undefined}
               />
             </Card>
 
@@ -304,16 +321,16 @@ const RoleManagement: React.FC = () => {
               open={modalVisible}
               onCancel={() => setModalVisible(false)}
               onOk={handleSubmit}
-              width={800}
+              width={isMobile ? '100%' : 800}
             >
               <Form layout="vertical" form={form}>
-                <Form.Item name="name" label="Tên Role" rules={[{ required: true }]}>
+                <Form.Item name="name" label="Tên Role" rules={[{ required: true }]}> 
                   <Input />
                 </Form.Item>
-                <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}>
+                <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}> 
                   <Input.TextArea />
                 </Form.Item>
-                <Form.Item name="active" label="Trạng thái" valuePropName="checked">
+                <Form.Item name="active" label="Trạng thái" valuePropName="checked"> 
                   <Switch checkedChildren="ACTIVE" unCheckedChildren="INACTIVE" />
                 </Form.Item>
               </Form>

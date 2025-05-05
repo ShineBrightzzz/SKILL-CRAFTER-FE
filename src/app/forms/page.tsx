@@ -13,6 +13,7 @@ import { useAbility } from '@/hooks/useAbility';
 import withPermission from '@/hocs/withPermission';
 import moment from 'moment';
 import dayjs from 'dayjs';
+import { useMediaQuery } from 'react-responsive';
 
 interface Form {
   semesterId: string;
@@ -28,6 +29,8 @@ interface Form {
 }
 
 const FormsPage: React.FC = () => {
+  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
+
   // Table states
   const [searchText, setSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -238,12 +241,20 @@ const FormsPage: React.FC = () => {
 
   return (
     <Sidebar>
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: isMobile ? 16 : 24 }}>
         {isLoading ? (
           <Loading message="Đang tải danh sách biểu mẫu..." />
         ) : (
           <>
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+            <div
+              style={{
+                marginBottom: 16,
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                justifyContent: 'space-between',
+                alignItems: isMobile ? 'flex-start' : 'center',
+              }}
+            >
               <Typography.Title level={2} className="mb-6">
                 <FileTextOutlined className="mr-2" />
                 Danh sách biểu mẫu
@@ -253,6 +264,7 @@ const FormsPage: React.FC = () => {
                   type="primary" 
                   onClick={() => setAddModalVisible(true)}
                   icon={<PlusOutlined />}
+                  style={{ marginTop: isMobile ? 16 : 0 }}
                 >
                   Thêm biểu mẫu
                 </Button>
@@ -266,7 +278,7 @@ const FormsPage: React.FC = () => {
                   prefix={<SearchOutlined />}
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: 300 }}
+                  style={{ width: isMobile ? '100%' : 300 }}
                   allowClear
                 />
               </div>
@@ -285,6 +297,7 @@ const FormsPage: React.FC = () => {
                 locale={{ 
                   emptyText: 'Không có biểu mẫu nào' 
                 }}
+                scroll={isMobile ? { x: true } : undefined}
               />
             </Card>
 

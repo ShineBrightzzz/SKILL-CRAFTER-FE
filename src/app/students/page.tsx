@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useMediaQuery } from 'react-responsive';
 import Sidebar from "@/layouts/sidebar";
 import { Card, Typography, Table, Select, Tag, Button, Input } from 'antd';
 import { useGetSemesterQuery, useGetStudentScoresBySemesterQuery } from '@/services/semester.service';
@@ -34,6 +35,8 @@ export default function ScoresPage() {
   const { data: studentScoresData, isLoading: isLoadingScore, error: scoreError, refetch } = useGetStudentScoresBySemesterQuery({
     semesterId: selectedSemesterId,
   });
+
+  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
 
   // Set default semester when data is loaded
   useEffect(() => {
@@ -196,12 +199,20 @@ export default function ScoresPage() {
 
   return (
     <Sidebar>
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: isMobile ? 16 : 24 }}>
         {isLoadingOptions || isLoadingScore ? (
           <Loading message="Đang tải thông tin điểm sinh viên..." />
         ) : (
           <>
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+            <div
+              style={{
+                marginBottom: 16,
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                justifyContent: 'space-between',
+                alignItems: isMobile ? 'flex-start' : 'center',
+              }}
+            >
               <Typography.Title level={2} className="mb-6">
                 Điểm
               </Typography.Title>
@@ -210,7 +221,7 @@ export default function ScoresPage() {
                 value={selectedSemesterId}
                 onChange={handleSemesterChange}
                 loading={isLoadingOptions}
-                style={{ width: 200 }}
+                style={{ width: isMobile ? '100%' : 200 }}
                 placeholder="Chọn học kỳ"
               >
                 {semesterOptions?.data?.map((option: any) => (
@@ -222,13 +233,21 @@ export default function ScoresPage() {
             </div>
 
             <Card className="shadow-md">
-              <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+              <div
+                style={{
+                  marginBottom: 16,
+                  display: 'flex',
+                  flexDirection: isMobile ? 'column' : 'row',
+                  justifyContent: 'space-between',
+                  alignItems: isMobile ? 'flex-start' : 'center',
+                }}
+              >
                 <Input
                   placeholder="Tìm kiếm theo mã sinh viên..."
                   prefix={<SearchOutlined />}
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: 300 }}
+                  style={{ width: isMobile ? '100%' : 300 }}
                   allowClear
                 />
               </div>
@@ -237,6 +256,7 @@ export default function ScoresPage() {
                 dataSource={filteredData}
                 rowKey="studentId"
                 pagination={{ pageSize: 10 }}
+                scroll={isMobile ? { x: true } : undefined}
               />
             </Card>
 

@@ -13,6 +13,7 @@ import ErrorHandler from '@/components/ErrorHandler';
 import { Action, Subject } from '@/utils/ability';
 import withPermission from '@/hocs/withPermission';
 import EditScoreModal from '@/components/EditScoreModal';
+import { useMediaQuery } from 'react-responsive';
 
 const { Dragger } = Upload;
 
@@ -24,6 +25,8 @@ interface Semester {
 }
 
 const ScoresPage = () => {
+  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
+
   // Table states
   const [searchText, setSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -291,12 +294,20 @@ const ScoresPage = () => {
 
   return (
     <Sidebar>
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: isMobile ? 16 : 24 }}>
         {isLoadingSemesters || isLoadingScores ? (
           <Loading message="Đang tải thông tin học kỳ và điểm..." />
         ) : (
           <>
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+            <div
+              style={{
+                marginBottom: 16,
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                justifyContent: 'space-between',
+                alignItems: isMobile ? 'flex-start' : 'center',
+              }}
+            >
               <Typography.Title level={2} className="mb-6 text-center">
                 Điểm
               </Typography.Title>
@@ -309,7 +320,7 @@ const ScoresPage = () => {
                   prefix={<SearchOutlined />}
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: 300 }}
+                  style={{ width: isMobile ? '100%' : 300 }}
                   allowClear
                 />
               </div>
@@ -325,6 +336,7 @@ const ScoresPage = () => {
                   onShowSizeChange: (_, size) => setPageSize(size)
                 }}
                 onChange={handleTableChange}
+                scroll={isMobile ? { x: true } : undefined}
               />
             </Card>
           </>
@@ -348,7 +360,7 @@ const ScoresPage = () => {
         isVisible={isEditScoreModalOpen}
         onClose={() => setIsEditScoreModalOpen(false)}
         onSubmit={handleEditScore}
-        semesterId={selectedSemester?.id || ''} // Updated from semester to semesterId
+        semesterId={selectedSemester?.id || ''}
         scoreType={selectedScoreType}
         studentId={currentStudentId}
         initialScores={{
@@ -357,7 +369,7 @@ const ScoresPage = () => {
           event_score: undefined,
           research_score: undefined,
           club_score: undefined,
-        }} // Added initialScores prop
+        }}
       />
     </Sidebar>
   );

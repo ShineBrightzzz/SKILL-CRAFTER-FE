@@ -6,6 +6,7 @@ import { useLazyGetUserInfoQuery, useLoginMutation } from '@/services/user.servi
 import { useAppDispatch } from '@/store/hooks';
 import { setUser } from '@/store/slices/userSlice';
 import { setAbility } from '@/store/slices/abilitySlice';
+import { useMediaQuery } from 'react-responsive';
 
 export default function Login() {
   const [login, { isLoading }] = useLoginMutation();
@@ -13,21 +14,22 @@ export default function Login() {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fetchUserInfo] = useLazyGetUserInfoQuery();
-  
+  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    
+
     // Ngăn chặn submit nhiều lần
     if (isSubmitting) return;
-    
+
     setIsSubmitting(true);
     const formData = new FormData(event.target as HTMLFormElement);
     const username = formData.get('username') as string;
     const password = formData.get('password') as string;
     try {
       const data = await login({ username, password }).unwrap();
-      const user = await fetchUserInfo({ userId : username }).unwrap();
-      
+      const user = await fetchUserInfo({ userId: username }).unwrap();
+
       if (!user) {
         console.log('Error', 'Không tìm thấy người dùng');
         setIsSubmitting(false);
@@ -47,14 +49,20 @@ export default function Login() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen" style={{ backgroundColor: "#f8f9fa" }}>
-      <div className="p-4 shadow-lg rounded" style={{ maxWidth: "400px", width: "100%" }}>
+    <div
+      className="flex justify-center items-center min-h-screen"
+      style={{ backgroundColor: "#f8f9fa", padding: isMobile ? '16px' : '0' }}
+    >
+      <div
+        className="p-4 shadow-lg rounded"
+        style={{ maxWidth: isMobile ? '100%' : '400px', width: '100%' }}
+      >
         <div className="flex justify-center mb-4">
-          <Image 
-            src="/HVNH.svg" 
-            alt="Logo Học viện Ngân hàng" 
-            width={150} 
-            height={150}
+          <Image
+            src="/HVNH.svg"
+            alt="Logo Học viện Ngân hàng"
+            width={isMobile ? 100 : 150}
+            height={isMobile ? 100 : 150}
             priority
           />
         </div>
@@ -62,10 +70,10 @@ export default function Login() {
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label htmlFor="username" className="block mb-1">Tên đăng nhập</label>
-            <input 
-              type="text" 
-              className="w-full p-2 border rounded" 
-              id="username" 
+            <input
+              type="text"
+              className="w-full p-2 border rounded"
+              id="username"
               name="username"
               placeholder="Nhập tên đăng nhập"
               required
@@ -73,10 +81,10 @@ export default function Login() {
           </div>
           <div className="mb-3">
             <label htmlFor="password" className="block mb-1">Mật khẩu</label>
-            <input 
-              type="password" 
-              className="w-full p-2 border rounded" 
-              id="password" 
+            <input
+              type="password"
+              className="w-full p-2 border rounded"
+              id="password"
               name="password"
               placeholder="Nhập mật khẩu"
               required
@@ -86,7 +94,7 @@ export default function Login() {
             <input type="checkbox" className="mr-2" id="rememberMe" />
             <label className="text-sm" htmlFor="rememberMe">Ghi nhớ đăng nhập</label>
           </div>
-          <button 
+          <button
             type="submit"
             className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
             disabled={isLoading || isSubmitting}

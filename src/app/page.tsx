@@ -17,6 +17,7 @@ import {
   BulbOutlined
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import { useMediaQuery } from 'react-responsive';
 
 const Column = dynamic(() => import('@ant-design/plots').then(mod => mod.Column), { ssr: false });
 const Pie = dynamic(() => import('@ant-design/plots').then(mod => mod.Pie), { ssr: false });
@@ -41,6 +42,7 @@ interface ScoreItem {
 export default function Home() {
   const totalStudents = 1200;
   const [animateCharts, setAnimateCharts] = useState(false);
+  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
 
   useEffect(() => {
     const animateTimeout = setTimeout(() => setAnimateCharts(true), 300);
@@ -153,15 +155,27 @@ export default function Home() {
 
   return (
     <Sidebar>
-      <div style={{ padding: 24 }}>
-        <Title level={3}>Trang tổng quan</Title>
+      <div style={{ padding: isMobile ? 16 : 24 }}>
+        <Title level={3} style={{ textAlign: isMobile ? 'center' : 'left' }}>Trang tổng quan</Title>
 
-        <Card title="Sự kiện nổi bật">
-          <Table columns={eventColumns} dataSource={topEvents} rowKey="name" pagination={false} />
+        <Card title="Sự kiện nổi bật" style={{ marginBottom: isMobile ? 16 : 24 }}>
+          <Table 
+            columns={eventColumns} 
+            dataSource={topEvents} 
+            rowKey="name" 
+            pagination={false} 
+            scroll={isMobile ? { x: true } : undefined} 
+          />
         </Card>
 
-        <Card title="Phân bố điểm rèn luyện" style={{ marginTop: 24 }}>
-          <Table columns={scoreColumns} dataSource={scoreDistribution} rowKey="range" pagination={false} />
+        <Card title="Phân bố điểm rèn luyện">
+          <Table 
+            columns={scoreColumns} 
+            dataSource={scoreDistribution} 
+            rowKey="range" 
+            pagination={false} 
+            scroll={isMobile ? { x: true } : undefined} 
+          />
         </Card>
       </div>
     </Sidebar>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Spin, Typography } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
+import { useMediaQuery } from 'react-responsive';
 
 const { Text } = Typography;
 
@@ -17,31 +18,32 @@ const Loading: React.FC<LoadingProps> = ({
 }) => {
   const [dots, setDots] = useState('');
   const [tipIndex, setTipIndex] = useState(0);
-  
+  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
+
   const tips = [
     'Vui lòng đợi trong giây lát',
     'Đang xử lý dữ liệu',
     'Sắp hoàn thành rồi',
     'Cảm ơn vì sự kiên nhẫn của bạn'
   ];
-  
+
   useEffect(() => {
     // Hiệu ứng dấu chấm động
     const dotInterval = setInterval(() => {
       setDots(prev => prev.length < 3 ? prev + '.' : '');
     }, 500);
-    
+
     // Thay đổi tip mỗi 3 giây
     const tipInterval = setInterval(() => {
       setTipIndex(prev => (prev + 1) % tips.length);
     }, 3000);
-    
+
     return () => {
       clearInterval(dotInterval);
       clearInterval(tipInterval);
     };
   }, []);
-  
+
   const antIcon = <LoadingOutlined style={{ fontSize: 40, color: '#1890ff' }} spin />;
 
   return (
@@ -60,34 +62,35 @@ const Loading: React.FC<LoadingProps> = ({
         top: 0,
         left: 0,
         zIndex: fullScreen ? 1000 : 1,
+        padding: isMobile ? '16px' : '30px',
       }}
     >
       <div
         style={{
           background: 'white',
-          padding: '30px 40px',
+          padding: isMobile ? '20px' : '30px 40px',
           borderRadius: '12px',
           boxShadow: '0 10px 25px rgba(0, 0, 0, 0.05)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           maxWidth: '90%',
-          width: '400px',
+          width: isMobile ? '100%' : '400px',
           animation: 'fadeIn 0.5s ease-in-out',
         }}
       >
         <div style={{ marginBottom: 24 }}>
           <Spin indicator={antIcon} />
         </div>
-        
-        <Text strong style={{ fontSize: 18, color: '#333', marginBottom: 8 }}>
+
+        <Text strong style={{ fontSize: isMobile ? 16 : 18, color: '#333', marginBottom: 8 }}>
           {message}{dots}
         </Text>
-        
-        <Text style={{ fontSize: 14, color: '#888', textAlign: 'center' }}>
+
+        <Text style={{ fontSize: isMobile ? 12 : 14, color: '#888', textAlign: 'center' }}>
           {tips[tipIndex]}
         </Text>
-        
+
         <div 
           style={{ 
             marginTop: 20,
@@ -109,7 +112,7 @@ const Loading: React.FC<LoadingProps> = ({
           />
         </div>
       </div>
-      
+
       <style jsx global>{`
         @keyframes loading {
           0% {
@@ -119,7 +122,7 @@ const Loading: React.FC<LoadingProps> = ({
             transform: translateX(400%);
           }
         }
-        
+
         @keyframes fadeIn {
           from {
             opacity: 0;

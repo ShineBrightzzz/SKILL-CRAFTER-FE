@@ -29,6 +29,7 @@ import Loading from '@/components/Loading';
 import ErrorHandler from '@/components/ErrorHandler';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import withPermission from '@/hocs/withPermission';
+import { useMediaQuery } from 'react-responsive';
 
 const { Option } = Select;
 
@@ -58,6 +59,7 @@ const PermissionTable: React.FC = () => {
   const [createPermission] = useCreatePermissionMutation();
   
   const ability = useAbility();
+  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
 
   useEffect(() => {
     if (permissionsData) {
@@ -241,17 +243,30 @@ const PermissionTable: React.FC = () => {
 
   return (
     <Sidebar>
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: isMobile ? 16 : 24 }}>
         {isLoading ? (
           <Loading message="Đang tải danh sách quyền hạn..." />
         ) : (
           <>
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+            <div
+              style={{
+                marginBottom: 16,
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                justifyContent: 'space-between',
+                alignItems: isMobile ? 'flex-start' : 'center',
+              }}
+            >
               <Typography.Title level={2} className="mb-6 text-center">
                 Danh sách Permissions (Quyền hạn)
               </Typography.Title>
               {ability.can(Action.Create, Subject.Permission) && (
-                <Button type="primary" onClick={handleAdd} icon={<PlusOutlined />}>
+                <Button 
+                  type="primary" 
+                  onClick={handleAdd} 
+                  icon={<PlusOutlined />} 
+                  style={{ marginTop: isMobile ? 16 : 0 }}
+                >
                   Thêm mới
                 </Button>
               )}
@@ -264,7 +279,7 @@ const PermissionTable: React.FC = () => {
                   prefix={<SearchOutlined />}
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: 300 }}
+                  style={{ width: isMobile ? '100%' : 300 }}
                   allowClear
                 />
               </div>
@@ -280,6 +295,7 @@ const PermissionTable: React.FC = () => {
                   onShowSizeChange: (_, size) => setPageSize(size)
                 }}
                 onChange={handleTableChange}
+                scroll={isMobile ? { x: true } : undefined}
               />
             </Card>
 
@@ -288,18 +304,18 @@ const PermissionTable: React.FC = () => {
               open={isModalVisible}
               onCancel={() => setIsModalVisible(false)}
               onOk={handleOk}
-              width={800}
+              width={isMobile ? '100%' : 800}
             >
               <Form form={form} layout="vertical">
-                <Form.Item label="Tên Permission" name="name" rules={[{ required: true, message: 'Vui lòng nhập tên quyền hạn' }]}>
+                <Form.Item label="Tên Permission" name="name" rules={[{ required: true, message: 'Vui lòng nhập tên quyền hạn' }]}> 
                   <Input placeholder="Nhập tên Permission" />
                 </Form.Item>
 
-                <Form.Item label="API Path" name="apiPath" rules={[{ required: true, message: 'Vui lòng nhập đường dẫn API' }]}>
+                <Form.Item label="API Path" name="apiPath" rules={[{ required: true, message: 'Vui lòng nhập đường dẫn API' }]}> 
                   <Input placeholder="Nhập path" />
                 </Form.Item>
 
-                <Form.Item label="Method" name="method" rules={[{ required: true, message: 'Vui lòng chọn phương thức' }]}>
+                <Form.Item label="Method" name="method" rules={[{ required: true, message: 'Vui lòng chọn phương thức' }]}> 
                   <Select placeholder="Chọn Method">
                     <Option value="GET">GET</Option>
                     <Option value="POST">POST</Option>
@@ -308,7 +324,7 @@ const PermissionTable: React.FC = () => {
                   </Select>
                 </Form.Item>
 
-                <Form.Item label="Thuộc Module" name="module" rules={[{ required: true, message: 'Vui lòng chọn module' }]}>
+                <Form.Item label="Thuộc Module" name="module" rules={[{ required: true, message: 'Vui lòng chọn module' }]}> 
                   <Select placeholder="Chọn Module">
                     {modules.map(module => (
                       <Option key={module} value={module}>{module}</Option>
@@ -317,9 +333,9 @@ const PermissionTable: React.FC = () => {
                     <Option value="New">Thêm module mới</Option>
                   </Select>
                 </Form.Item>
-                
+
                 {form.getFieldValue('module') === 'New' && (
-                  <Form.Item label="Module mới" name="newModule" rules={[{ required: true, message: 'Vui lòng nhập tên module mới' }]}>
+                  <Form.Item label="Module mới" name="newModule" rules={[{ required: true, message: 'Vui lòng nhập tên module mới' }]}> 
                     <Input placeholder="Nhập tên module mới" />
                   </Form.Item>
                 )}

@@ -7,6 +7,7 @@ import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
 import { logout } from '@/store/slices/userSlice';
 import { useRouter } from 'next/navigation';
+import { useMediaQuery } from 'react-responsive';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -17,15 +18,16 @@ const Navbar: React.FC<NavbarProps> = ({ collapsed }) => {
   const dispatch = useDispatch();
   const router = useRouter();
   const user = useSelector((state: any) => state.user);
+  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
 
   const handleLogout = () => {
     // Clear localStorage items
     localStorage.removeItem('accessToken');
     localStorage.removeItem('userId');
-    
+
     // Dispatch logout action to reset Redux state
     dispatch(logout());
-    
+
     // Redirect to login page
     router.push('/login');
   };
@@ -47,12 +49,17 @@ const Navbar: React.FC<NavbarProps> = ({ collapsed }) => {
       style={{
         background: '#1468a2',
         display: 'flex',
-        justifyContent: 'flex-end',
+        justifyContent: isMobile ? 'space-between' : 'flex-end',
         alignItems: 'center',
-        padding: '0 16px',
+        padding: isMobile ? '0 8px' : '0 16px',
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
       }}
     >
+      {isMobile && (
+        <Text style={{ color: '#fff', fontSize: '16px', fontWeight: 'bold' }}>
+          Navbar
+        </Text>
+      )}
       <Dropdown overlay={menu} trigger={['click']}>
         <Avatar
           size="large"

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useMediaQuery } from 'react-responsive';
 import Sidebar from "@/layouts/sidebar";
 import dayjs from 'dayjs';
 import {
@@ -41,6 +42,8 @@ interface Event {
 }
 
 const EventsPage = () => {
+  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
+
   // Table states
   const [searchText, setSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -272,7 +275,7 @@ const EventsPage = () => {
 
   return (
     <Sidebar>
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: isMobile ? 16 : 24 }}>
         {isLoading ? (
           <Loading message="Đang tải danh sách sự kiện..." />
         ) : (
@@ -281,8 +284,9 @@ const EventsPage = () => {
               style={{
                 marginBottom: 16,
                 display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
                 justifyContent: 'space-between',
-                alignItems: 'center',
+                alignItems: isMobile ? 'flex-start' : 'center',
               }}
             >
               <Typography.Title level={2} className="mb-6 text-center">
@@ -293,6 +297,7 @@ const EventsPage = () => {
                   type="primary" 
                   icon={<PlusOutlined />} 
                   onClick={() => setIsAddEventModalOpen(true)}
+                  style={{ marginTop: isMobile ? 16 : 0 }}
                 >
                   Thêm sự kiện
                 </Button>
@@ -306,7 +311,7 @@ const EventsPage = () => {
                   prefix={<SearchOutlined />}
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: 300 }}
+                  style={{ width: isMobile ? '100%' : 300 }}
                   allowClear
                 />
               </div>
@@ -322,6 +327,7 @@ const EventsPage = () => {
                   onShowSizeChange: (_, size) => setPageSize(size)
                 }}
                 onChange={handleTableChange}
+                scroll={isMobile ? { x: true } : undefined}
               />
             </Card>
           </>

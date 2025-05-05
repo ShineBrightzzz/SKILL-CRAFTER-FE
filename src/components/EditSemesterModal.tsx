@@ -2,6 +2,7 @@ import { Modal, Form, InputNumber, DatePicker, Button } from 'antd';
 import React, { useEffect } from 'react';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
+import { useMediaQuery } from 'react-responsive';
 
 interface EditSemesterModalProps {
   visible: boolean;
@@ -25,6 +26,8 @@ const EditSemesterModal: React.FC<EditSemesterModalProps> = ({
   form,
   initialValues
 }) => {
+  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
+
   useEffect(() => {
     if (visible && initialValues) {
       form.setFieldsValue({
@@ -58,6 +61,7 @@ const EditSemesterModal: React.FC<EditSemesterModalProps> = ({
           Cập nhật
         </Button>,
       ]}
+      width={isMobile ? '100%' : 700}
     >
       <Form
         form={form}
@@ -72,7 +76,7 @@ const EditSemesterModal: React.FC<EditSemesterModalProps> = ({
           label="Số học kỳ"
           rules={[{ required: true, message: 'Vui lòng nhập số học kỳ!' }]}
         >
-          <InputNumber min={1} max={3} style={{ width: '100%' }} />
+          <InputNumber min={1} max={3} style={{ width: '100%', fontSize: isMobile ? '14px' : '16px' }} />
         </Form.Item>
 
         <Form.Item
@@ -80,21 +84,21 @@ const EditSemesterModal: React.FC<EditSemesterModalProps> = ({
           label="Năm học"
           rules={[{ required: true, message: 'Vui lòng nhập năm học!' }]}
         >
-          <InputNumber style={{ width: '100%' }} />
+          <InputNumber style={{ width: '100%', fontSize: isMobile ? '14px' : '16px' }} />
         </Form.Item>
 
         <Form.Item
           name="startTime"
           label="Thời gian bắt đầu"
         >
-          <DatePicker style={{ width: '100%' }} />
+          <DatePicker style={{ width: '100%', fontSize: isMobile ? '14px' : '16px' }} />
         </Form.Item>
 
         <Form.Item
           name="endTime"
           label="Thời gian kết thúc"
         >
-          <DatePicker style={{ width: '100%' }} />
+          <DatePicker style={{ width: '100%', fontSize: isMobile ? '14px' : '16px' }} />
         </Form.Item>
       </Form>
     </Modal>

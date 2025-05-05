@@ -14,6 +14,7 @@ import withPermission from '@/hocs/withPermission';
 import AddSemesterModal from '@/components/AddSemesterModal';
 import EditSemesterModal from '@/components/EditSemesterModal';
 import dayjs from 'dayjs';
+import { useMediaQuery } from 'react-responsive';
 
 interface Semester {
   id: string;
@@ -24,6 +25,8 @@ interface Semester {
 }
 
 const SemestersPage: React.FC = () => {
+  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
+
   // Table states
   const [searchText, setSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -228,20 +231,29 @@ const SemestersPage: React.FC = () => {
 
   return (
     <Sidebar>
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: isMobile ? 16 : 24 }}>
         {isLoading ? (
           <Loading message="Đang tải danh sách học kỳ..." />
         ) : (
           <>
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-              <Typography.Title level={2} className="mb-6">
+            <div
+              style={{
+                marginBottom: 16,
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                justifyContent: 'space-between',
+                alignItems: isMobile ? 'flex-start' : 'center',
+              }}
+            >
+              <Typography.Title level={2} className="mb-6 text-center">
                 Danh sách học kỳ
               </Typography.Title>
               {ability.can(Action.Create, Subject.Semester) && (
                 <Button 
                   type="primary" 
                   onClick={() => setAddModalVisible(true)}
-                  icon={<PlusOutlined />}
+                  icon={<PlusOutlined />} 
+                  style={{ marginTop: isMobile ? 16 : 0 }}
                 >
                   Thêm học kỳ
                 </Button>
@@ -255,7 +267,7 @@ const SemestersPage: React.FC = () => {
                   prefix={<SearchOutlined />}
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: 300 }}
+                  style={{ width: isMobile ? '100%' : 300 }}
                   allowClear
                 />
               </div>
@@ -271,6 +283,7 @@ const SemestersPage: React.FC = () => {
                   onShowSizeChange: (_, size) => setPageSize(size)
                 }}
                 onChange={handleTableChange}
+                scroll={isMobile ? { x: true } : undefined}
               />
             </Card>
 
@@ -280,8 +293,8 @@ const SemestersPage: React.FC = () => {
               onCancel={() => setAddModalVisible(false)}
               onSubmit={handleAddSubmit}
               form={form}
-              onClose={() => setAddModalVisible(false)} // Added onClose prop
-              onAddSemester={handleAddSubmit} // Added onAddSemester prop
+              onClose={() => setAddModalVisible(false)}
+              onAddSemester={handleAddSubmit}
             />
 
             {/* Edit Semester Modal */}

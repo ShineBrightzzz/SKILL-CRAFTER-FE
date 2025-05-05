@@ -5,6 +5,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Providers from '../providers/Providers';
 import AuthGuard from '@/components/AuthGuard';
+import { useMediaQuery } from 'react-responsive';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -30,19 +31,22 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
+
   return (
     <>
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Providers>
-          <AuthGuard>
-            {children}
-          </AuthGuard>
-        </Providers>
-      </body>
-    </html>
-    
-    <ToastContainer />
+      <html lang="en">
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+          style={{ fontSize: isMobile ? '14px' : '16px' }}
+        >
+          <Providers>
+            <AuthGuard>{children}</AuthGuard>
+          </Providers>
+        </body>
+      </html>
+
+      <ToastContainer />
     </>
   );
 }
