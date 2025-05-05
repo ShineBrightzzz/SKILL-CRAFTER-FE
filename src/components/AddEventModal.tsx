@@ -4,7 +4,6 @@ import { Modal, Form, Input, DatePicker, Button, Select } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { useGetSemesterQuery } from '@/services/semester.service';
-import { useMediaQuery } from 'react-responsive';
 
 interface Event {
   eventId: string;
@@ -36,8 +35,6 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
   const [form] = Form.useForm();
   const { data: semesterData, isLoading } = useGetSemesterQuery();
   const [semesters, setSemesters] = useState<Array<{ value: string; label: string }>>([]);
-  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
-
   useEffect(() => {
     if (semesterData?.data?.length) {
       const semesterOptions = semesterData.data.map((semester: any) => ({
@@ -100,7 +97,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
       open={isOpen}
       onOk={handleOk}
       onCancel={handleCancel}
-      width={isMobile ? '100%' : 700}
+      width={700}
       footer={[
         <Button key="back" onClick={handleCancel}>
           Hủy
@@ -116,7 +113,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           name="event_id"
           rules={[{ required: true, message: 'Vui lòng nhập mã sự kiện!' }]}
         >
-          <Input placeholder="VD: EV01" disabled={isEditing} style={{ fontSize: isMobile ? '14px' : '16px' }} />
+          <Input placeholder="VD: EV01" disabled={isEditing} />
         </Form.Item>
 
         <Form.Item
@@ -124,7 +121,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           name="name"
           rules={[{ required: true, message: 'Vui lòng nhập tên sự kiện!' }]}
         >
-          <Input placeholder="VD: Hội thảo AI" style={{ fontSize: isMobile ? '14px' : '16px' }} />
+          <Input placeholder="VD: Hội thảo AI" />
         </Form.Item>
 
         <Form.Item
@@ -132,14 +129,14 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           name="organizing_unit"
           rules={[{ required: true, message: 'Vui lòng nhập đơn vị tổ chức!' }]}
         >
-          <Input placeholder="VD: CLB BIT" style={{ fontSize: isMobile ? '14px' : '16px' }} />
+          <Input placeholder="VD: CLB BIT" />
         </Form.Item>
 
-        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '16px' }}>
+        <div style={{ display: 'flex', gap: '16px' }}>
           <Form.Item
             label="Thời gian bắt đầu"
             name="start_time"
-            style={{ width: isMobile ? '100%' : '50%' }}
+            style={{ width: '50%' }}
             rules={[{ required: true, message: 'Vui lòng chọn thời gian bắt đầu!' }]}
           >
             <DatePicker 
@@ -153,7 +150,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           <Form.Item
             label="Thời gian kết thúc"
             name="end_time"
-            style={{ width: isMobile ? '100%' : '50%' }}
+            style={{ width: '50%' }}
             rules={[{ required: true, message: 'Vui lòng chọn thời gian kết thúc!' }]}
           >
             <DatePicker 
@@ -170,7 +167,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           name="description"
           rules={[{ required: true, message: 'Vui lòng nhập mô tả sự kiện!' }]}
         >
-          <Input.TextArea rows={4} placeholder="Nhập mô tả sự kiện" style={{ fontSize: isMobile ? '14px' : '16px' }} />
+          <Input.TextArea rows={4} placeholder="Nhập mô tả sự kiện" />
         </Form.Item>
 
         <Form.Item
@@ -178,7 +175,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           name="location"
           rules={[{ required: true, message: 'Vui lòng nhập địa điểm!' }]}
         >
-          <Input placeholder="VD: Hội trường A" style={{ fontSize: isMobile ? '14px' : '16px' }} />
+          <Input placeholder="VD: Hội trường A" />
         </Form.Item>
 
         <Form.Item
@@ -193,7 +190,6 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
               { value: '1', label: 'Trực tuyến' },
               { value: '2', label: 'Kết hợp' },
             ]}
-            style={{ fontSize: isMobile ? '14px' : '16px' }}
           />
         </Form.Item>
 
@@ -206,7 +202,6 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
             placeholder="Chọn học kỳ"
             options={semesters}
             loading={isLoading}
-            style={{ fontSize: isMobile ? '14px' : '16px' }}
           />
         </Form.Item>
       </Form>

@@ -8,7 +8,6 @@ import {
   HomeOutlined
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
-import { useMediaQuery } from 'react-responsive';
 
 const { Text } = Typography;
 
@@ -20,7 +19,6 @@ interface ErrorHandlerProps {
 const ErrorHandler: React.FC<ErrorHandlerProps> = ({ status, message }) => {
   const router = useRouter();
   const [animate, setAnimate] = useState(false);
-  const isMobile = useMediaQuery({ maxWidth: 768 });
   
   useEffect(() => {
     setAnimate(true);
@@ -93,17 +91,16 @@ const ErrorHandler: React.FC<ErrorHandlerProps> = ({ status, message }) => {
         width: '100%',
         background: getBackgroundColor(),
         transition: 'all 0.3s ease',
-        padding: isMobile ? '16px' : '40px',
       }}
     >
       <div
         style={{
           backgroundColor: '#fff',
           borderRadius: '12px',
-          padding: isMobile ? '20px' : '40px',
+          padding: '40px',
           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.05)',
-          maxWidth: isMobile ? '100%' : '90%',
-          width: isMobile ? '100%' : '600px',
+          maxWidth: '90%',
+          width: '600px',
           textAlign: 'center',
           transform: animate ? 'translateY(0)' : 'translateY(20px)',
           opacity: animate ? 1 : 0,
@@ -114,7 +111,7 @@ const ErrorHandler: React.FC<ErrorHandlerProps> = ({ status, message }) => {
           style={{
             animation: animate ? 'pulse 2s infinite' : 'none',
             display: 'inline-block',
-            marginBottom: isMobile ? '10px' : '20px',
+            marginBottom: '20px',
           }}
         >
           {getErrorIcon()}

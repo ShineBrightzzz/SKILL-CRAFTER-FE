@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, InputNumber, Button, message } from 'antd';
 import { useUpdateScoreMutation } from '@/services/semester.service';
-import { useMediaQuery } from 'react-responsive';
 
 interface EditScoreModalProps {
   isVisible: boolean;
   onClose: () => void;
   studentId: string;
   semesterId: string;
-  scoreType?: string; // Add scoreType as optional prop
-  onSubmit?: (values: any) => Promise<void>; // Add onSubmit as optional prop
   initialScores: {
     self_score?: number;
     academic_score?: number;
@@ -17,6 +14,8 @@ interface EditScoreModalProps {
     research_score?: number;
     club_score?: number;
   };
+  onSubmit: (values: any) => Promise<void>; // Added onSubmit prop
+  scoreType: string; // Added scoreType prop
 }
 
 const EditScoreModal: React.FC<EditScoreModalProps> = ({
@@ -24,13 +23,11 @@ const EditScoreModal: React.FC<EditScoreModalProps> = ({
   onClose,
   studentId,
   semesterId,
-  scoreType,
-  onSubmit,
-  initialScores
+  initialScores,
+  onSubmit // Destructure the new onSubmit prop
 }) => {
   const [form] = Form.useForm();
   const [updateScore, { isLoading }] = useUpdateScoreMutation();
-  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
 
   useEffect(() => {
     if (isVisible) {
@@ -47,23 +44,7 @@ const EditScoreModal: React.FC<EditScoreModalProps> = ({
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-
-      if (onSubmit) {
-        await onSubmit(values);
-        return;
-      }
-
-      const scoreData = Object.fromEntries(
-        Object.entries(values).filter(([_, value]) => value !== undefined)
-      );
-
-      await updateScore({
-        studentId,
-        semesterId,
-        body: scoreData
-      }).unwrap();
-
-      message.success('Cập nhật điểm thành công');
+      await onSubmit(values); // Use the onSubmit prop for external handling
       onClose();
     } catch (error) {
       console.error('Failed to update scores:', error);
@@ -71,20 +52,9 @@ const EditScoreModal: React.FC<EditScoreModalProps> = ({
     }
   };
 
-  const getModalTitle = () => {
-    let title = `Cập nhật điểm cho sinh viên`;
-    if (studentId) {
-      title += ` ${studentId}`;
-    }
-    if (scoreType) {
-      title += ` - ${scoreType}`;
-    }
-    return title;
-  };
-
   return (
     <Modal
-      title={getModalTitle()}
+      title={`Cập nhật điểm cho sinh viên ${studentId}`}
       open={isVisible}
       onCancel={onClose}
       footer={[
@@ -100,7 +70,6 @@ const EditScoreModal: React.FC<EditScoreModalProps> = ({
           Cập nhật
         </Button>,
       ]}
-      width={isMobile ? '100%' : 600}
     >
       <Form
         form={form}
@@ -111,39 +80,39 @@ const EditScoreModal: React.FC<EditScoreModalProps> = ({
           label="Điểm tự chấm"
           rules={[{ type: 'number', min: 0, max: 100 }]}
         >
-          <InputNumber min={0} max={100} style={{ width: '100%', fontSize: isMobile ? '14px' : '16px' }} />
+          <InputNumber min={0} max={100} style={{ width: '100%' }} />
         </Form.Item>
-
+        
         <Form.Item
           name="academic_score"
           label="Điểm học tập"
           rules={[{ type: 'number', min: 0, max: 100 }]}
         >
-          <InputNumber min={0} max={100} style={{ width: '100%', fontSize: isMobile ? '14px' : '16px' }} />
+          <InputNumber min={0} max={100} style={{ width: '100%' }} />
         </Form.Item>
-
+        
         <Form.Item
           name="research_score"
           label="Điểm nghiên cứu khoa học"
           rules={[{ type: 'number', min: 0, max: 100 }]}
         >
-          <InputNumber min={0} max={100} style={{ width: '100%', fontSize: isMobile ? '14px' : '16px' }} />
+          <InputNumber min={0} max={100} style={{ width: '100%' }} />
         </Form.Item>
-
+        
         <Form.Item
           name="club_score"
           label="Điểm CLB"
           rules={[{ type: 'number', min: 0, max: 100 }]}
         >
-          <InputNumber min={0} max={100} style={{ width: '100%', fontSize: isMobile ? '14px' : '16px' }} />
+          <InputNumber min={0} max={100} style={{ width: '100%' }} />
         </Form.Item>
-
+        
         <Form.Item
           name="event_score"
           label="Điểm sự kiện"
           rules={[{ type: 'number', min: 0, max: 100 }]}
         >
-          <InputNumber min={0} max={100} style={{ width: '100%', fontSize: isMobile ? '14px' : '16px' }} />
+          <InputNumber min={0} max={100} style={{ width: '100%' }} />
         </Form.Item>
       </Form>
     </Modal>

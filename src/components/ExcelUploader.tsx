@@ -2,12 +2,10 @@ import { useState } from 'react';
 import { Button, Upload, message } from 'antd';
 import { InboxOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
-import { useMediaQuery } from 'react-responsive';
 
 export default function ExcelUploader() {
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
-  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
 
   const handleUpload = async () => {
     setUploading(true);
@@ -58,10 +56,7 @@ export default function ExcelUploader() {
   };
 
   return (
-    <div
-      className="bg-white rounded-lg border border-gray-200"
-      style={{ padding: isMobile ? '16px' : '24px' }}
-    >
+    <div className="bg-white p-6 rounded-lg border border-gray-200">
       <Upload.Dragger {...props} className="mb-6">
         <p className="ant-upload-drag-icon">
           <InboxOutlined />
@@ -79,11 +74,10 @@ export default function ExcelUploader() {
           disabled={fileList.length === 0}
           loading={uploading}
           className="w-32"
-          style={{ fontSize: isMobile ? '14px' : '16px' }}
         >
           {uploading ? 'Uploading' : 'Upload'}
         </Button>
       </div>
     </div>
   );
-}
+} 
