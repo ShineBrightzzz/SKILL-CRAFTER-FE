@@ -154,14 +154,26 @@ export default function Home() {
   return (
     <Sidebar>
       <div style={{ padding: 24 }}>
-        <Title level={3}>Trang tổng quan</Title>
+        <Title level={3} style={{ textAlign: 'center', marginBottom: 24 }}>Trang tổng quan</Title>
 
-        <Card title="Sự kiện nổi bật">
-          <Table columns={eventColumns} dataSource={topEvents} rowKey="name" pagination={false} />
+        <Card title="Sự kiện nổi bật" bodyStyle={{ padding: '16px' }}>
+          <Table 
+            columns={eventColumns} 
+            dataSource={topEvents} 
+            rowKey="name" 
+            pagination={false} 
+            scroll={{ x: 600 }} /* Đảm bảo bảng cuộn được trên màn hình nhỏ */
+          />
         </Card>
 
-        <Card title="Phân bố điểm rèn luyện" style={{ marginTop: 24 }}>
-          <Table columns={scoreColumns} dataSource={scoreDistribution} rowKey="range" pagination={false} />
+        <Card title="Phân bố điểm rèn luyện" style={{ marginTop: 24 }} bodyStyle={{ padding: '16px' }}>
+          <Table 
+            columns={scoreColumns} 
+            dataSource={scoreDistribution} 
+            rowKey="range" 
+            pagination={false} 
+            scroll={{ x: 600 }} /* Đảm bảo bảng cuộn được trên màn hình nhỏ */
+          />
         </Card>
       </div>
     </Sidebar>

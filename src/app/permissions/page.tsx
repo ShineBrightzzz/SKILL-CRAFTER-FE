@@ -241,93 +241,84 @@ const PermissionTable: React.FC = () => {
 
   return (
     <Sidebar>
-      <div style={{ padding: 24 }}>
-        {isLoading ? (
-          <Loading message="Đang tải danh sách quyền hạn..." />
-        ) : (
-          <>
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-              <Typography.Title level={2} className="mb-6 text-center">
-                Danh sách Permissions (Quyền hạn)
-              </Typography.Title>
-              {ability.can(Action.Create, Subject.Permission) && (
-                <Button type="primary" onClick={handleAdd} icon={<PlusOutlined />}>
-                  Thêm mới
-                </Button>
-              )}
-            </div>
-
-            <Card className="shadow-md">
-              <div style={{ marginBottom: 16 }}>
-                <Input
-                  placeholder="Tìm kiếm quyền hạn..."
-                  prefix={<SearchOutlined />}
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: 300 }}
-                  allowClear
-                />
-              </div>
-              <Table
-                columns={columns}
-                dataSource={filteredPermissions}
-                rowKey="id"
-                pagination={{ 
-                  pageSize: pageSize, 
-                  current: currentPage,
-                  total: filteredPermissions.length,
-                  onChange: (page) => setCurrentPage(page),
-                  onShowSizeChange: (_, size) => setPageSize(size)
-                }}
-                onChange={handleTableChange}
+      <div className="flex flex-col justify-center items-center min-h-screen px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#f8f9fa" }}>
+        <div className="p-4 shadow-lg rounded w-full sm:max-w-2xl">
+          <div className="flex justify-between items-center mb-4">
+            <Typography.Title level={2} className="text-center">Danh sách Permissions (Quyền hạn)</Typography.Title>
+            {ability.can(Action.Create, Subject.Permission) && (
+              <Button type="primary" onClick={handleAdd} icon={<PlusOutlined />}>Thêm mới</Button>
+            )}
+          </div>
+          <Card className="shadow-md">
+            <div className="mb-4 flex flex-col sm:flex-row justify-between items-center">
+              <Input
+                placeholder="Tìm kiếm quyền hạn..."
+                prefix={<SearchOutlined />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: "100%", maxWidth: "300px" }}
+                allowClear
               />
-            </Card>
-
-            <Modal
-              title={editingPermission ? 'Sửa Permission' : 'Tạo mới Permission'}
-              open={isModalVisible}
-              onCancel={() => setIsModalVisible(false)}
-              onOk={handleOk}
-              width={800}
-            >
-              <Form form={form} layout="vertical">
-                <Form.Item label="Tên Permission" name="name" rules={[{ required: true, message: 'Vui lòng nhập tên quyền hạn' }]}>
-                  <Input placeholder="Nhập tên Permission" />
-                </Form.Item>
-
-                <Form.Item label="API Path" name="apiPath" rules={[{ required: true, message: 'Vui lòng nhập đường dẫn API' }]}>
-                  <Input placeholder="Nhập path" />
-                </Form.Item>
-
-                <Form.Item label="Method" name="method" rules={[{ required: true, message: 'Vui lòng chọn phương thức' }]}>
-                  <Select placeholder="Chọn Method">
-                    <Option value="GET">GET</Option>
-                    <Option value="POST">POST</Option>
-                    <Option value="PUT">PUT</Option>
-                    <Option value="DELETE">DELETE</Option>
-                  </Select>
-                </Form.Item>
-
-                <Form.Item label="Thuộc Module" name="module" rules={[{ required: true, message: 'Vui lòng chọn module' }]}>
-                  <Select placeholder="Chọn Module">
-                    {modules.map(module => (
-                      <Option key={module} value={module}>{module}</Option>
-                    ))}
-                    <Option value="Quản lý sinh viên">Quản lý sinh viên</Option>
-                    <Option value="New">Thêm module mới</Option>
-                  </Select>
-                </Form.Item>
-                
-                {form.getFieldValue('module') === 'New' && (
-                  <Form.Item label="Module mới" name="newModule" rules={[{ required: true, message: 'Vui lòng nhập tên module mới' }]}>
-                    <Input placeholder="Nhập tên module mới" />
-                  </Form.Item>
-                )}
-              </Form>
-            </Modal>
-          </>
-        )}
+            </div>
+            <Table
+              columns={columns}
+              dataSource={filteredPermissions}
+              rowKey="id"
+              pagination={{ 
+                pageSize: pageSize, 
+                current: currentPage,
+                total: filteredPermissions.length,
+                onChange: (page) => setCurrentPage(page),
+                onShowSizeChange: (_, size) => setPageSize(size)
+              }}
+              onChange={handleTableChange}
+            />
+          </Card>
+        </div>
       </div>
+
+      <Modal
+        title={editingPermission ? 'Sửa Permission' : 'Tạo mới Permission'}
+        open={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        onOk={handleOk}
+        width={800}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item label="Tên Permission" name="name" rules={[{ required: true, message: 'Vui lòng nhập tên quyền hạn' }]}>
+            <Input placeholder="Nhập tên Permission" />
+          </Form.Item>
+
+          <Form.Item label="API Path" name="apiPath" rules={[{ required: true, message: 'Vui lòng nhập đường dẫn API' }]}>
+            <Input placeholder="Nhập path" />
+          </Form.Item>
+
+          <Form.Item label="Method" name="method" rules={[{ required: true, message: 'Vui lòng chọn phương thức' }]}>
+            <Select placeholder="Chọn Method">
+              <Option value="GET">GET</Option>
+              <Option value="POST">POST</Option>
+              <Option value="PUT">PUT</Option>
+              <Option value="DELETE">DELETE</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item label="Thuộc Module" name="module" rules={[{ required: true, message: 'Vui lòng chọn module' }]}>
+            <Select placeholder="Chọn Module">
+              {modules.map(module => (
+                <Option key={module} value={module}>{module}</Option>
+              ))}
+              <Option value="Quản lý sinh viên">Quản lý sinh viên</Option>
+              <Option value="New">Thêm module mới</Option>
+            </Select>
+          </Form.Item>
+          
+          {form.getFieldValue('module') === 'New' && (
+            <Form.Item label="Module mới" name="newModule" rules={[{ required: true, message: 'Vui lòng nhập tên module mới' }]}>
+              <Input placeholder="Nhập tên module mới" />
+            </Form.Item>
+          )}
+        </Form>
+      </Modal>
     </Sidebar>
   );
 };

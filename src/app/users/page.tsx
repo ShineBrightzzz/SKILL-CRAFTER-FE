@@ -194,115 +194,108 @@ const UsersManagement: React.FC = () => {
 
   return (
     <Sidebar>
-      <div style={{ padding: 24 }}>
-        {isLoading || isLoadingRoles ? (
-          <Loading message="Đang tải danh sách người dùng..." />
-        ) : (
-          <>
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-              <Typography.Title level={2} className="mb-6">
-                Danh sách Người dùng
-              </Typography.Title>
+      <div className="flex flex-col justify-center items-center min-h-screen px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#f8f9fa" }}>
+        <div className="p-4 shadow-lg rounded w-full sm:max-w-2xl">
+          <Typography.Title level={2} className="text-center sm:text-left">Danh sách Người dùng</Typography.Title>
+          <Card className="shadow-md">
+            <div className="mb-4 flex flex-col sm:flex-row justify-between items-center">
+              <Input
+                placeholder="Tìm kiếm người dùng..."
+                prefix={<SearchOutlined />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: "100%", maxWidth: "300px" }}
+                allowClear
+              />
               {ability.can(Action.Create, Subject.Account) && (
                 <Button 
                   type="primary" 
                   onClick={openCreateModal}
                   icon={<PlusOutlined />}
+                  className="mt-4 sm:mt-0 sm:ml-4"
                 >
                   Thêm tài khoản
                 </Button>
               )}
             </div>
+            <Table
+              dataSource={filteredUsers}
+              columns={columns}
+              rowKey="username"
+              pagination={{ pageSize: 10 }}
+              className="w-full"
+            />
+          </Card>
 
-            <Card className="shadow-md">
-              <div style={{ marginBottom: 16 }}>
-                <Input
-                  placeholder="Tìm kiếm người dùng..."
-                  prefix={<SearchOutlined />}
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: 300 }}
-                  allowClear
-                />
-              </div>
-              <Table
-                dataSource={filteredUsers}
-                columns={columns}
-                rowKey="username"
-                pagination={{ pageSize: 10 }}
-              />
-            </Card>
+          {/* Edit User Modal */}
+          <Modal
+            title="Sửa thông tin người dùng"
+            open={modalVisible}
+            onCancel={() => setModalVisible(false)}
+            onOk={handleSubmit}
+            width={600}
+          >
+            <Form layout="vertical" form={form}>
+              <Form.Item name="username" label="Username" rules={[{ required: true }]}> 
+                <Input disabled />
+              </Form.Item>
+              <Form.Item name="studentId" label="Student ID">
+                <Input />
+              </Form.Item>
+              <Form.Item name="roleId" label="Role" rules={[{ required: true }]}> 
+                <Select>
+                  {roles.map((role: any) => (
+                    <Select.Option key={role.id} value={role.id}>
+                      {role.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Form>
+          </Modal>
 
-            {/* Edit User Modal */}
-            <Modal
-              title="Sửa thông tin người dùng"
-              open={modalVisible}
-              onCancel={() => setModalVisible(false)}
-              onOk={handleSubmit}
-              width={600}
-            >
-              <Form layout="vertical" form={form}>
-                <Form.Item name="username" label="Username" rules={[{ required: true }]}>
-                  <Input disabled />
-                </Form.Item>
-                <Form.Item name="studentId" label="Student ID">
-                  <Input />
-                </Form.Item>
-                <Form.Item name="roleId" label="Role" rules={[{ required: true }]}>
-                  <Select>
-                    {roles.map((role: any) => (
-                      <Select.Option key={role.id} value={role.id}>
-                        {role.name}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Form>
-            </Modal>
-
-            {/* Create User Modal */}
-            <Modal
-              title="Tạo tài khoản mới"
-              open={createModalVisible}
-              onCancel={() => setCreateModalVisible(false)}
-              onOk={handleCreateUser}
-              width={600}
-            >
-              <Form layout="vertical" form={createForm}>
-                <Form.Item 
-                  name="username" 
-                  label="Username" 
-                  rules={[{ required: true, message: 'Vui lòng nhập username' }]}
-                >
-                  <Input />
-                </Form.Item>
-                <Form.Item 
-                  name="password" 
-                  label="Password" 
-                  rules={[{ required: true, message: 'Vui lòng nhập mật khẩu' }]}
-                >
-                  <Input.Password />
-                </Form.Item>
-                <Form.Item name="studentId" label="Student ID">
-                  <Input />
-                </Form.Item>
-                <Form.Item 
-                  name="roleId" 
-                  label="Role" 
-                  rules={[{ required: true, message: 'Vui lòng chọn vai trò' }]}
-                >
-                  <Select>
-                    {roles.map((role: any) => (
-                      <Select.Option key={role.id} value={role.id}>
-                        {role.name}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Form>
-            </Modal>
-          </>
-        )}
+          {/* Create User Modal */}
+          <Modal
+            title="Tạo tài khoản mới"
+            open={createModalVisible}
+            onCancel={() => setCreateModalVisible(false)}
+            onOk={handleCreateUser}
+            width={600}
+          >
+            <Form layout="vertical" form={createForm}>
+              <Form.Item 
+                name="username" 
+                label="Username" 
+                rules={[{ required: true, message: 'Vui lòng nhập username' }]}
+              >
+                <Input />
+              </Form.Item>
+              <Form.Item 
+                name="password" 
+                label="Password" 
+                rules={[{ required: true, message: 'Vui lòng nhập mật khẩu' }]}
+              >
+                <Input.Password />
+              </Form.Item>
+              <Form.Item name="studentId" label="Student ID">
+                <Input />
+              </Form.Item>
+              <Form.Item 
+                name="roleId" 
+                label="Role" 
+                rules={[{ required: true, message: 'Vui lòng chọn vai trò' }]}
+              >
+                <Select>
+                  {roles.map((role: any) => (
+                    <Select.Option key={role.id} value={role.id}>
+                      {role.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Form>
+          </Modal>
+        </div>
       </div>
     </Sidebar>
   );

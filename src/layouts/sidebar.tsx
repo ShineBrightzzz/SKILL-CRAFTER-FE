@@ -20,6 +20,7 @@ import {
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import Navbar from './navbar'; 
+import { useMediaQuery } from 'react-responsive';
 
 const { Sider, Content } = Layout;
 const { Title } = Typography;
@@ -33,6 +34,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
   const [openKeys, setOpenKeys] = useState<string[]>([]);
   const router = useRouter();
   const pathname = usePathname();
+  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
 
   // Set initial open keys based on the current path
   React.useEffect(() => {
@@ -78,7 +80,6 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
         { key: '/users', label: 'Quản lý người dùng', icon: <UsergroupAddOutlined /> },
       ],
     },
-    
   ];
 
   // Custom styles for the submenu items
@@ -119,7 +120,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
         collapsible
         collapsed={collapsed}
         onCollapse={setCollapsed}
-        width={250}
+        width={isMobile ? 200 : 250}
         style={{
           background: '#1468a2',
           boxShadow: '2px 0 8px rgba(0, 0, 0, 0.15)',
@@ -155,7 +156,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
               style={{
                 color: '#fff',
                 margin: '0 0 0 8px',
-                fontSize: 20,
+                fontSize: isMobile ? 18 : 20,
                 transition: 'opacity 0.3s',
               }}
             >
@@ -172,7 +173,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
           onClick={({ key }) => router.push(key)}
           items={menuItems}
           style={{
-            fontSize: 16,
+            fontSize: isMobile ? 14 : 16,
             background: '#1468a2', // Sidebar background color
             color: '#fff',
           }}
@@ -185,7 +186,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
 
       {/* Main layout with Navbar and Content */}
       <Layout 
-        style={{ marginLeft: collapsed ? 80 : 250 }}
+        style={{ marginLeft: collapsed ? (isMobile ? 60 : 80) : (isMobile ? 200 : 250) }}
         className="site-layout" 
       > 
         <Navbar collapsed={collapsed} /> 
@@ -193,7 +194,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
           style={{
             margin: '24px',
             background: '#fff',
-            padding: 24,
+            padding: isMobile ? 16 : 24,
             borderRadius: 8,
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
           }}

@@ -1,1 +1,27 @@
 @import "tailwindcss";
+
+/* Đảm bảo font chữ không bị vỡ trên các thiết bị */
+html {
+    font-size: 16px; /* Kích thước font cơ bản */
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.5;
+    word-wrap: break-word;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Responsive font size */
+@media (max-width: 768px) {
+    html {
+        font-size: 14px; /* Giảm kích thước font trên màn hình nhỏ */
+    }
+}
+
+@media (min-width: 1200px) {
+    html {
+        font-size: 18px; /* Tăng kích thước font trên màn hình lớn */
+    }
+}

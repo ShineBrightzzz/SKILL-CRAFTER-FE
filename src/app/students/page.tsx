@@ -29,7 +29,9 @@ export default function ScoresPage() {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Score | null>(null);
   const [searchText, setSearchText] = useState('');
-  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   const { data: semesterOptions, isLoading: isLoadingOptions, error: semesterError } = useGetSemesterQuery();
   const { data: studentScoresData, isLoading: isLoadingScore, error: scoreError, refetch } = useGetStudentScoresBySemesterQuery({
     semesterId: selectedSemesterId,
@@ -196,61 +198,49 @@ export default function ScoresPage() {
 
   return (
     <Sidebar>
-      <div style={{ padding: 24 }}>
-        {isLoadingOptions || isLoadingScore ? (
-          <Loading message="Đang tải thông tin điểm sinh viên..." />
-        ) : (
-          <>
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-              <Typography.Title level={2} className="mb-6">
-                Điểm
-              </Typography.Title>
-
-              <Select
-                value={selectedSemesterId}
-                onChange={handleSemesterChange}
-                loading={isLoadingOptions}
-                style={{ width: 200 }}
-                placeholder="Chọn học kỳ"
-              >
-                {semesterOptions?.data?.map((option: any) => (
-                  <Option key={option.id} value={option.id}>
-                    Kì {option.number} năm {option.year}
-                  </Option>
-                ))}
-              </Select>
+      <div className="flex flex-col justify-center items-center min-h-screen px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#f8f9fa" }}>
+        <div className="p-4 shadow-lg rounded w-full sm:max-w-2xl">
+          <Typography.Title level={2} className="text-center sm:text-left">Danh sách sinh viên</Typography.Title>
+          <Card className="shadow-md">
+            <div className="mb-4 flex flex-col sm:flex-row justify-between items-center">
+              <Input
+                placeholder="Tìm kiếm sinh viên..."
+                prefix={<SearchOutlined />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: "100%", maxWidth: "300px" }}
+                allowClear
+              />
             </div>
+            <Table
+              columns={columns}
+              dataSource={filteredData}
+              rowKey="studentId"
+              pagination={{ 
+                pageSize: pageSize, 
+                current: currentPage,
+                total: filteredData?.length,
+                onChange: (page) => setCurrentPage(page),
+                onShowSizeChange: (_, size) => setPageSize(size)
+              }}
+              className="w-full"
+            />
+          </Card>
 
-            <Card className="shadow-md">
-              <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-                <Input
-                  placeholder="Tìm kiếm theo mã sinh viên..."
-                  prefix={<SearchOutlined />}
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: 300 }}
-                  allowClear
-                />
-              </div>
-              <Table
-                columns={columns}
-                dataSource={filteredData}
-                rowKey="studentId"
-                pagination={{ pageSize: 10 }}
-              />
-            </Card>
-
-            {selectedStudent && (
-              <EditScoreModal
-                isVisible={isEditModalVisible}
-                onClose={handleCloseModal}
-                studentId={selectedStudent.studentId}
-                semesterId={selectedSemesterId}
-                initialScores={selectedStudent.scores}
-              />
-            )}
-          </>
-        )}
+          {selectedStudent && (
+            <EditScoreModal
+              isVisible={isEditModalVisible}
+              onClose={handleCloseModal}
+              studentId={selectedStudent.studentId}
+              semesterId={selectedSemesterId}
+              initialScores={selectedStudent.scores}
+              onSubmit={async (values) => {
+                console.log('Submitted values:', values);
+              }}
+              scoreType="custom"
+            />
+          )}
+        </div>
       </div>
     </Sidebar>
   );
