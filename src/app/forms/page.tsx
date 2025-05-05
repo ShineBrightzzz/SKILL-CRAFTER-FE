@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from "@/layouts/sidebar";
 import { Card, Typography, Table, Button, Tag, Input, Modal, Form, message, Popconfirm, DatePicker } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, FileTextOutlined } from '@ant-design/icons';
@@ -13,7 +13,6 @@ import { useAbility } from '@/hooks/useAbility';
 import withPermission from '@/hocs/withPermission';
 import moment from 'moment';
 import dayjs from 'dayjs';
-import { useMediaQuery } from 'react-responsive';
 
 interface Form {
   semesterId: string;
@@ -29,7 +28,25 @@ interface Form {
 }
 
 const FormsPage: React.FC = () => {
-  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
+  useEffect(() => {
+    const handleResize = () => {
+      const root = document.documentElement;
+      if (window.innerWidth < 768) {
+        root.style.setProperty('--table-width', '100%');
+        root.style.setProperty('--input-width', '100%');
+      } else {
+        root.style.setProperty('--table-width', 'auto');
+        root.style.setProperty('--input-width', '300px');
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   // Table states
   const [searchText, setSearchText] = useState('');
@@ -241,20 +258,12 @@ const FormsPage: React.FC = () => {
 
   return (
     <Sidebar>
-      <div style={{ padding: isMobile ? 16 : 24 }}>
+      <div style={{ padding: 24 }}>
         {isLoading ? (
           <Loading message="Đang tải danh sách biểu mẫu..." />
         ) : (
           <>
-            <div
-              style={{
-                marginBottom: 16,
-                display: 'flex',
-                flexDirection: isMobile ? 'column' : 'row',
-                justifyContent: 'space-between',
-                alignItems: isMobile ? 'flex-start' : 'center',
-              }}
-            >
+            <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <Typography.Title level={2} className="mb-6">
                 <FileTextOutlined className="mr-2" />
                 Danh sách biểu mẫu
@@ -264,7 +273,7 @@ const FormsPage: React.FC = () => {
                   type="primary" 
                   onClick={() => setAddModalVisible(true)}
                   icon={<PlusOutlined />}
-                  style={{ marginTop: isMobile ? 16 : 0 }}
+                  style={{ width: 'var(--input-width)' }}
                 >
                   Thêm biểu mẫu
                 </Button>
@@ -278,7 +287,7 @@ const FormsPage: React.FC = () => {
                   prefix={<SearchOutlined />}
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: isMobile ? '100%' : 300 }}
+                  style={{ width: 'var(--input-width)' }}
                   allowClear
                 />
               </div>
@@ -297,7 +306,7 @@ const FormsPage: React.FC = () => {
                 locale={{ 
                   emptyText: 'Không có biểu mẫu nào' 
                 }}
-                scroll={isMobile ? { x: true } : undefined}
+                style={{ width: 'var(--table-width)' }}
               />
             </Card>
 
@@ -318,7 +327,7 @@ const FormsPage: React.FC = () => {
                   label="Tiêu đề"
                   rules={[{ required: true, message: 'Vui lòng nhập tiêu đề biểu mẫu' }]}
                 >
-                  <Input placeholder="Nhập tiêu đề biểu mẫu" />
+                  <Input placeholder="Nhập tiêu đề biểu mẫu" style={{ width: '100%' }} />
                 </Form.Item>
 
                 <Form.Item
@@ -326,7 +335,7 @@ const FormsPage: React.FC = () => {
                   label="Học kỳ"
                   rules={[{ required: true, message: 'Vui lòng chọn học kỳ' }]}
                 >
-                  <Input placeholder="Mã học kỳ (ví dụ: S2_2025)" />
+                  <Input placeholder="Mã học kỳ (ví dụ: S2_2025)" style={{ width: '100%' }} />
                 </Form.Item>
 
                 <Form.Item
@@ -370,7 +379,7 @@ const FormsPage: React.FC = () => {
                   label="Tiêu đề"
                   rules={[{ required: true, message: 'Vui lòng nhập tiêu đề biểu mẫu' }]}
                 >
-                  <Input placeholder="Nhập tiêu đề biểu mẫu" />
+                  <Input placeholder="Nhập tiêu đề biểu mẫu" style={{ width: '100%' }} />
                 </Form.Item>
 
                 <Form.Item
@@ -378,7 +387,7 @@ const FormsPage: React.FC = () => {
                   label="Học kỳ"
                   rules={[{ required: true, message: 'Vui lòng chọn học kỳ' }]}
                 >
-                  <Input placeholder="Mã học kỳ" disabled />
+                  <Input placeholder="Mã học kỳ" disabled style={{ width: '100%' }} />
                 </Form.Item>
 
                 <Form.Item

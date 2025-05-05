@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useMediaQuery } from 'react-responsive';
 import Sidebar from "@/layouts/sidebar";
 import dayjs from 'dayjs';
 import {
@@ -42,8 +41,6 @@ interface Event {
 }
 
 const EventsPage = () => {
-  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
-
   // Table states
   const [searchText, setSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -193,7 +190,7 @@ const EventsPage = () => {
   });
 
   // Define table columns
-  const columns: any = [
+  const columns = [
     {
       title: 'Tên sự kiện',
       dataIndex: 'title',
@@ -231,35 +228,15 @@ const EventsPage = () => {
 
   // Add actions column if user has permission
   if (ability.can(Action.Update, Subject.Event) || 
-      ability.can(Action.Delete, Subject.Event)) {
+      ability.can(Action.Delete, Subject.Event) || 
+      ability.can(Action.Create, Subject.EventScore)) {
     
     columns.push({
       title: 'Hành động',
+      dataIndex: 'actions', // Added dataIndex property
       key: 'actions',
-      align: 'center' as const,
-      render: (_: any, record: Event) => (
-        <div className="flex justify-center gap-2">
-          {ability.can(Action.Update, Subject.Event) && (
-            <Button
-              icon={<EditOutlined />}
-              onClick={() => handleEditEventClick(record)}
-            />
-          )}
-          {ability.can(Action.Delete, Subject.Event) && (
-            <Popconfirm
-              title="Bạn có chắc chắn muốn xóa sự kiện này?"
-              onConfirm={() => handleDeleteEvent(record.eventId)}
-              okText="Có"
-              cancelText="Không"
-            >
-              <Button
-                icon={<DeleteOutlined />}
-                danger
-              />
-            </Popconfirm>
-          )}
-        </div>
-      ),
+      render: () => '',
+      sorter: undefined, // Explicitly set sorter to undefined
     });
   }
 
@@ -275,63 +252,36 @@ const EventsPage = () => {
 
   return (
     <Sidebar>
-      <div style={{ padding: isMobile ? 16 : 24 }}>
-        {isLoading ? (
-          <Loading message="Đang tải danh sách sự kiện..." />
-        ) : (
-          <>
-            <div
-              style={{
-                marginBottom: 16,
-                display: 'flex',
-                flexDirection: isMobile ? 'column' : 'row',
-                justifyContent: 'space-between',
-                alignItems: isMobile ? 'flex-start' : 'center',
-              }}
-            >
-              <Typography.Title level={2} className="mb-6 text-center">
-                Danh sách Sự kiện
-              </Typography.Title>
-              {ability.can(Action.Create, Subject.Event) && (
-                <Button 
-                  type="primary" 
-                  icon={<PlusOutlined />} 
-                  onClick={() => setIsAddEventModalOpen(true)}
-                  style={{ marginTop: isMobile ? 16 : 0 }}
-                >
-                  Thêm sự kiện
-                </Button>
-              )}
-            </div>
-
-            <Card className="shadow-md">
-              <div style={{ marginBottom: 16 }}>
-                <Input
-                  placeholder="Tìm kiếm sự kiện..."
-                  prefix={<SearchOutlined />}
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: isMobile ? '100%' : 300 }}
-                  allowClear
-                />
-              </div>
-              <Table
-                columns={columns}
-                dataSource={filteredEvents}
-                rowKey="eventId"
-                pagination={{ 
-                  pageSize: pageSize, 
-                  current: currentPage,
-                  total: filteredEvents?.length,
-                  onChange: (page) => setCurrentPage(page),
-                  onShowSizeChange: (_, size) => setPageSize(size)
-                }}
-                onChange={handleTableChange}
-                scroll={isMobile ? { x: true } : undefined}
+      <div className="flex flex-col justify-center items-center min-h-screen px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#f8f9fa" }}>
+        <div className="p-4 shadow-lg rounded w-full sm:max-w-2xl">
+          <Typography.Title level={2} className="text-center sm:text-left">Danh sách sự kiện</Typography.Title>
+          <Card className="shadow-md">
+            <div className="mb-4 flex flex-col sm:flex-row justify-between items-center">
+              <Input
+                placeholder="Tìm kiếm sự kiện..."
+                prefix={<SearchOutlined />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: "100%", maxWidth: "300px" }}
+                allowClear
               />
-            </Card>
-          </>
-        )}
+            </div>
+            <Table
+              columns={columns}
+              dataSource={filteredEvents}
+              rowKey="eventId"
+              pagination={{ 
+                pageSize: pageSize, 
+                current: currentPage,
+                total: filteredEvents?.length,
+                onChange: (page) => setCurrentPage(page),
+                onShowSizeChange: (_, size) => setPageSize(size)
+              }}
+              onChange={handleTableChange}
+              className="w-full"
+            />
+          </Card>
+        </div>
 
         {/* Upload Modal */}
         <UploadModal

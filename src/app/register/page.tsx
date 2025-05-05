@@ -1,11 +1,7 @@
 'use client';
 import { useRouter } from "next/navigation";
-import { useMediaQuery } from 'react-responsive';
-
 export default function Register() {
   const router = useRouter();
-  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
-
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.target as HTMLFormElement);
@@ -30,17 +26,12 @@ export default function Register() {
     } else {
       alert(data.message);
     }
+
   };
 
   return (
-    <div
-      className="flex justify-center items-center min-h-screen"
-      style={{ backgroundColor: "#f8f9fa", padding: isMobile ? '16px' : '0' }}
-    >
-      <div
-        className="p-4 shadow-lg rounded"
-        style={{ maxWidth: isMobile ? '100%' : '400px', width: '100%' }}
-      >
+    <div className="flex justify-center items-center min-h-screen px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#f8f9fa" }}>
+      <div className="p-4 shadow-lg rounded w-full sm:max-w-md">
         <h2 className="text-center mb-4 text-xl font-bold">Register</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-3">

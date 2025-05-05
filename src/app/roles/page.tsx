@@ -19,14 +19,11 @@ import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
 import withPermission from '@/hocs/withPermission';
 import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { useMediaQuery } from 'react-responsive';
 
 const { Panel } = Collapse;
 const { Text } = Typography;
 
 const RoleManagement: React.FC = () => {
-  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
-
   const [form] = Form.useForm();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingRole, setEditingRole] = useState<any | null>(null);
@@ -267,79 +264,57 @@ const RoleManagement: React.FC = () => {
 
   return (
     <Sidebar>
-      <div style={{ padding: isMobile ? 16 : 24 }}>
-        {isLoadingRoles || isLoadingPermissions ? (
-          <Loading message="Đang tải danh sách vai trò..." />
-        ) : (
-          <>
-            <div
-              style={{
-                marginBottom: 16,
-                display: 'flex',
-                flexDirection: isMobile ? 'column' : 'row',
-                justifyContent: 'space-between',
-                alignItems: isMobile ? 'flex-start' : 'center',
-              }}
-            >
-              <Typography.Title level={2} className="mb-6 text-center">
-                Danh sách Roles (Vai Trò)
-              </Typography.Title>
-              {ability.can(Action.Create, Subject.Role) && (
-                <Button 
-                  type="primary" 
-                  onClick={openCreateModal} 
-                  icon={<PlusOutlined />} 
-                  style={{ marginTop: isMobile ? 16 : 0 }}
-                >
-                  Thêm vai trò
-                </Button>
-              )}
-            </div>
-
-            <Card className="shadow-md">
-              <div style={{ marginBottom: 16 }}>
-                <Input
-                  placeholder="Tìm kiếm vai trò..."
-                  prefix={<SearchOutlined />}
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: isMobile ? '100%' : 300 }}
-                  allowClear
-                />
-              </div>
-              <Table
-                dataSource={filteredRoles}
-                columns={columns}
-                rowKey="id"
-                pagination={{ pageSize: 10 }}
-                scroll={isMobile ? { x: true } : undefined}
+      <div className="flex flex-col justify-center items-center min-h-screen px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#f8f9fa" }}>
+        <div className="p-4 shadow-lg rounded w-full sm:max-w-2xl">
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
+            <Typography.Title level={2} className="text-center sm:text-left">Danh sách Roles (Vai Trò)</Typography.Title>
+            {ability.can(Action.Create, Subject.Role) && (
+              <Button type="primary" onClick={openCreateModal} icon={<PlusOutlined />}>Thêm vai trò</Button>
+            )}
+          </div>
+          <Card className="shadow-md">
+            <div className="mb-4 flex flex-col sm:flex-row justify-between items-center">
+              <Input
+                placeholder="Tìm kiếm vai trò..."
+                prefix={<SearchOutlined />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: "100%", maxWidth: "300px" }}
+                allowClear
               />
-            </Card>
-
-            <Modal
-              title={editingRole ? 'Sửa Role' : 'Tạo mới Role'}
-              open={modalVisible}
-              onCancel={() => setModalVisible(false)}
-              onOk={handleSubmit}
-              width={isMobile ? '100%' : 800}
-            >
-              <Form layout="vertical" form={form}>
-                <Form.Item name="name" label="Tên Role" rules={[{ required: true }]}> 
-                  <Input />
-                </Form.Item>
-                <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}> 
-                  <Input.TextArea />
-                </Form.Item>
-                <Form.Item name="active" label="Trạng thái" valuePropName="checked"> 
-                  <Switch checkedChildren="ACTIVE" unCheckedChildren="INACTIVE" />
-                </Form.Item>
-              </Form>
-              <h4>Quyền hạn</h4>
-              {renderPermissionGroups()}
-            </Modal>
-          </>
-        )}
+            </div>
+            <Table
+              dataSource={filteredRoles}
+              columns={columns}
+              rowKey="id"
+              pagination={{ pageSize: 10 }}
+              className="w-full"
+            />
+          </Card>
+        </div>
       </div>
+
+      <Modal
+        title={editingRole ? 'Sửa Role' : 'Tạo mới Role'}
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        onOk={handleSubmit}
+        width={800}
+      >
+        <Form layout="vertical" form={form}>
+          <Form.Item name="name" label="Tên Role" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}>
+            <Input.TextArea />
+          </Form.Item>
+          <Form.Item name="active" label="Trạng thái" valuePropName="checked">
+            <Switch checkedChildren="ACTIVE" unCheckedChildren="INACTIVE" />
+          </Form.Item>
+        </Form>
+        <h4>Quyền hạn</h4>
+        {renderPermissionGroups()}
+      </Modal>
     </Sidebar>
   );
 };
