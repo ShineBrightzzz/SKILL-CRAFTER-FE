@@ -252,7 +252,7 @@ const EventsPage = () => {
 
   return (
     <Sidebar>
-      <div className="flex flex-col justify-center items-center min-h-screen px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#f8f9fa" }}>
+      <div className="flex flex-col justify-center items-center min-h-screen px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#f8f9fa", maxWidth: "1200px", margin: "0 auto", width: "100%" }}>
         <div className="p-4 shadow-lg rounded w-full sm:max-w-2xl">
           <Typography.Title level={2} className="text-center sm:text-left">Danh sách sự kiện</Typography.Title>
           <Card className="shadow-md">

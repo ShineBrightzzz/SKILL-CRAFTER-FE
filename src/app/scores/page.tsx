@@ -129,15 +129,6 @@ const ScoresPage = () => {
     }
     
     try {
-      // This would be an API call to update a specific student's score
-      // For example:
-      // await updateStudentScore({
-      //   semesterId: selectedSemester.id,
-      //   studentId: currentStudentId,
-      //   scoreType: selectedScoreType,
-      //   scoreValue: values.score
-      // }).unwrap();
-      
       toast.success(`Cập nhật điểm ${selectedScoreType} thành công`);
       setIsEditScoreModalOpen(false);
     } catch (error) {
@@ -179,7 +170,6 @@ const ScoresPage = () => {
         <span>Kì {record.number} năm {record.year}</span>
       ),
       sorter: (a, b) => {
-        // Sort by year first, then by number
         if (a.year !== b.year) return a.year - b.year;
         return a.number - b.number;
       },
@@ -189,7 +179,6 @@ const ScoresPage = () => {
       key: 'academic',
       align: 'center',
       render: (_: any, record: Semester) => {
-        // Kiểm tra cả trạng thái server và local
         const uploadedServer = existScoreData?.data[record.id]?.academic_score;
         const uploadedLocal = localUploadStatus[record.id]?.academic_score;
         const uploaded = uploadedServer || uploadedLocal;
@@ -220,7 +209,6 @@ const ScoresPage = () => {
       key: 'research',
       align: 'center',
       render: (_: any, record: Semester) => {
-        // Kiểm tra cả trạng thái server và local
         const uploadedServer = existScoreData?.data[record.id]?.research_score;
         const uploadedLocal = localUploadStatus[record.id]?.research_score;
         const uploaded = uploadedServer || uploadedLocal;
@@ -251,7 +239,6 @@ const ScoresPage = () => {
       key: 'club',
       align: 'center',
       render: (_: any, record: Semester) => {
-        // Kiểm tra cả trạng thái server và local
         const uploadedServer = existScoreData?.data[record.id]?.club_score;
         const uploadedLocal = localUploadStatus[record.id]?.club_score;
         const uploaded = uploadedServer || uploadedLocal;
@@ -279,7 +266,6 @@ const ScoresPage = () => {
     },
   ];
 
-  // Check for errors and handle them
   if (semesterError || scoreError) {
     const status = (semesterError as any)?.status || (scoreError as any)?.status || 500;
     return (
@@ -340,7 +326,7 @@ const ScoresPage = () => {
         isVisible={isEditScoreModalOpen}
         onClose={() => setIsEditScoreModalOpen(false)}
         onSubmit={handleEditScore}
-        semesterId={selectedSemester?.id || ''} // Updated from semester to semesterId
+        semesterId={selectedSemester?.id || ''}
         scoreType={selectedScoreType}
         studentId={currentStudentId}
         initialScores={{
@@ -349,7 +335,7 @@ const ScoresPage = () => {
           event_score: undefined,
           research_score: undefined,
           club_score: undefined,
-        }} // Added initialScores prop
+        }}
       />
     </Sidebar>
   );

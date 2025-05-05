@@ -31,7 +31,7 @@ export default function Register() {
 
   return (
     <div className="flex justify-center items-center min-h-screen px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#f8f9fa" }}>
-      <div className="p-4 shadow-lg rounded w-full sm:max-w-md">
+      <div className="p-4 shadow-lg rounded w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg">
         <h2 className="text-center mb-4 text-xl font-bold">Register</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-3">

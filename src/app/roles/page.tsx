@@ -157,10 +157,11 @@ const RoleManagement: React.FC = () => {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
+                gridTemplateColumns: '1fr',
                 gap: '12px',
                 paddingTop: 8,
               }}
+              className="sm:grid-cols-2"
             >
               {groupedPermissions[mod].map((perm) => (
                 <div

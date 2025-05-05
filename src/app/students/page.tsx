@@ -37,19 +37,16 @@ export default function ScoresPage() {
     semesterId: selectedSemesterId,
   });
 
-  // Set default semester when data is loaded
   useEffect(() => {
     if (semesterOptions?.data?.length > 0 && !selectedSemesterId) {
       setSelectedSemesterId(semesterOptions.data[0].id);
     }
   }, [semesterOptions, selectedSemesterId]);
 
-  // Tính toán lại tổng điểm từ các thành phần điểm
   const processedData = useMemo(() => {
     if (!studentScoresData?.data) return [];
     
     return studentScoresData.data.map((student: Score) => {
-      // Lấy tất cả các điểm thành phần
       const scores = {
         self: student.scores.self_score || 0,
         academic: student.scores.academic_score || 0,
@@ -57,13 +54,8 @@ export default function ScoresPage() {
         club: student.scores.club_score || 0,
         event: student.scores.event_score || 0
       };
-      
-      // Tính tổng điểm
       const calculatedTotal = Math.min(scores.self + scores.academic + scores.research + scores.club + scores.event, 100);
-      
-      // Kiểm tra xem có điểm thành phần nào chưa
       const hasAnyScore = Object.values(scores).some(score => score > 0);
-      
       return {
         ...student,
         calculatedTotal: hasAnyScore ? calculatedTotal : undefined
@@ -71,15 +63,12 @@ export default function ScoresPage() {
     });
   }, [studentScoresData]);
 
-  // Filter data based on search text
   const filteredData = useMemo(() => {
     if (!processedData) return [];
     
     return processedData.filter((student: any) => {
       if (!searchText) return true;
       const searchTermLower = searchText.toLowerCase();
-      
-      // Search by student ID
       return student.studentId.toLowerCase().includes(searchTermLower);
     });
   }, [processedData, searchText]);
@@ -99,7 +88,6 @@ export default function ScoresPage() {
   const handleCloseModal = () => {
     setIsEditModalVisible(false);
     setSelectedStudent(null);
-    // Refresh the data after editing
     refetch();
   };
 
@@ -186,7 +174,6 @@ export default function ScoresPage() {
     },
   ];
 
-  // Check for errors and handle them
   if (semesterError || scoreError) {
     const status = (semesterError as any)?.status || (scoreError as any)?.status || 500;
     return (

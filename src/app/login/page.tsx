@@ -47,8 +47,8 @@ export default function Login() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen px-4 sm:px-0" style={{ backgroundColor: "#f8f9fa" }}>
-      <div className="p-4 shadow-lg rounded w-full sm:max-w-md">
+    <div className="flex justify-center items-center min-h-screen px-4 sm:px-2" style={{ backgroundColor: "#f8f9fa" }}>
+      <div className="p-4 shadow-lg rounded w-full sm:max-w-sm md:max-w-md">
         <div className="flex justify-center mb-4">
           <Image 
             src="/HVNH.svg" 
