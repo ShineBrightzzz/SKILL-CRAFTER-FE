@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Button, Table, Modal, Form, Input, Switch, Tag, message, Card, Popconfirm } from 'antd';
+import { Button, Table, Modal, Form, Input, Switch, Tag, message, Card, Popconfirm, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import Sidebar from '@/layouts/sidebar';
 import {
@@ -12,9 +12,9 @@ import {
 } from '@/services/role.service';
 
 import { useGetPermissionsQuery } from '@/services/permission.service';
-import { Collapse, Typography, Space } from 'antd';
-import Loading from '@/components/Loading'; // Import the Loading component
-import ErrorHandler from '@/components/ErrorHandler'; // Import the ErrorHandler component
+import { Collapse } from 'antd';
+import Loading from '@/components/Loading';
+import ErrorHandler from '@/components/ErrorHandler';
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
 import withPermission from '@/hocs/withPermission';
@@ -37,9 +37,8 @@ const RoleManagement: React.FC = () => {
   const { data: permissionsData, isLoading: isLoadingPermissions, error: permissionsError } = useGetPermissionsQuery();
   const permissions = permissionsData?.data?.data || [];
 
-  const ability = useAbility(); // Add useAbility hook
+  const ability = useAbility();
 
-  // Filter roles based on search text
   const filteredRoles = roles.filter((role: any) => {
     if (!searchText) return true;
     const searchTermLower = searchText.toLowerCase();
@@ -108,22 +107,16 @@ const RoleManagement: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      // Chuyển đổi id thành string nếu cần thiết
       const stringId = id.toString();
-      console.log('Attempting to delete role with ID:', stringId);
-      
       const response = await deleteRole({ id: stringId }).unwrap();
-      console.log("Xóa vai trò:", response);
       if (response) {
-        message.success("Xóa vai trò thành công");
-        refetch(); // Làm mới dữ liệu
+        message.success('Xóa vai trò thành công');
+        refetch();
       } else {
-        message.error("Không thể xóa vai trò");
+        message.error('Không thể xóa vai trò');
       }
     } catch (error: any) {
-      console.error("Lỗi khi xóa vai trò:", error);
-      message.error(error?.data?.message || "Lỗi khi xóa vai trò");
-      // Vẫn làm mới dữ liệu để đồng bộ với DB trong trường hợp API trả về lỗi nhưng vẫn xóa được
+      message.error(error?.data?.message || 'Lỗi khi xóa vai trò');
       refetch();
     }
   };
@@ -136,104 +129,58 @@ const RoleManagement: React.FC = () => {
 
   const getMethodColor = (method: string) => {
     switch (method) {
-      case 'GET':
-        return 'blue';
-      case 'POST':
-        return 'green';
-      case 'PUT':
-        return 'orange';
-      case 'DELETE':
-        return 'red';
-      default:
-        return 'gray';
+      case 'GET': return 'blue';
+      case 'POST': return 'green';
+      case 'PUT': return 'orange';
+      case 'DELETE': return 'red';
+      default: return 'gray';
     }
   };
 
-  const renderPermissionGroups = () => {
-    return (
-      <Collapse>
-        {Object.keys(groupedPermissions).map((mod) => (
-          <Panel header={mod} key={mod}>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr',
-                gap: '12px',
-                paddingTop: 8,
-              }}
-              className="sm:grid-cols-2"
-            >
-              {groupedPermissions[mod].map((perm) => (
-                <div
-                  key={perm.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '10px 12px',
-                    border: '1px solid #f0f0f0',
-                    borderRadius: 8,
-                    background: selectedPermissionIds.includes(perm.id)
-                      ? '#e6f7ff'
-                      : '#fafafa',
-                  }}
-                >
-                  <div style={{ maxWidth: '80%' }}>
-                    <Text strong style={{ color: getMethodColor(perm.method) }}>
-                      {perm.method}
-                    </Text>{' '}
-                    <Text>{perm.name}</Text>
-                    <br />
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      {perm.api}
-                    </Text>
-                  </div>
-                  <Switch
-                    size="small"
-                    checked={selectedPermissionIds.includes(perm.id)}
-                    onChange={() => togglePermission(perm.id)}
-                  />
+  const renderPermissionGroups = () => (
+    <Collapse>
+      {Object.keys(groupedPermissions).map((mod) => (
+        <Panel header={mod} key={mod}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            {groupedPermissions[mod].map((perm) => (
+              <div
+                key={perm.id}
+                className={`flex justify-between items-center p-3 rounded border transition-all ${selectedPermissionIds.includes(perm.id) ? 'bg-blue-50 border-blue-300' : 'bg-gray-50 border-gray-200'}`}
+              >
+                <div className="max-w-[80%]">
+                  <Text strong style={{ color: getMethodColor(perm.method) }}>{perm.method}</Text>{' '}
+                  <Text>{perm.name}</Text><br />
+                  <Text type="secondary" style={{ fontSize: 12 }}>{perm.api}</Text>
                 </div>
-              ))}
-            </div>
-          </Panel>
-        ))}
-      </Collapse>
-    );
-  };
+                <Switch size="small" checked={selectedPermissionIds.includes(perm.id)} onChange={() => togglePermission(perm.id)} />
+              </div>
+            ))}
+          </div>
+        </Panel>
+      ))}
+    </Collapse>
+  );
 
   const baseColumns: ColumnsType<any> = [
-    // ID column removed
     { title: 'Tên vai trò', dataIndex: 'name' },
     {
       title: 'Trạng thái',
       dataIndex: 'active',
-      render: (active: boolean) => (
-        <Tag color={active ? 'green' : 'red'}>
-          {active ? 'ACTIVE' : 'INACTIVE'}
-        </Tag>
-      ),
+      render: (active: boolean) => <Tag color={active ? 'green' : 'red'}>{active ? 'ACTIVE' : 'INACTIVE'}</Tag>,
     },
   ];
 
   const columns: ColumnsType<any> = [...baseColumns];
 
-  // Only add actions column if user has permission to edit or delete
   if (ability.can(Action.Update, Subject.Role) || ability.can(Action.Delete, Subject.Role)) {
     columns.push({
       title: 'Hành động',
       key: 'actions',
       align: 'center',
-      render: (_: any, record: any) => {
-        console.log(record.id);
-        return (
-        
+      render: (_: any, record: any) => (
         <div className="flex justify-center gap-2">
           {ability.can(Action.Update, Subject.Role) && (
-            <Button
-              icon={<EditOutlined />}
-              onClick={() => openEditModal(record)}
-            />
+            <Button icon={<EditOutlined />} onClick={() => openEditModal(record)} />
           )}
           {ability.can(Action.Delete, Subject.Role) && (
             <Popconfirm
@@ -242,18 +189,14 @@ const RoleManagement: React.FC = () => {
               okText="Có"
               cancelText="Không"
             >
-              <Button
-                icon={<DeleteOutlined />}
-                danger
-              />
+              <Button icon={<DeleteOutlined />} danger />
             </Popconfirm>
           )}
         </div>
-      );}
+      ),
     });
   }
 
-  // Check for errors and handle them
   if (rolesError || permissionsError) {
     const status = (rolesError as any)?.status || (permissionsError as any)?.status || 500;
     return (
@@ -265,22 +208,27 @@ const RoleManagement: React.FC = () => {
 
   return (
     <Sidebar>
-      <div className="flex flex-col justify-center items-center min-h-screen px-4 sm:px-6 lg:px-8" style={{ backgroundColor: "#f8f9fa" }}>
-        <div className="p-4 shadow-lg rounded w-full sm:max-w-2xl">
-          <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
-            <Typography.Title level={2} className="text-center sm:text-left">Danh sách Roles (Vai Trò)</Typography.Title>
+      <div className="flex flex-col min-h-screen bg-[#f8f9fa] px-4 py-6 sm:px-8 lg:px-12">
+        <div className="w-full max-w-7xl mx-auto">
+          <div className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <Typography.Title level={2} className="text-center sm:text-left">
+              Danh sách Roles (Vai Trò)
+            </Typography.Title>
             {ability.can(Action.Create, Subject.Role) && (
-              <Button type="primary" onClick={openCreateModal} icon={<PlusOutlined />}>Thêm vai trò</Button>
+              <Button type="primary" onClick={openCreateModal} icon={<PlusOutlined />}>
+                Thêm vai trò
+              </Button>
             )}
           </div>
-          <Card className="shadow-md">
-            <div className="mb-4 flex flex-col sm:flex-row justify-between items-center">
+
+          <Card className="border border-gray-200 rounded-none">
+            <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-4">
               <Input
                 placeholder="Tìm kiếm vai trò..."
                 prefix={<SearchOutlined />}
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                style={{ width: "100%", maxWidth: "300px" }}
+                className="w-full sm:w-72"
                 allowClear
               />
             </div>
@@ -289,33 +237,30 @@ const RoleManagement: React.FC = () => {
               columns={columns}
               rowKey="id"
               pagination={{ pageSize: 10 }}
+              scroll={{ x: 'max-content' }}
               className="w-full"
             />
           </Card>
+
+          <Modal
+            title={editingRole ? 'Sửa Role' : 'Tạo mới Role'}
+            open={modalVisible}
+            onCancel={() => setModalVisible(false)}
+            onOk={handleSubmit}
+            width={800}
+          >
+            <Form layout="vertical" form={form}>
+              <Form.Item name="name" label="Tên Role" rules={[{ required: true }]}> <Input /> </Form.Item>
+              <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}> <Input.TextArea /> </Form.Item>
+              <Form.Item name="active" label="Trạng thái" valuePropName="checked">
+                <Switch checkedChildren="ACTIVE" unCheckedChildren="INACTIVE" />
+              </Form.Item>
+            </Form>
+            <h4>Quyền hạn</h4>
+            {renderPermissionGroups()}
+          </Modal>
         </div>
       </div>
-
-      <Modal
-        title={editingRole ? 'Sửa Role' : 'Tạo mới Role'}
-        open={modalVisible}
-        onCancel={() => setModalVisible(false)}
-        onOk={handleSubmit}
-        width={800}
-      >
-        <Form layout="vertical" form={form}>
-          <Form.Item name="name" label="Tên Role" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}>
-            <Input.TextArea />
-          </Form.Item>
-          <Form.Item name="active" label="Trạng thái" valuePropName="checked">
-            <Switch checkedChildren="ACTIVE" unCheckedChildren="INACTIVE" />
-          </Form.Item>
-        </Form>
-        <h4>Quyền hạn</h4>
-        {renderPermissionGroups()}
-      </Modal>
     </Sidebar>
   );
 };
