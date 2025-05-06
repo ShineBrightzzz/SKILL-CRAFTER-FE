@@ -83,6 +83,9 @@ const eventsService = apiSlice.injectEndpoints({
                 };
             },
         }),
+        getTopRegisteredEvents: builder.query<any, void>({
+            query: () => `/eventDetails/top-registered`,
+        }),
 
     }),
     overrideExisting: true,
@@ -98,5 +101,6 @@ export const {
     useRegisterEventMutation, 
     useCheckinEventMutation, 
     useGetCheckinCountQuery, 
-    useCheckoutEventMutation 
+    useCheckoutEventMutation,
+    useGetTopRegisteredEventsQuery 
 } = eventsService;
