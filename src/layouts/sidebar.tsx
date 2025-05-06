@@ -9,7 +9,6 @@ import {
   UploadOutlined,
   UserOutlined,
   KeyOutlined,
-  TeamOutlined,
   LockOutlined,
   IdcardOutlined,
   UsergroupAddOutlined,
@@ -86,13 +85,6 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
     .ant-menu-submenu-title:hover {
       background-color: rgba(255, 255, 255, 0.1) !important;
     }
-    @media (max-width: 768px) {
-      .ant-layout-sider {
-        position: absolute !important;
-        max-height: 100vh !important;
-        overflow-y: auto !important;
-      }
-    }
   `;
 
   return (
@@ -115,6 +107,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
           flexDirection: 'column',
         }}
       >
+        {/* Logo */}
         <div
           className="logo"
           style={{
@@ -142,6 +135,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
           )}
         </div>
 
+        {/* Menu có thể cuộn */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
           <Menu
             theme="dark"
@@ -160,6 +154,20 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
             subMenuCloseDelay={0.3}
             expandIcon={null}
           />
+        </div>
+
+        {/* Nút thu gọn/mở rộng luôn ở dưới cùng */}
+        <div
+          style={{
+            padding: 12,
+            textAlign: 'center',
+            cursor: 'pointer',
+            borderTop: '1px solid rgba(255,255,255,0.15)',
+            color: '#fff',
+          }}
+          onClick={() => setCollapsed(!collapsed)}
+        >
+          {collapsed ? '→' : '←'} Thu gọn
         </div>
       </Sider>
 
