@@ -209,8 +209,8 @@ const EventsPage = () => {
               Danh sách sự kiện
             </Typography.Title>
 
-            <div className="mb-4 flex flex-wrap justify-between items-center gap-2">
-              <div className="flex-grow min-w-0">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <div className="flex-grow">
                 <Input
                   placeholder="Tìm kiếm sự kiện..."
                   prefix={<SearchOutlined />}
@@ -222,7 +222,7 @@ const EventsPage = () => {
               </div>
 
               {ability.can(Action.Create, Subject.Event) && (
-                <div className="ml-auto">
+                <div className="flex-shrink-0">
                   {isSmallScreen ? (
                     <Tooltip title="Thêm sự kiện">
                       <Button
@@ -230,6 +230,7 @@ const EventsPage = () => {
                         shape="circle"
                         icon={<PlusOutlined />}
                         onClick={() => setIsAddEventModalOpen(true)}
+                        className="min-w-[40px]"
                       />
                     </Tooltip>
                   ) : (
@@ -244,6 +245,7 @@ const EventsPage = () => {
                 </div>
               )}
             </div>
+
 
 
             <Card className="overflow-auto">
