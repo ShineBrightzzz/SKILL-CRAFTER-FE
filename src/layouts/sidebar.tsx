@@ -104,7 +104,8 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
           background: '#1468a2',
           boxShadow: '2px 0 8px rgba(0, 0, 0, 0.15)',
           position: 'fixed',
-          height: '100vh',
+          top: 0,
+          bottom: 0,
           left: 0,
           zIndex: 1000,
           display: 'flex',
@@ -114,6 +115,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
         {/* Logo */}
         <div
           style={{
+            flexShrink: 0,
             height: 64,
             margin: 16,
             display: 'flex',
@@ -135,8 +137,8 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
           )}
         </div>
 
-        {/* Cuộn menu riêng */}
-        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
           <Menu
             theme="dark"
             mode="inline"
@@ -153,9 +155,8 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
             expandIcon={null}
           />
         </div>
-
-        {/* Nút collapse của Ant Design sẽ tự hiển thị ở đây */}
       </Sider>
+
 
 
       <Layout style={{ marginLeft: collapsed ? (isMobile ? 60 : 80) : (isMobile ? 200 : 250) }}>
