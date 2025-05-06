@@ -23,6 +23,7 @@ import ErrorHandler from '@/components/ErrorHandler';
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
 import withPermission from '@/hocs/withPermission';
+import { useMediaQuery } from 'react-responsive';
 
 interface Semester {
   id: string;
@@ -59,6 +60,8 @@ const EventsPage = () => {
   const [updateEvent] = useUpdateEventMutation();
   const [deleteEvent] = useDeleteEventMutation();
   const ability = useAbility();
+
+  const isSmallScreen = useMediaQuery({ maxWidth: 767 });
 
   const handleTableChange = (pagination: any, filters: any, sorter: any) => {
     setCurrentPage(pagination.current);
@@ -217,26 +220,24 @@ const EventsPage = () => {
               />
               {ability.can(Action.Create, Subject.Event) && (
                 <>
-                  {/* Màn hình lớn: nút có chữ */}
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={() => setIsAddEventModalOpen(true)}
-                    className="hidden sm:inline-flex"
-                  >
-                    Thêm sự kiện
-                  </Button>
-
-                  {/* Màn hình nhỏ: chỉ dấu + kèm tooltip */}
-                  <Tooltip title="Thêm sự kiện">
+                  {isSmallScreen ? (
+                    <Tooltip title="Thêm sự kiện">
+                      <Button
+                        type="primary"
+                        shape="circle"
+                        icon={<PlusOutlined />}
+                        onClick={() => setIsAddEventModalOpen(true)}
+                      />
+                    </Tooltip>
+                  ) : (
                     <Button
                       type="primary"
-                      shape="circle"
                       icon={<PlusOutlined />}
                       onClick={() => setIsAddEventModalOpen(true)}
-                      className="inline-flex sm:hidden"
-                    />
-                  </Tooltip>
+                    >
+                      Thêm sự kiện
+                    </Button>
+                  )}
                 </>
               )}
             </div>
