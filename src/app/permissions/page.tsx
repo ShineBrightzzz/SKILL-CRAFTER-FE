@@ -176,19 +176,14 @@ const PermissionTable: React.FC = () => {
 
   return (
     <Sidebar>
-      <div className="p-4 max-w-screen-xl mx-auto w-full">
+      <div className="p-6 max-w-screen-xl mx-auto w-full">
         {isLoading ? (
           <Loading message="Đang tải danh sách quyền hạn..." />
         ) : (
           <>
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-              <Typography.Title level={2} className="text-center md:text-left">Danh sách Permissions (Quyền hạn)</Typography.Title>
-              {ability.can(Action.Create, Subject.Permission) && (
-                <Button type="primary" onClick={handleAdd} icon={<PlusOutlined />}>Thêm mới</Button>
-              )}
-            </div>
+            <Typography.Title level={2} className="mb-4">Danh sách quyền hạn</Typography.Title>
 
-            <div className="mb-4 flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="mb-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
               <Input
                 placeholder="Tìm kiếm quyền hạn..."
                 prefix={<SearchOutlined />}
@@ -197,6 +192,9 @@ const PermissionTable: React.FC = () => {
                 allowClear
                 className="w-full sm:w-80"
               />
+              {ability.can(Action.Create, Subject.Permission) && (
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Thêm mới</Button>
+              )}
             </div>
 
             <Card className="overflow-auto">
@@ -217,12 +215,19 @@ const PermissionTable: React.FC = () => {
               width={800}
             >
               <Form form={form} layout="vertical">
-                <Form.Item label="Tên Permission" name="name" rules={[{ required: true, message: 'Vui lòng nhập tên quyền hạn' }]}> <Input /> </Form.Item>
-                <Form.Item label="API Path" name="apiPath" rules={[{ required: true, message: 'Vui lòng nhập đường dẫn API' }]}> <Input /> </Form.Item>
-                <Form.Item label="Method" name="method" rules={[{ required: true, message: 'Vui lòng chọn phương thức' }]}> <Select>{['GET','POST','PUT','DELETE'].map(m => <Option key={m} value={m}>{m}</Option>)}</Select> </Form.Item>
-                <Form.Item label="Thuộc Module" name="module" rules={[{ required: true, message: 'Vui lòng chọn module' }]}> <Select> {modules.map(m => <Option key={m} value={m}>{m}</Option>)} <Option value="New">Thêm module mới</Option> </Select> </Form.Item>
+                <Form.Item label="Tên Permission" name="name" rules={[{ required: true, message: 'Vui lòng nhập tên quyền hạn' }]}><Input /></Form.Item>
+                <Form.Item label="API Path" name="apiPath" rules={[{ required: true, message: 'Vui lòng nhập đường dẫn API' }]}><Input /></Form.Item>
+                <Form.Item label="Method" name="method" rules={[{ required: true, message: 'Vui lòng chọn phương thức' }]}>
+                  <Select>{['GET','POST','PUT','DELETE'].map(m => <Option key={m} value={m}>{m}</Option>)}</Select>
+                </Form.Item>
+                <Form.Item label="Thuộc Module" name="module" rules={[{ required: true, message: 'Vui lòng chọn module' }]}>
+                  <Select>
+                    {modules.map(m => <Option key={m} value={m}>{m}</Option>)}
+                    <Option value="New">Thêm module mới</Option>
+                  </Select>
+                </Form.Item>
                 {form.getFieldValue('module') === 'New' && (
-                  <Form.Item label="Module mới" name="newModule" rules={[{ required: true, message: 'Vui lòng nhập tên module mới' }]}> <Input /> </Form.Item>
+                  <Form.Item label="Module mới" name="newModule" rules={[{ required: true, message: 'Vui lòng nhập tên module mới' }]}><Input /></Form.Item>
                 )}
               </Form>
             </Modal>

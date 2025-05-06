@@ -167,7 +167,7 @@ const UsersManagement: React.FC = () => {
             <Loading message="Đang tải danh sách người dùng..." />
           ) : (
             <>
-              <div className="border rounded-md bg-white p-4">
+              <Card className="border border-gray-200 rounded-none">
                 <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-4">
                   <Input
                     placeholder="Tìm kiếm người dùng..."
@@ -195,9 +195,8 @@ const UsersManagement: React.FC = () => {
                   scroll={{ x: 'max-content' }}
                   className="w-full"
                 />
-              </div>
+              </Card>
 
-              {/* Edit User Modal */}
               <Modal
                 title="Sửa thông tin người dùng"
                 open={modalVisible}
@@ -224,7 +223,6 @@ const UsersManagement: React.FC = () => {
                 </Form>
               </Modal>
 
-              {/* Create User Modal */}
               <Modal
                 title="Tạo tài khoản mới"
                 open={createModalVisible}
