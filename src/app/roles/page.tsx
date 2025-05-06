@@ -14,6 +14,7 @@ import {
   Popconfirm,
   Typography,
   Collapse,
+  Tooltip,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -22,6 +23,7 @@ import {
   PlusOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
+import { useMediaQuery } from 'react-responsive';
 import Sidebar from '@/layouts/sidebar';
 import {
   useGetRoleQuery,
@@ -46,6 +48,7 @@ const RoleManagement: React.FC = () => {
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<string[]>([]);
   const [groupedPermissions, setGroupedPermissions] = useState<{ [module: string]: any[] }>({});
   const [searchText, setSearchText] = useState('');
+  const isSmallScreen = useMediaQuery({ maxWidth: 767 });
 
   const { data: rolesData, isLoading: isLoadingRoles, error: rolesError, refetch } = useGetRoleQuery();
   const roles = rolesData?.data?.data || [];
@@ -92,7 +95,11 @@ const RoleManagement: React.FC = () => {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      const payload = { ...values, permissionIds: selectedPermissionIds, active: values.active || false };
+      const payload = {
+        ...values,
+        permissionIds: selectedPermissionIds,
+        active: values.active || false,
+      };
 
       if (editingRole) {
         await updateRole({ id: editingRole.id, body: payload }).unwrap();
@@ -167,7 +174,9 @@ const RoleManagement: React.FC = () => {
     {
       title: 'Trạng thái',
       dataIndex: 'active',
-      render: (active: boolean) => <Tag color={active ? 'green' : 'red'}>{active ? 'ACTIVE' : 'INACTIVE'}</Tag>,
+      render: (active: boolean) => (
+        <Tag color={active ? 'green' : 'red'}>{active ? 'ACTIVE' : 'INACTIVE'}</Tag>
+      ),
     },
     {
       title: 'Hành động',
@@ -220,11 +229,24 @@ const RoleManagement: React.FC = () => {
                   className="w-full"
                 />
               </div>
+
               {ability.can(Action.Create, Subject.Role) && (
                 <div className="flex-shrink-0">
-                  <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
-                    Thêm vai trò
-                  </Button>
+                  {isSmallScreen ? (
+                    <Tooltip title="Thêm vai trò">
+                      <Button
+                        type="primary"
+                        shape="circle"
+                        icon={<PlusOutlined />}
+                        onClick={openCreateModal}
+                        className="min-w-[40px]"
+                      />
+                    </Tooltip>
+                  ) : (
+                    <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
+                      Thêm vai trò
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
