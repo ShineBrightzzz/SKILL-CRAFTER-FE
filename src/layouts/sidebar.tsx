@@ -14,7 +14,7 @@ import {
   UsergroupAddOutlined,
   DownOutlined,
   RightOutlined,
-  FormOutlined
+  FormOutlined,
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
@@ -57,7 +57,11 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
       label: (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <span>Quản trị hệ thống</span>
-          {openKeys.includes('admin') ? <DownOutlined style={{ fontSize: 12 }} /> : <RightOutlined style={{ fontSize: 12 }} />}
+          {openKeys.includes('admin') ? (
+            <DownOutlined style={{ fontSize: 12 }} />
+          ) : (
+            <RightOutlined style={{ fontSize: 12 }} />
+          )}
         </div>
       ),
       icon: <LockOutlined />,
@@ -135,7 +139,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
           )}
         </div>
 
-        {/* Menu có thể cuộn */}
+        {/* Menu cuộn riêng */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
           <Menu
             theme="dark"
@@ -154,20 +158,6 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
             subMenuCloseDelay={0.3}
             expandIcon={null}
           />
-        </div>
-
-        {/* Nút thu gọn/mở rộng luôn ở dưới cùng */}
-        <div
-          style={{
-            padding: 12,
-            textAlign: 'center',
-            cursor: 'pointer',
-            borderTop: '1px solid rgba(255,255,255,0.15)',
-            color: '#fff',
-          }}
-          onClick={() => setCollapsed(!collapsed)}
-        >
-          {collapsed ? '→' : '←'} Thu gọn
         </div>
       </Sider>
 
