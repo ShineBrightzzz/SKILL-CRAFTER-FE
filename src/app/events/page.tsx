@@ -209,18 +209,20 @@ const EventsPage = () => {
               Danh sách sự kiện
             </Typography.Title>
 
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 sm:gap-4">
+            <div className="mb-4 flex flex-wrap justify-between items-center gap-2">
+              <div className="flex-grow min-w-0">
+                <Input
+                  placeholder="Tìm kiếm sự kiện..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  allowClear
+                  className="w-full"
+                />
+              </div>
 
-              <Input
-                placeholder="Tìm kiếm sự kiện..."
-                prefix={<SearchOutlined />}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                allowClear
-                className="w-full sm:w-80"
-              />
               {ability.can(Action.Create, Subject.Event) && (
-                <>
+                <div className="ml-auto">
                   {isSmallScreen ? (
                     <Tooltip title="Thêm sự kiện">
                       <Button
@@ -239,9 +241,10 @@ const EventsPage = () => {
                       Thêm sự kiện
                     </Button>
                   )}
-                </>
+                </div>
               )}
             </div>
+
 
             <Card className="overflow-auto">
               <Table
