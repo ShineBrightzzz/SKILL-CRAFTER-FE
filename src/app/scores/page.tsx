@@ -23,6 +23,8 @@ interface Semester {
 }
 
 const ScoresPage = () => {
+  const isSmallScreen = useMediaQuery({ maxWidth: 767 });
+
   const [searchText, setSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -36,8 +38,6 @@ const ScoresPage = () => {
   const [uploadType, setUploadType] = useState('');
   const [localUploadStatus, setLocalUploadStatus] = useState<Record<string, Record<string, boolean>>>({});
   const [currentStudentId, setCurrentStudentId] = useState('');
-
-  const isSmallScreen = useMediaQuery({ maxWidth: 767 });
 
   const { data: semesterData, isLoading: isLoadingSemesters, error: semesterError } = useGetSemesterQuery();
   const { data: existScoreData, isLoading: isLoadingScores, error: scoreError, refetch: refetchScores } = useGetExistsScoreQuery({});
@@ -117,6 +117,32 @@ const ScoresPage = () => {
     setIsEditScoreModalOpen(true);
   };
 
+  const renderUploadButton = (record: Semester, label: string) => {
+    const uploadedServer = existScoreData?.data[record.id]?.[label];
+    const uploadedLocal = localUploadStatus[record.id]?.[label];
+    const uploaded = uploadedServer || uploadedLocal;
+
+    return (
+      <div className="flex justify-center items-center gap-2">
+        {uploaded ? (
+          <>
+            <Tag color="success">Đã upload</Tag>
+            <Button size="small" onClick={() => openEditScoreModal(record, label)}>Sửa điểm</Button>
+          </>
+        ) : (
+          <Tooltip title={label}>
+            <Button
+              icon={<UploadOutlined />}
+              size="small"
+              shape={isSmallScreen ? 'circle' : undefined}
+              onClick={() => openUploadModal(record, label)}
+            />
+          </Tooltip>
+        )}
+      </div>
+    );
+  };
+
   const filteredSemesters = semesterData?.data?.filter((semester: Semester) => {
     if (!searchText) return true;
     return `kì ${semester.number} năm ${semester.year}`.toLowerCase().includes(searchText.toLowerCase());
@@ -138,35 +164,11 @@ const ScoresPage = () => {
       }[type],
       key: type,
       align: 'center' as 'center',
-      render: (_: any, record: Semester) => {
-        const uploadedServer = existScoreData?.data[record.id]?.[type];
-        const uploadedLocal = localUploadStatus[record.id]?.[type];
-        const uploaded = uploadedServer || uploadedLocal;
-        const label = {
-          academic_score: 'Điểm học tập',
-          research_score: 'Điểm NCKH',
-          club_score: 'Điểm CLB',
-        }[type] || 'Unknown';
-        return (
-          <div className="flex justify-center items-center gap-2">
-            {uploaded ? (
-              <>
-                <Tag color="success">Đã upload</Tag>
-                <Button size="small" onClick={() => openEditScoreModal(record, label)}>Sửa điểm</Button>
-              </>
-            ) : (
-              <Tooltip title={label}>
-                <Button
-                  icon={<UploadOutlined />}
-                  size="small"
-                  shape={useMediaQuery({ maxWidth: 767 }) ? 'circle' : undefined}
-                  onClick={() => openUploadModal(record, label)}
-                />
-              </Tooltip>
-            )}
-          </div>
-        );
-      },
+      render: (_: any, record: Semester) => renderUploadButton(record, {
+        academic_score: 'Điểm học tập',
+        research_score: 'Điểm NCKH',
+        club_score: 'Điểm CLB',
+      }[type] || 'Unknown'),
     })),
   ];
 
