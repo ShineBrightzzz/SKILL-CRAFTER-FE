@@ -83,6 +83,7 @@ const FormsPage: React.FC = () => {
   };
 
   const handleAddForm = async (formData: any) => {
+    console.log('Form Data:', formData); // Debugging
     try {
       await createForm(formData).unwrap();
       toast.success('Thêm biểu mẫu thành công');
