@@ -207,7 +207,7 @@ const UsersManagement: React.FC = () => {
                         type="primary"
                         shape="circle"
                         icon={<PlusOutlined />}
-                        onClick={openCreateModal}
+                        onClick={() => setCreateModalVisible(true)}
                         className="min-w-[40px]"
                       />
                     </Tooltip>
@@ -215,7 +215,7 @@ const UsersManagement: React.FC = () => {
                     <Button
                       type="primary"
                       icon={<PlusOutlined />}
-                      onClick={openCreateModal}
+                      onClick={() => setCreateModalVisible(true)}
                     >
                       Thêm tài khoản
                     </Button>
