@@ -9,7 +9,6 @@ import {
   Input,
   Select,
   Popconfirm,
-  message,
   Typography,
   Card,
   Tooltip,
@@ -112,16 +111,17 @@ const PermissionTable: React.FC = () => {
 
       if (editingPermission) {
         await updatePermission({ id: editingPermission.id, body: finalValues }).unwrap();
-        message.success('Cập nhật quyền hạn thành công');
+        toast.success('Cập nhật quyền hạn thành công');
       } else {
         await createPermission({ body: finalValues }).unwrap();
-        message.success('Thêm quyền hạn thành công');
+        toast.success('Thêm quyền hạn thành công');
       }
+
       setIsModalVisible(false);
       form.resetFields();
       refetch();
     } catch (error: any) {
-      message.error(error?.data?.message || 'Có lỗi xảy ra');
+      toast.error(error?.data?.message || 'Có lỗi xảy ra');
     }
   };
 
