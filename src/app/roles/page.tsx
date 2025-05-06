@@ -9,7 +9,6 @@ import {
   Input,
   Switch,
   Tag,
-  message,
   Card,
   Popconfirm,
   Typography,
@@ -37,6 +36,7 @@ import {
   SearchOutlined,
 } from '@ant-design/icons';
 import { useMediaQuery } from 'react-responsive';
+import { toast } from 'react-toastify';
 
 const { Panel } = Collapse;
 const { Text } = Typography;
@@ -111,16 +111,16 @@ const RoleManagement: React.FC = () => {
 
       if (editingRole) {
         await updateRole({ id: editingRole.id, body: rolePayload }).unwrap();
-        message.success('Cập nhật thành công');
+        toast.success('Cập nhật thành công');
       } else {
         await createRole({ body: rolePayload }).unwrap();
-        message.success('Tạo mới thành công');
+        toast.success('Tạo mới thành công');
       }
 
       setModalVisible(false);
       refetch();
     } catch (error: any) {
-      message.error(error?.data?.message || 'Có lỗi xảy ra');
+      toast.error(error?.data?.message || 'Có lỗi xảy ra');
     }
   };
 
@@ -128,10 +128,10 @@ const RoleManagement: React.FC = () => {
     try {
       const stringId = id.toString();
       await deleteRole({ id: stringId }).unwrap();
-      message.success('Xóa vai trò thành công');
+      toast.success('Xóa vai trò thành công');
       refetch();
     } catch (error: any) {
-      message.error(error?.data?.message || 'Lỗi khi xóa vai trò');
+      toast.error(error?.data?.message || 'Lỗi khi xóa vai trò');
       refetch();
     }
   };

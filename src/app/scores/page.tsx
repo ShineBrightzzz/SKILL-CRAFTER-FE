@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Sidebar from "@/layouts/sidebar";
 import { Card, Typography, Table, Button, Tag, Input, message } from 'antd';
 import { UploadOutlined, SearchOutlined } from '@ant-design/icons';
-import { useGetExistsScoreQuery, useGetSemesterQuery } from '@/services/semester.service';
+import { useGetExistsScoreQuery, useGetSemesterQuery, useUpdateScoreMutation } from '@/services/semester.service';
 import type { ColumnsType } from 'antd/es/table';
 import UploadModal from '@/components/UploadModal';
 import EditScoreModal from '@/components/EditScoreModal';
@@ -38,6 +38,7 @@ const ScoresPage = () => {
 
   const { data: semesterData, isLoading: isLoadingSemesters, error: semesterError } = useGetSemesterQuery();
   const { data: existScoreData, isLoading: isLoadingScores, error: scoreError, refetch: refetchScores } = useGetExistsScoreQuery({});
+  const [updateScore] = useUpdateScoreMutation();
 
   const handleTableChange = (pagination: any, filters: any, sorter: any) => {
     setCurrentPage(pagination.current);
@@ -99,6 +100,24 @@ const ScoresPage = () => {
     }
     toast.success(`Cập nhật điểm ${selectedScoreType} thành công`);
     setIsEditScoreModalOpen(false);
+  };
+
+  const handleSubmit = async (values: any) => {
+    const { studentId, semesterId, ...body } = values;
+    try {
+      await updateScore({ studentId, semesterId, body }).unwrap();
+      toast.success('Cập nhật điểm thành công');
+      handleCloseModal();
+    } catch (error) {
+      toast.error('Lỗi khi cập nhật điểm');
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsEditScoreModalOpen(false);
+    setSelectedSemester(null);
+    setSelectedScoreType('');
+    setCurrentStudentId('');
   };
 
   const openUploadModal = (semester: Semester, type: string) => {

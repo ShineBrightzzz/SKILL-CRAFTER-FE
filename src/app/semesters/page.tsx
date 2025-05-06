@@ -8,7 +8,6 @@ import {
   Table,
   Button,
   Input,
-  message,
   Popconfirm,
   Form,
   Tooltip,
@@ -35,6 +34,7 @@ import AddSemesterModal from '@/components/AddSemesterModal';
 import EditSemesterModal from '@/components/EditSemesterModal';
 import dayjs from 'dayjs';
 import { useMediaQuery } from 'react-responsive';
+import { toast } from 'react-toastify';
 
 interface Semester {
   id: string;
@@ -105,22 +105,22 @@ const SemestersPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     try {
       await deleteSemester({ semesterId: id }).unwrap();
-      message.success('Xóa học kỳ thành công');
+      toast.success('Xóa học kỳ thành công');
       refetch();
     } catch (err: any) {
-      message.error(err?.data?.message || 'Có lỗi khi xóa học kỳ');
+      toast.error(err?.data?.message || 'Có lỗi khi xóa học kỳ');
     }
   };
 
   const handleAddSubmit = async (values: any) => {
     try {
       await createSemester({ body: values }).unwrap();
-      message.success('Thêm học kỳ thành công');
+      toast.success('Thêm học kỳ thành công');
       setAddModalVisible(false);
       form.resetFields();
       refetch();
     } catch (err: any) {
-      message.error(err?.data?.message || 'Có lỗi khi thêm học kỳ');
+      toast.error(err?.data?.message || 'Có lỗi khi thêm học kỳ');
     }
   };
 
@@ -131,11 +131,11 @@ const SemestersPage: React.FC = () => {
         semesterId: selectedSemester.id,
         body: values,
       }).unwrap();
-      message.success('Cập nhật học kỳ thành công');
+      toast.success('Cập nhật học kỳ thành công');
       setEditModalVisible(false);
       refetch();
     } catch (err: any) {
-      message.error(err?.data?.message || 'Có lỗi khi cập nhật học kỳ');
+      toast.error(err?.data?.message || 'Có lỗi khi cập nhật học kỳ');
     }
   };
 

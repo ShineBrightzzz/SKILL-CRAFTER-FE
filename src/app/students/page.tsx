@@ -9,6 +9,7 @@ import Loading from '@/components/Loading';
 import ErrorHandler from '@/components/ErrorHandler';
 import { EditOutlined, SearchOutlined } from '@ant-design/icons';
 import EditScoreModal from '@/components/EditScoreModal';
+import { toast } from 'react-toastify';
 
 const { Option } = Select;
 
@@ -81,6 +82,17 @@ export default function ScoresPage() {
     setIsEditModalVisible(false);
     setSelectedStudent(null);
     refetch();
+  };
+
+  const handleSubmit = async (values: any) => {
+    const { studentId, semesterId, ...body } = values;
+    try {
+      await updateScore({ studentId, semesterId, body }).unwrap();
+      toast.success('Cập nhật điểm thành công');
+      handleCloseModal();
+    } catch (error) {
+      toast.error('Lỗi khi cập nhật điểm');
+    }
   };
 
   const columns: ColumnsType<Score & { calculatedTotal?: number }> = [
@@ -228,14 +240,7 @@ export default function ScoresPage() {
                 studentId={selectedStudent.studentId}
                 semesterId={selectedSemesterId}
                 initialScores={selectedStudent.scores}
-                onSubmit={async (values) => {
-                  const { studentId, semesterId, ...body } = values;
-                  try {
-                    await updateScore({ studentId, semesterId, body }).unwrap();
-                  } catch (error) {
-                    console.error('Error updating score:', error);
-                  }
-                }}
+                onSubmit={handleSubmit}
                 scoreType="custom"
               />
             )}

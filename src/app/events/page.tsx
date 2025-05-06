@@ -77,7 +77,7 @@ const EventsPage = () => {
       setIsAddEventModalOpen(false);
       refetch();
     } catch (error) {
-      toast.error("Lỗi khi thêm sự kiện");
+      toast.error("Thêm sự kiện thất bại");
     }
   };
 
@@ -89,7 +89,7 @@ const EventsPage = () => {
       setIsEditEventModalOpen(false);
       refetch();
     } catch (error) {
-      toast.error("Lỗi khi cập nhật sự kiện");
+      toast.error("Cập nhật sự kiện thất bại");
     }
   };
 
@@ -181,7 +181,14 @@ const EventsPage = () => {
           {ability.can(Action.Delete, Subject.Event) && (
             <Popconfirm
               title="Xóa sự kiện này?"
-              onConfirm={() => handleDeleteEvent(record.eventId)}
+              onConfirm={async () => {
+                try {
+                  await handleDeleteEvent(record.eventId);
+                  toast.success("Xóa sự kiện thành công");
+                } catch (error) {
+                  toast.error("Xóa sự kiện thất bại");
+                }
+              }}
               okText="Có"
               cancelText="Không"
             >

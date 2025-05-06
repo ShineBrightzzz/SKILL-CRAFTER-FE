@@ -12,7 +12,6 @@ import {
   Form,
   Select,
   Popconfirm,
-  message,
   Tooltip,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -23,6 +22,7 @@ import {
   PlusOutlined,
 } from '@ant-design/icons';
 import { useMediaQuery } from 'react-responsive';
+import { toast } from 'react-toastify';
 
 import Sidebar from '@/layouts/sidebar';
 import {
@@ -87,21 +87,21 @@ const UsersManagement: React.FC = () => {
     try {
       const values = await form.validateFields();
       await updateUser({ username: editingUser.username, body: values }).unwrap();
-      message.success('Cập nhật người dùng thành công');
+      toast.success('Cập nhật người dùng thành công');
       setModalVisible(false);
       refetch();
     } catch (error: any) {
-      message.error(error?.data?.message || 'Có lỗi xảy ra');
+      toast.error(error?.data?.message || 'Có lỗi xảy ra');
     }
   };
 
   const handleDelete = async (username: string) => {
     try {
       await deleteUser({ username }).unwrap();
-      message.success('Xóa người dùng thành công');
+      toast.success('Xóa người dùng thành công');
       refetch();
     } catch (error: any) {
-      message.error(error?.data?.message || 'Có lỗi khi xóa người dùng');
+      toast.error(error?.data?.message || 'Có lỗi khi xóa người dùng');
     }
   };
 
@@ -109,11 +109,11 @@ const UsersManagement: React.FC = () => {
     try {
       const values = await createForm.validateFields();
       await createUser({ body: values }).unwrap();
-      message.success('Tạo tài khoản người dùng thành công');
+      toast.success('Tạo tài khoản người dùng thành công');
       setCreateModalVisible(false);
       refetch();
     } catch (error: any) {
-      message.error(error?.data?.message || 'Có lỗi khi tạo người dùng');
+      toast.error(error?.data?.message || 'Có lỗi khi tạo người dùng');
     }
   };
 
