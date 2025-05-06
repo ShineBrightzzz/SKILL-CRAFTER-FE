@@ -13,17 +13,9 @@ import {
   Card,
   Popconfirm,
   Typography,
-  Collapse,
   Tooltip,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import {
-  EditOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-  SearchOutlined,
-} from '@ant-design/icons';
-import { useMediaQuery } from 'react-responsive';
 import Sidebar from '@/layouts/sidebar';
 import {
   useGetRoleQuery,
@@ -32,14 +24,22 @@ import {
   useDeleteRoleMutation,
 } from '@/services/role.service';
 import { useGetPermissionsQuery } from '@/services/permission.service';
+import { Collapse } from 'antd';
 import Loading from '@/components/Loading';
 import ErrorHandler from '@/components/ErrorHandler';
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
 import withPermission from '@/hocs/withPermission';
+import {
+  EditOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+  SearchOutlined,
+} from '@ant-design/icons';
+import { useMediaQuery } from 'react-responsive';
 
 const { Panel } = Collapse;
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const RoleManagement: React.FC = () => {
   const [form] = Form.useForm();
@@ -48,7 +48,6 @@ const RoleManagement: React.FC = () => {
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<string[]>([]);
   const [groupedPermissions, setGroupedPermissions] = useState<{ [module: string]: any[] }>({});
   const [searchText, setSearchText] = useState('');
-  const isSmallScreen = useMediaQuery({ maxWidth: 767 });
 
   const { data: rolesData, isLoading: isLoadingRoles, error: rolesError, refetch } = useGetRoleQuery();
   const roles = rolesData?.data?.data || [];
@@ -56,31 +55,40 @@ const RoleManagement: React.FC = () => {
   const { data: permissionsData, isLoading: isLoadingPermissions, error: permissionsError } = useGetPermissionsQuery();
   const permissions = permissionsData?.data?.data || [];
 
-  const [createRole] = useCreateRoleMutation();
-  const [updateRole] = useUpdateRoleMutation();
-  const [deleteRole] = useDeleteRoleMutation();
   const ability = useAbility();
+  const isSmallScreen = useMediaQuery({ maxWidth: 768 });
 
   useEffect(() => {
-    const grouped: { [key: string]: any[] } = {};
-    permissions.forEach((perm: any) => {
-      if (!grouped[perm.module]) grouped[perm.module] = [];
-      grouped[perm.module].push(perm);
-    });
-    setGroupedPermissions(grouped);
+    if (permissions.length > 0) {
+      const grouped: { [key: string]: any[] } = {};
+      permissions.forEach((perm: any) => {
+        if (!grouped[perm.module]) grouped[perm.module] = [];
+        grouped[perm.module].push(perm);
+      });
+      setGroupedPermissions(grouped);
+    }
   }, [permissions]);
 
   const filteredRoles = roles.filter((role: any) => {
-    const term = searchText.toLowerCase();
+    if (!searchText) return true;
+    const searchTermLower = searchText.toLowerCase();
     return (
-      role.name?.toLowerCase().includes(term) ||
-      role.description?.toLowerCase().includes(term)
+      (role.name && role.name.toLowerCase().includes(searchTermLower)) ||
+      (role.description && role.description.toLowerCase().includes(searchTermLower))
     );
   });
 
+  const [createRole] = useCreateRoleMutation();
+  const [updateRole] = useUpdateRoleMutation();
+  const [deleteRole] = useDeleteRoleMutation();
+
   const openEditModal = (role: any) => {
     setEditingRole(role);
-    form.setFieldsValue(role);
+    form.setFieldsValue({
+      name: role.name,
+      description: role.description,
+      active: role.active,
+    });
     setSelectedPermissionIds(role.permissionIds || []);
     setModalVisible(true);
   };
@@ -95,17 +103,17 @@ const RoleManagement: React.FC = () => {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      const payload = {
+      const rolePayload = {
         ...values,
         permissionIds: selectedPermissionIds,
         active: values.active || false,
       };
 
       if (editingRole) {
-        await updateRole({ id: editingRole.id, body: payload }).unwrap();
+        await updateRole({ id: editingRole.id, body: rolePayload }).unwrap();
         message.success('Cập nhật thành công');
       } else {
-        await createRole({ body: payload }).unwrap();
+        await createRole({ body: rolePayload }).unwrap();
         message.success('Tạo mới thành công');
       }
 
@@ -118,11 +126,13 @@ const RoleManagement: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      await deleteRole({ id: id.toString() }).unwrap();
+      const stringId = id.toString();
+      await deleteRole({ id: stringId }).unwrap();
       message.success('Xóa vai trò thành công');
       refetch();
     } catch (error: any) {
       message.error(error?.data?.message || 'Lỗi khi xóa vai trò');
+      refetch();
     }
   };
 
@@ -174,9 +184,7 @@ const RoleManagement: React.FC = () => {
     {
       title: 'Trạng thái',
       dataIndex: 'active',
-      render: (active: boolean) => (
-        <Tag color={active ? 'green' : 'red'}>{active ? 'ACTIVE' : 'INACTIVE'}</Tag>
-      ),
+      render: (active: boolean) => <Tag color={active ? 'green' : 'red'}>{active ? 'ACTIVE' : 'INACTIVE'}</Tag>,
     },
     {
       title: 'Hành động',
@@ -214,11 +222,14 @@ const RoleManagement: React.FC = () => {
           <Loading message="Đang tải dữ liệu vai trò và quyền hạn..." />
         ) : (
           <>
-            <Title level={2} className="mb-4 text-xl sm:text-2xl md:text-3xl">
+            <Typography.Title
+              level={2}
+              className="mb-4 text-xl sm:text-2xl md:text-3xl"
+            >
               Danh sách Roles (Vai Trò)
-            </Title>
+            </Typography.Title>
 
-            <div className="mb-4 flex items-center justify-between gap-2 flex-wrap">
+            <div className="mb-4 flex items-center justify-between gap-2">
               <div className="flex-grow">
                 <Input
                   placeholder="Tìm kiếm vai trò..."
@@ -243,7 +254,11 @@ const RoleManagement: React.FC = () => {
                       />
                     </Tooltip>
                   ) : (
-                    <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={openCreateModal}
+                    >
                       Thêm vai trò
                     </Button>
                   )}
@@ -268,18 +283,13 @@ const RoleManagement: React.FC = () => {
               width={800}
             >
               <Form layout="vertical" form={form}>
-                <Form.Item name="name" label="Tên Role" rules={[{ required: true }]}>
-                  <Input />
-                </Form.Item>
-                <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}>
-                  <Input.TextArea />
-                </Form.Item>
+                <Form.Item name="name" label="Tên Role" rules={[{ required: true }]}> <Input /> </Form.Item>
+                <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}> <Input.TextArea /> </Form.Item>
                 <Form.Item name="active" label="Trạng thái" valuePropName="checked">
                   <Switch checkedChildren="ACTIVE" unCheckedChildren="INACTIVE" />
                 </Form.Item>
               </Form>
-
-              <Typography.Title level={5}>Quyền hạn</Typography.Title>
+              <h4>Quyền hạn</h4>
               {renderPermissionGroups()}
             </Modal>
           </>
