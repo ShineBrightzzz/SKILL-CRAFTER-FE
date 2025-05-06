@@ -187,7 +187,7 @@ const UsersManagement: React.FC = () => {
               level={2}
               className="mb-4 text-xl sm:text-2xl md:text-3xl"
             >
-              Danh sách sự kiện
+              Danh sách users
             </Typography.Title>
 
             <div className="mb-4 flex items-center justify-between gap-2 ">
