@@ -95,6 +95,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
     <Layout style={{ minHeight: '100vh' }}>
       <style>{menuStyles}</style>
 
+
       <Sider
         collapsible
         collapsed={collapsed}
