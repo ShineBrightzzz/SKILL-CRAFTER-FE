@@ -1,7 +1,19 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Button, Table, Modal, Form, Input, Switch, Tag, message, Card, Popconfirm, Typography } from 'antd';
+import {
+  Button,
+  Table,
+  Modal,
+  Form,
+  Input,
+  Switch,
+  Tag,
+  message,
+  Card,
+  Popconfirm,
+  Typography,
+} from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import Sidebar from '@/layouts/sidebar';
 import {
@@ -10,7 +22,6 @@ import {
   useUpdateRoleMutation,
   useDeleteRoleMutation,
 } from '@/services/role.service';
-
 import { useGetPermissionsQuery } from '@/services/permission.service';
 import { Collapse } from 'antd';
 import Loading from '@/components/Loading';
@@ -18,7 +29,12 @@ import ErrorHandler from '@/components/ErrorHandler';
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
 import withPermission from '@/hocs/withPermission';
-import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import {
+  EditOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+  SearchOutlined,
+} from '@ant-design/icons';
 
 const { Panel } = Collapse;
 const { Text } = Typography;
@@ -39,6 +55,17 @@ const RoleManagement: React.FC = () => {
 
   const ability = useAbility();
 
+  useEffect(() => {
+    if (permissions.length > 0) {
+      const grouped: { [key: string]: any[] } = {};
+      permissions.forEach((perm: any) => {
+        if (!grouped[perm.module]) grouped[perm.module] = [];
+        grouped[perm.module].push(perm);
+      });
+      setGroupedPermissions(grouped);
+    }
+  }, [permissions]);
+
   const filteredRoles = roles.filter((role: any) => {
     if (!searchText) return true;
     const searchTermLower = searchText.toLowerCase();
@@ -51,17 +78,6 @@ const RoleManagement: React.FC = () => {
   const [createRole] = useCreateRoleMutation();
   const [updateRole] = useUpdateRoleMutation();
   const [deleteRole] = useDeleteRoleMutation();
-
-  useEffect(() => {
-    if (permissions.length > 0) {
-      const grouped: { [key: string]: any[] } = {};
-      permissions.forEach((perm: any) => {
-        if (!grouped[perm.module]) grouped[perm.module] = [];
-        grouped[perm.module].push(perm);
-      });
-      setGroupedPermissions(grouped);
-    }
-  }, [permissions]);
 
   const openEditModal = (role: any) => {
     setEditingRole(role);
@@ -108,13 +124,9 @@ const RoleManagement: React.FC = () => {
   const handleDelete = async (id: number) => {
     try {
       const stringId = id.toString();
-      const response = await deleteRole({ id: stringId }).unwrap();
-      if (response) {
-        message.success('Xóa vai trò thành công');
-        refetch();
-      } else {
-        message.error('Không thể xóa vai trò');
-      }
+      await deleteRole({ id: stringId }).unwrap();
+      message.success('Xóa vai trò thành công');
+      refetch();
     } catch (error: any) {
       message.error(error?.data?.message || 'Lỗi khi xóa vai trò');
       refetch();
@@ -199,29 +211,27 @@ const RoleManagement: React.FC = () => {
 
   if (rolesError || permissionsError) {
     const status = (rolesError as any)?.status || (permissionsError as any)?.status || 500;
-    return (
-      <Sidebar>
-        <ErrorHandler status={status} />
-      </Sidebar>
-    );
+    return <Sidebar><ErrorHandler status={status} /></Sidebar>;
   }
 
   return (
     <Sidebar>
-      <div className="flex flex-col min-h-screen bg-[#f8f9fa] px-4 py-6 sm:px-8 lg:px-12">
-        <div className="w-full max-w-7xl mx-auto">
-          <div className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <Typography.Title level={2} className="text-center sm:text-left">
-              Danh sách Roles (Vai Trò)
-            </Typography.Title>
-            {ability.can(Action.Create, Subject.Role) && (
-              <Button type="primary" onClick={openCreateModal} icon={<PlusOutlined />}>
-                Thêm vai trò
-              </Button>
-            )}
-          </div>
+      <div className="p-6 max-w-screen-xl mx-auto w-full">
+        {isLoadingRoles || isLoadingPermissions ? (
+          <Loading message="Đang tải dữ liệu vai trò và quyền hạn..." />
+        ) : (
+          <>
+            <div className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+              <Typography.Title level={2} className="text-center sm:text-left">
+                Danh sách Roles (Vai Trò)
+              </Typography.Title>
+              {ability.can(Action.Create, Subject.Role) && (
+                <Button type="primary" onClick={openCreateModal} icon={<PlusOutlined />}>
+                  Thêm vai trò
+                </Button>
+              )}
+            </div>
 
-          <Card className="border border-gray-200 rounded-none">
             <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-4">
               <Input
                 placeholder="Tìm kiếm vai trò..."
@@ -232,34 +242,35 @@ const RoleManagement: React.FC = () => {
                 allowClear
               />
             </div>
-            <Table
-              dataSource={filteredRoles}
-              columns={columns}
-              rowKey="id"
-              pagination={{ pageSize: 10 }}
-              scroll={{ x: 'max-content' }}
-              className="w-full"
-            />
-          </Card>
 
-          <Modal
-            title={editingRole ? 'Sửa Role' : 'Tạo mới Role'}
-            open={modalVisible}
-            onCancel={() => setModalVisible(false)}
-            onOk={handleSubmit}
-            width={800}
-          >
-            <Form layout="vertical" form={form}>
-              <Form.Item name="name" label="Tên Role" rules={[{ required: true }]}> <Input /> </Form.Item>
-              <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}> <Input.TextArea /> </Form.Item>
-              <Form.Item name="active" label="Trạng thái" valuePropName="checked">
-                <Switch checkedChildren="ACTIVE" unCheckedChildren="INACTIVE" />
-              </Form.Item>
-            </Form>
-            <h4>Quyền hạn</h4>
-            {renderPermissionGroups()}
-          </Modal>
-        </div>
+            <Card className="overflow-auto">
+              <Table
+                dataSource={filteredRoles}
+                columns={columns}
+                rowKey="id"
+                pagination={{ pageSize: 10 }}
+              />
+            </Card>
+
+            <Modal
+              title={editingRole ? 'Sửa Role' : 'Tạo mới Role'}
+              open={modalVisible}
+              onCancel={() => setModalVisible(false)}
+              onOk={handleSubmit}
+              width={800}
+            >
+              <Form layout="vertical" form={form}>
+                <Form.Item name="name" label="Tên Role" rules={[{ required: true }]}> <Input /> </Form.Item>
+                <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}> <Input.TextArea /> </Form.Item>
+                <Form.Item name="active" label="Trạng thái" valuePropName="checked">
+                  <Switch checkedChildren="ACTIVE" unCheckedChildren="INACTIVE" />
+                </Form.Item>
+              </Form>
+              <h4>Quyền hạn</h4>
+              {renderPermissionGroups()}
+            </Modal>
+          </>
+        )}
       </div>
     </Sidebar>
   );
