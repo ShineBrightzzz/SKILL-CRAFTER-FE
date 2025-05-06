@@ -13,8 +13,17 @@ import {
   Select,
   Popconfirm,
   message,
+  Tooltip,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import {
+  SearchOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+} from '@ant-design/icons';
+import { useMediaQuery } from 'react-responsive';
+
 import Sidebar from '@/layouts/sidebar';
 import {
   useGetAllUserQuery,
@@ -25,15 +34,11 @@ import {
 import { useGetRoleQuery } from '@/services/role.service';
 import Loading from '@/components/Loading';
 import ErrorHandler from '@/components/ErrorHandler';
-import {
-  SearchOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-} from '@ant-design/icons';
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
 import withPermission from '@/hocs/withPermission';
+
+const { Title } = Typography;
 
 const UsersManagement: React.FC = () => {
   const [searchText, setSearchText] = useState('');
@@ -42,6 +47,7 @@ const UsersManagement: React.FC = () => {
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [form] = Form.useForm();
   const [createForm] = Form.useForm();
+  const isSmallScreen = useMediaQuery({ maxWidth: 767 });
 
   const { data: usersResponse, isLoading, error, refetch } = useGetAllUserQuery(undefined);
   const { data: rolesData, isLoading: isLoadingRoles } = useGetRoleQuery();
@@ -50,15 +56,15 @@ const UsersManagement: React.FC = () => {
   const [deleteUser] = useDeleteUserMutation();
   const [createUser] = useCreateUserMutation();
   const ability = useAbility();
+
   const users = usersResponse?.data?.data || [];
 
   const filteredUsers = users.filter((user: any) => {
-    if (!searchText) return true;
-    const searchTermLower = searchText.toLowerCase();
+    const term = searchText.toLowerCase();
     return (
-      (user.username && user.username.toLowerCase().includes(searchTermLower)) ||
-      (user.studentId && user.studentId.toLowerCase().includes(searchTermLower)) ||
-      (user.roleName && user.roleName.toLowerCase().includes(searchTermLower))
+      user.username?.toLowerCase().includes(term) ||
+      user.studentId?.toLowerCase().includes(term) ||
+      user.roleName?.toLowerCase().includes(term)
     );
   });
 
@@ -80,7 +86,7 @@ const UsersManagement: React.FC = () => {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      await updateUser({ username: editingUser.username, body: { ...values } }).unwrap();
+      await updateUser({ username: editingUser.username, body: values }).unwrap();
       message.success('Cập nhật người dùng thành công');
       setModalVisible(false);
       refetch();
@@ -122,19 +128,19 @@ const UsersManagement: React.FC = () => {
       title: 'Mã số sinh viên',
       dataIndex: 'studentId',
       key: 'studentId',
-      render: (studentId: string) => studentId || 'N/A',
+      render: (id: string) => id || 'N/A',
     },
     {
       title: 'Vai trò',
       dataIndex: 'roleName',
       key: 'roleName',
-      render: (roleName: string) => (
+      render: (role: string) => (
         <Tag color={
-          roleName === 'ADMIN' ? 'gold' :
-          roleName === 'LỚP TRƯỞNG' ? 'green' :
+          role === 'ADMIN' ? 'gold' :
+          role === 'LỚP TRƯỞNG' ? 'green' :
           'blue'
         }>
-          {roleName}
+          {role}
         </Tag>
       ),
     },
@@ -163,48 +169,68 @@ const UsersManagement: React.FC = () => {
   ];
 
   if (error) {
-    const status = (error as any)?.status || 500;
     return (
       <Sidebar>
-        <ErrorHandler status={status} />
+        <ErrorHandler status={(error as any)?.status || 500} />
       </Sidebar>
     );
   }
 
   return (
     <Sidebar>
-      <div className="p-6 max-w-screen-xl mx-auto w-full">
-        <Typography.Title level={2} className="text-center sm:text-left mb-6">
-          Danh sách Người dùng
-        </Typography.Title>
-
+      <div className="p-4 max-w-screen-xl mx-auto w-full">
         {isLoading || isLoadingRoles ? (
           <Loading message="Đang tải danh sách người dùng..." />
         ) : (
           <>
-            <Card className="border border-gray-200 rounded-none">
-              <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <Title level={2} className="mb-4 text-xl sm:text-2xl md:text-3xl">
+              Danh sách Người dùng
+            </Title>
+
+            <div className="mb-4 flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex-grow">
                 <Input
                   placeholder="Tìm kiếm người dùng..."
                   prefix={<SearchOutlined />}
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
-                  className="w-full sm:w-72"
+                  className="w-full"
                   allowClear
                 />
-                {ability.can(Action.Create, Subject.Account) && (
-                  <Button type="primary" onClick={openCreateModal} icon={<PlusOutlined />}>
-                    Thêm tài khoản
-                  </Button>
-                )}
               </div>
+
+              {ability.can(Action.Create, Subject.Account) && (
+                <div className="flex-shrink-0">
+                  {isSmallScreen ? (
+                    <Tooltip title="Thêm tài khoản">
+                      <Button
+                        type="primary"
+                        shape="circle"
+                        icon={<PlusOutlined />}
+                        onClick={openCreateModal}
+                        className="min-w-[40px]"
+                      />
+                    </Tooltip>
+                  ) : (
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={openCreateModal}
+                    >
+                      Thêm tài khoản
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <Card className="overflow-auto">
               <Table
                 dataSource={filteredUsers}
                 columns={columns}
                 rowKey="username"
                 pagination={{ pageSize: 10 }}
                 scroll={{ x: 'max-content' }}
-                className="w-full"
               />
             </Card>
 
@@ -216,13 +242,13 @@ const UsersManagement: React.FC = () => {
               width={600}
             >
               <Form layout="vertical" form={form}>
-                <Form.Item name="username" label="Username" rules={[{ required: true }]}> 
+                <Form.Item name="username" label="Username" rules={[{ required: true }]}>
                   <Input disabled />
                 </Form.Item>
                 <Form.Item name="studentId" label="Student ID">
                   <Input />
                 </Form.Item>
-                <Form.Item name="roleId" label="Role" rules={[{ required: true }]}> 
+                <Form.Item name="roleId" label="Role" rules={[{ required: true }]}>
                   <Select>
                     {roles.map((role: any) => (
                       <Select.Option key={role.id} value={role.id}>
@@ -242,16 +268,16 @@ const UsersManagement: React.FC = () => {
               width={600}
             >
               <Form layout="vertical" form={createForm}>
-                <Form.Item 
-                  name="username" 
-                  label="Username" 
+                <Form.Item
+                  name="username"
+                  label="Username"
                   rules={[{ required: true, message: 'Vui lòng nhập username' }]}
                 >
                   <Input />
                 </Form.Item>
-                <Form.Item 
-                  name="password" 
-                  label="Password" 
+                <Form.Item
+                  name="password"
+                  label="Password"
                   rules={[{ required: true, message: 'Vui lòng nhập mật khẩu' }]}
                 >
                   <Input.Password />
@@ -259,9 +285,9 @@ const UsersManagement: React.FC = () => {
                 <Form.Item name="studentId" label="Student ID">
                   <Input />
                 </Form.Item>
-                <Form.Item 
-                  name="roleId" 
-                  label="Role" 
+                <Form.Item
+                  name="roleId"
+                  label="Role"
                   rules={[{ required: true, message: 'Vui lòng chọn vai trò' }]}
                 >
                   <Select>

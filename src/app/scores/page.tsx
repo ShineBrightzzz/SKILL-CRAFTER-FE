@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Sidebar from "@/layouts/sidebar";
-import { Card, Typography, Table, Button, Tag, Input, message, Tooltip } from 'antd';
+import { Card, Typography, Table, Button, Tag, Input, message } from 'antd';
 import { UploadOutlined, SearchOutlined } from '@ant-design/icons';
 import { useGetExistsScoreQuery, useGetSemesterQuery } from '@/services/semester.service';
 import type { ColumnsType } from 'antd/es/table';
@@ -13,7 +13,6 @@ import ErrorHandler from '@/components/ErrorHandler';
 import { toast } from 'react-toastify';
 import { Action, Subject } from '@/utils/ability';
 import withPermission from '@/hocs/withPermission';
-import { useMediaQuery } from 'react-responsive';
 
 interface Semester {
   id: string;
@@ -23,8 +22,6 @@ interface Semester {
 }
 
 const ScoresPage = () => {
-  const isSmallScreen = useMediaQuery({ maxWidth: 767 });
-
   const [searchText, setSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -117,32 +114,6 @@ const ScoresPage = () => {
     setIsEditScoreModalOpen(true);
   };
 
-  const renderUploadButton = (record: Semester, label: string) => {
-    const uploadedServer = existScoreData?.data[record.id]?.[label];
-    const uploadedLocal = localUploadStatus[record.id]?.[label];
-    const uploaded = uploadedServer || uploadedLocal;
-
-    return (
-      <div className="flex justify-center items-center gap-2">
-        {uploaded ? (
-          <>
-            <Tag color="success">Đã upload</Tag>
-            <Button size="small" onClick={() => openEditScoreModal(record, label)}>Sửa điểm</Button>
-          </>
-        ) : (
-          <Tooltip title={label}>
-            <Button
-              icon={<UploadOutlined />}
-              size="small"
-              shape={isSmallScreen ? 'circle' : undefined}
-              onClick={() => openUploadModal(record, label)}
-            />
-          </Tooltip>
-        )}
-      </div>
-    );
-  };
-
   const filteredSemesters = semesterData?.data?.filter((semester: Semester) => {
     if (!searchText) return true;
     return `kì ${semester.number} năm ${semester.year}`.toLowerCase().includes(searchText.toLowerCase());
@@ -163,12 +134,29 @@ const ScoresPage = () => {
         club_score: 'Điểm CLB',
       }[type],
       key: type,
-      align: 'center' as 'center',
-      render: (_: any, record: Semester) => renderUploadButton(record, {
-        academic_score: 'Điểm học tập',
-        research_score: 'Điểm NCKH',
-        club_score: 'Điểm CLB',
-      }[type] || 'Unknown'),
+      align: 'center' as 'center', // Explicitly set align to a valid AlignType
+      render: (_: any, record: Semester) => {
+        const uploadedServer = existScoreData?.data[record.id]?.[type];
+        const uploadedLocal = localUploadStatus[record.id]?.[type];
+        const uploaded = uploadedServer || uploadedLocal;
+        const label = {
+          academic_score: 'Điểm học tập',
+          research_score: 'Điểm NCKH',
+          club_score: 'Điểm CLB',
+        }[type] || 'Unknown';
+        return (
+          <div className="flex justify-center items-center gap-2">
+            {uploaded ? (
+              <>
+                <Tag color="success">Đã upload</Tag>
+                <Button size="small" onClick={() => openEditScoreModal(record, label)}>Sửa điểm</Button>
+              </>
+            ) : (
+              <Button icon={<UploadOutlined />} onClick={() => openUploadModal(record, label)}>Upload</Button>
+            )}
+          </div>
+        );
+      },
     })),
   ];
 
@@ -183,16 +171,16 @@ const ScoresPage = () => {
 
   return (
     <Sidebar>
-      <div className="p-6 max-w-screen-xl mx-auto w-full">
+      <div style={{ padding: 24 }}>
         {isLoadingSemesters || isLoadingScores ? (
           <Loading message="Đang tải danh sách điểm..." />
         ) : (
           <>
-            <Typography.Title level={2} className="mb-4 text-xl sm:text-2xl md:text-3xl">
-              Danh sách điểm
-            </Typography.Title>
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+              <Typography.Title level={2}>Danh sách điểm</Typography.Title>
+            </div>
             <Card>
-              <div className="mb-4 max-w-xs">
+              <div style={{ marginBottom: 16, maxWidth: 320 }}>
                 <Input
                   placeholder="Tìm kiếm học kỳ..."
                   prefix={<SearchOutlined />}

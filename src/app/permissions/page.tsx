@@ -12,9 +12,8 @@ import {
   message,
   Typography,
   Card,
+  Tooltip,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
-import { ColumnsType } from 'antd/es/table';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setPermissions } from '@/store/slices/permissionSlice';
 import Sidebar from '@/layouts/sidebar';
@@ -26,9 +25,12 @@ import {
 } from '@/services/permission.service';
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
+import { ColumnsType } from 'antd/es/table';
 import Loading from '@/components/Loading';
 import ErrorHandler from '@/components/ErrorHandler';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import withPermission from '@/hocs/withPermission';
+import { useMediaQuery } from 'react-responsive';
 
 const { Option } = Select;
 const { Title } = Typography;
@@ -45,6 +47,7 @@ const PermissionTable: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingPermission, setEditingPermission] = useState<any>(null);
   const [form] = Form.useForm();
+  const isSmallScreen = useMediaQuery({ maxWidth: 767 });
 
   const { data: permissionsData, isLoading, error, refetch } = useGetPermissionsQuery();
   const [updatePermission] = useUpdatePermissionMutation();
@@ -112,7 +115,6 @@ const PermissionTable: React.FC = () => {
         await createPermission({ body: finalValues }).unwrap();
         message.success('Thêm quyền hạn thành công');
       }
-
       setIsModalVisible(false);
       form.resetFields();
       refetch();
@@ -151,7 +153,7 @@ const PermissionTable: React.FC = () => {
       dataIndex: 'method',
       key: 'method',
       render: (text: string) => <span style={{ color: methodColor(text) }}>{text}</span>,
-      filters: ['GET', 'POST', 'PUT', 'DELETE'].map(m => ({ text: m, value: m })),
+      filters: ['GET', 'POST', 'PUT', 'DELETE'].map(method => ({ text: method, value: method })),
       onFilter: (value, record) => record.method === value,
     },
     {
@@ -201,7 +203,7 @@ const PermissionTable: React.FC = () => {
               Danh sách quyền hạn
             </Title>
 
-            <div className="mb-4 flex items-center justify-between gap-2 flex-wrap">
+            <div className="mb-4 flex items-center justify-between gap-2">
               <div className="flex-grow">
                 <Input
                   placeholder="Tìm kiếm quyền hạn..."
@@ -215,9 +217,21 @@ const PermissionTable: React.FC = () => {
 
               {ability.can(Action.Create, Subject.Permission) && (
                 <div className="flex-shrink-0">
-                  <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-                    Thêm mới
-                  </Button>
+                  {isSmallScreen ? (
+                    <Tooltip title="Thêm quyền hạn">
+                      <Button
+                        type="primary"
+                        shape="circle"
+                        icon={<PlusOutlined />}
+                        onClick={handleAdd}
+                        className="min-w-[40px]"
+                      />
+                    </Tooltip>
+                  ) : (
+                    <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+                      Thêm quyền hạn
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
@@ -286,7 +300,7 @@ const PermissionTable: React.FC = () => {
                     <Option value="New">Thêm module mới</Option>
                   </Select>
                 </Form.Item>
-                
+
                 {form.getFieldValue('module') === 'New' && (
                   <Form.Item
                     label="Module mới"
