@@ -199,7 +199,12 @@ const EventsPage = () => {
           <Loading message="Đang tải danh sách sự kiện..." />
         ) : (
           <>
-            <Typography.Title level={2} className="mb-4">Danh sách sự kiện</Typography.Title>
+            <Typography.Title
+              level={2}
+              className="mb-4 text-xl sm:text-2xl md:text-3xl"
+            >
+              Danh sách sự kiện
+            </Typography.Title>
 
             <div className="mb-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
               <Input
@@ -212,24 +217,24 @@ const EventsPage = () => {
               />
               {ability.can(Action.Create, Subject.Event) && (
                 <>
-                  {/* Nút đầy đủ hiển thị ở màn hình lớn */}
+                  {/* Màn hình lớn: nút có chữ */}
                   <Button
                     type="primary"
                     icon={<PlusOutlined />}
                     onClick={() => setIsAddEventModalOpen(true)}
-                    className="hidden sm:flex items-center"
+                    className="hidden sm:inline-flex"
                   >
                     Thêm sự kiện
                   </Button>
 
-                  {/* Nút rút gọn chỉ có dấu + kèm Tooltip, hiển thị ở màn hình nhỏ */}
+                  {/* Màn hình nhỏ: chỉ dấu + kèm tooltip */}
                   <Tooltip title="Thêm sự kiện">
                     <Button
                       type="primary"
                       shape="circle"
                       icon={<PlusOutlined />}
                       onClick={() => setIsAddEventModalOpen(true)}
-                      className="flex sm:hidden"
+                      className="inline-flex sm:hidden"
                     />
                   </Tooltip>
                 </>
