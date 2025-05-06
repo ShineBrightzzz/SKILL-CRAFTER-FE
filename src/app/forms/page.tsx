@@ -203,29 +203,20 @@ const FormsPage: React.FC = () => {
               Danh sách biểu mẫu
             </Typography.Title>
 
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: 12,
-              marginBottom: 16,
-            }}>
+            <div className="mb-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
               <Input
                 placeholder="Tìm kiếm biểu mẫu..."
                 prefix={<SearchOutlined />}
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                style={{ width: 'var(--input-width)' }}
                 allowClear
+                className="w-full sm:w-80"
               />
-
               {ability.can(Action.Create, Subject.Form) && (
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
                   onClick={() => setAddModalVisible(true)}
-                  style={{ minWidth: 150 }}
                 >
                   Thêm biểu mẫu
                 </Button>
