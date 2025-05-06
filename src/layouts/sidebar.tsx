@@ -1,9 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import {
-  Layout, Menu, Typography, Button
-} from 'antd';
+import React, { useState } from 'react';
+import { Layout, Menu, Typography, Button } from 'antd';
 import {
   HomeOutlined,
   CalendarOutlined,
@@ -39,18 +37,11 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
   const pathname = usePathname();
   const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (['/permissions', '/roles', '/users'].includes(pathname)) {
       setOpenKeys(['admin']);
     }
   }, [pathname]);
-
-  const getOpenKeysFromPath = (path: string) => {
-    if (['/permissions', '/roles', '/users'].includes(path)) {
-      return ['admin'];
-    }
-    return [];
-  };
 
   const onOpenChange = (keys: string[]) => {
     setOpenKeys(keys);
@@ -66,12 +57,9 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
     {
       key: 'admin',
       label: (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>Quản trị hệ thống</span>
-          {openKeys.includes('admin') ?
-            <DownOutlined style={{ fontSize: '12px' }} /> :
-            <RightOutlined style={{ fontSize: '12px' }} />
-          }
+          {openKeys.includes('admin') ? <DownOutlined /> : <RightOutlined />}
         </div>
       ),
       icon: <LockOutlined />,
@@ -84,11 +72,21 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
   ];
 
   const menuStyles = `
-    .ant-menu-dark .ant-menu-submenu-title { color: #fff !important; }
-    .ant-menu-dark .ant-menu-sub { background-color: #1f7bc4 !important; }
-    .ant-menu-dark .ant-menu-item { color: #a6d1ff !important; }
-    .ant-menu-submenu-arrow { display: none !important; }
-    .ant-menu-submenu-title:hover { background-color: rgba(255, 255, 255, 0.1) !important; }
+    .ant-menu-dark .ant-menu-submenu-title {
+      color: #fff !important;
+    }
+    .ant-menu-dark .ant-menu-sub {
+      background-color: #1f7bc4 !important;
+    }
+    .ant-menu-dark .ant-menu-item {
+      color: #a6d1ff !important;
+    }
+    .ant-menu-submenu-arrow {
+      display: none !important;
+    }
+    .ant-menu-submenu-title:hover {
+      background-color: rgba(255, 255, 255, 0.1) !important;
+    }
   `;
 
   return (
@@ -99,16 +97,17 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
         collapsible
         collapsed={collapsed}
         onCollapse={setCollapsed}
-        width={isMobile ? 200 : 250}
+        width={250}
+        collapsedWidth={isMobile ? 60 : 80}
         style={{
           background: '#1468a2',
           boxShadow: '2px 0 8px rgba(0, 0, 0, 0.15)',
-          position: isMobile ? 'absolute' : 'fixed',
+          position: 'fixed',
           height: '100vh',
-          left: collapsed && isMobile ? '-200px' : 0,
           zIndex: 1000,
           overflowY: 'auto',
-          transition: 'left 0.3s ease',
+          left: 0,
+          transition: 'all 0.3s ease',
         }}
       >
         <div
@@ -120,7 +119,6 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
             alignItems: 'center',
             justifyContent: collapsed ? 'center' : 'flex-start',
             borderRadius: 8,
-            overflow: 'hidden',
             padding: collapsed ? 0 : '0 16px',
           }}
         >
@@ -134,12 +132,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
           {!collapsed && (
             <Title
               level={4}
-              style={{
-                color: '#fff',
-                margin: '0 0 0 8px',
-                fontSize: isMobile ? 18 : 20,
-                transition: 'opacity 0.3s',
-              }}
+              style={{ color: '#fff', margin: '0 0 0 8px', fontSize: isMobile ? 18 : 20 }}
             >
               BAV Score
             </Title>
@@ -154,25 +147,17 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
           onOpenChange={onOpenChange}
           onClick={({ key }) => router.push(key)}
           items={menuItems}
-          style={{
-            fontSize: isMobile ? 14 : 16,
-            background: '#1468a2',
-            color: '#fff',
-          }}
-          subMenuOpenDelay={0.3}
-          subMenuCloseDelay={0.3}
+          style={{ fontSize: isMobile ? 14 : 16, background: '#1468a2', color: '#fff' }}
           expandIcon={null}
         />
 
-        {/* Toggle Collapse Button */}
+        {/* Toggle button dưới cùng */}
         <div
           style={{
-            margin: isMobile ? 16 : 0,
-            position: isMobile ? 'relative' : 'absolute',
-            bottom: isMobile ? 'auto' : 16,
-            left: 0,
-            width: '100%',
-            textAlign: 'center',
+            position: 'absolute',
+            bottom: 20,
+            left: collapsed ? (isMobile ? 10 : 20) : 90,
+            transition: 'left 0.3s ease',
           }}
         >
           <Button
@@ -180,16 +165,11 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
             icon={collapsed ? <RightOutlined /> : <LeftOutlined />}
             onClick={() => setCollapsed(!collapsed)}
             size={isMobile ? 'small' : 'middle'}
-          >
-            {isMobile ? (collapsed ? 'Mở rộng' : 'Thu gọn') : null}
-          </Button>
+          />
         </div>
       </Sider>
 
-      <Layout
-        style={{ marginLeft: collapsed ? (isMobile ? 60 : 80) : (isMobile ? 200 : 250) }}
-        className="site-layout"
-      >
+      <Layout style={{ marginLeft: collapsed ? (isMobile ? 60 : 80) : 250 }}>
         <Navbar collapsed={collapsed} />
         <Content
           style={{
