@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Sidebar from "@/layouts/sidebar";
-import { Card, Typography, Table, Button, Tag, Input, message } from 'antd';
+import { Card, Typography, Table, Button, Tag, Input, message, Tooltip } from 'antd';
 import { UploadOutlined, SearchOutlined } from '@ant-design/icons';
 import { useGetExistsScoreQuery, useGetSemesterQuery } from '@/services/semester.service';
 import type { ColumnsType } from 'antd/es/table';
@@ -13,6 +13,7 @@ import ErrorHandler from '@/components/ErrorHandler';
 import { toast } from 'react-toastify';
 import { Action, Subject } from '@/utils/ability';
 import withPermission from '@/hocs/withPermission';
+import { useMediaQuery } from 'react-responsive';
 
 interface Semester {
   id: string;
@@ -35,6 +36,8 @@ const ScoresPage = () => {
   const [uploadType, setUploadType] = useState('');
   const [localUploadStatus, setLocalUploadStatus] = useState<Record<string, Record<string, boolean>>>({});
   const [currentStudentId, setCurrentStudentId] = useState('');
+
+  const isSmallScreen = useMediaQuery({ maxWidth: 767 });
 
   const { data: semesterData, isLoading: isLoadingSemesters, error: semesterError } = useGetSemesterQuery();
   const { data: existScoreData, isLoading: isLoadingScores, error: scoreError, refetch: refetchScores } = useGetExistsScoreQuery({});
@@ -134,7 +137,7 @@ const ScoresPage = () => {
         club_score: 'Điểm CLB',
       }[type],
       key: type,
-      align: 'center' as 'center', // Explicitly set align to a valid AlignType
+      align: 'center' as 'center',
       render: (_: any, record: Semester) => {
         const uploadedServer = existScoreData?.data[record.id]?.[type];
         const uploadedLocal = localUploadStatus[record.id]?.[type];
@@ -152,7 +155,14 @@ const ScoresPage = () => {
                 <Button size="small" onClick={() => openEditScoreModal(record, label)}>Sửa điểm</Button>
               </>
             ) : (
-              <Button icon={<UploadOutlined />} onClick={() => openUploadModal(record, label)}>Upload</Button>
+              <Tooltip title={label}>
+                <Button
+                  icon={<UploadOutlined />}
+                  size="small"
+                  shape={useMediaQuery({ maxWidth: 767 }) ? 'circle' : undefined}
+                  onClick={() => openUploadModal(record, label)}
+                />
+              </Tooltip>
             )}
           </div>
         );
@@ -171,16 +181,16 @@ const ScoresPage = () => {
 
   return (
     <Sidebar>
-      <div style={{ padding: 24 }}>
+      <div className="p-6 max-w-screen-xl mx-auto w-full">
         {isLoadingSemesters || isLoadingScores ? (
           <Loading message="Đang tải danh sách điểm..." />
         ) : (
           <>
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-              <Typography.Title level={2}>Danh sách điểm</Typography.Title>
-            </div>
+            <Typography.Title level={2} className="mb-4 text-xl sm:text-2xl md:text-3xl">
+              Danh sách điểm
+            </Typography.Title>
             <Card>
-              <div style={{ marginBottom: 16, maxWidth: 320 }}>
+              <div className="mb-4 max-w-xs">
                 <Input
                   placeholder="Tìm kiếm học kỳ..."
                   prefix={<SearchOutlined />}

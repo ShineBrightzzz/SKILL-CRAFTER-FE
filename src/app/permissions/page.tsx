@@ -13,6 +13,8 @@ import {
   Typography,
   Card,
 } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import { ColumnsType } from 'antd/es/table';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setPermissions } from '@/store/slices/permissionSlice';
 import Sidebar from '@/layouts/sidebar';
@@ -24,13 +26,12 @@ import {
 } from '@/services/permission.service';
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
-import { ColumnsType } from 'antd/es/table';
 import Loading from '@/components/Loading';
 import ErrorHandler from '@/components/ErrorHandler';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import withPermission from '@/hocs/withPermission';
 
 const { Option } = Select;
+const { Title } = Typography;
 
 const PermissionTable: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -99,13 +100,19 @@ const PermissionTable: React.FC = () => {
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
+      const finalValues = {
+        ...values,
+        module: values.module === 'New' ? values.newModule : values.module,
+      };
+
       if (editingPermission) {
-        await updatePermission({ id: editingPermission.id, body: values }).unwrap();
+        await updatePermission({ id: editingPermission.id, body: finalValues }).unwrap();
         message.success('Cập nhật quyền hạn thành công');
       } else {
-        await createPermission({ body: values }).unwrap();
+        await createPermission({ body: finalValues }).unwrap();
         message.success('Thêm quyền hạn thành công');
       }
+
       setIsModalVisible(false);
       form.resetFields();
       refetch();
@@ -124,27 +131,38 @@ const PermissionTable: React.FC = () => {
     }
   };
 
-  const baseColumns: ColumnsType<any> = [
-    { title: 'Tên quyền hạn', dataIndex: 'name', key: 'name', sorter: (a, b) => a.name.localeCompare(b.name) },
-    { title: 'Đường dẫn API', dataIndex: 'apiPath', key: 'apiPath', ellipsis: true },
+  const modules = Array.from(new Set(permissions.map((p: any) => p.module))).filter(Boolean);
+
+  const columns: ColumnsType<any> = [
+    {
+      title: 'Tên quyền hạn',
+      dataIndex: 'name',
+      key: 'name',
+      sorter: (a, b) => a.name.localeCompare(b.name),
+    },
+    {
+      title: 'Đường dẫn API',
+      dataIndex: 'apiPath',
+      key: 'apiPath',
+      ellipsis: true,
+    },
     {
       title: 'Phương thức',
       dataIndex: 'method',
       key: 'method',
       render: (text: string) => <span style={{ color: methodColor(text) }}>{text}</span>,
-      filters: ['GET', 'POST', 'PUT', 'DELETE'].map(method => ({ text: method, value: method })),
+      filters: ['GET', 'POST', 'PUT', 'DELETE'].map(m => ({ text: m, value: m })),
       onFilter: (value, record) => record.method === value,
     },
     {
       title: 'Module',
       dataIndex: 'module',
       key: 'module',
-      filters: Array.from(new Set(permissions.map((p: any) => p.module))).filter(Boolean).map(m => ({ text: m, value: m })),
+      filters: modules.map(m => ({ text: m, value: m })),
       onFilter: (value, record) => record.module === value,
     },
   ];
 
-  const columns: ColumnsType<any> = [...baseColumns];
   if (ability.can(Action.Update, Subject.Permission) || ability.can(Action.Delete, Subject.Permission)) {
     columns.push({
       title: 'Hành động',
@@ -172,28 +190,35 @@ const PermissionTable: React.FC = () => {
 
   if (error) return <Sidebar><ErrorHandler status={(error as any).status || 500} /></Sidebar>;
 
-  const modules = Array.from(new Set(permissions.map((p: any) => p.module))).filter(Boolean);
-
   return (
     <Sidebar>
-      <div className="p-6 max-w-screen-xl mx-auto w-full">
+      <div className="p-4 max-w-screen-xl mx-auto w-full">
         {isLoading ? (
           <Loading message="Đang tải danh sách quyền hạn..." />
         ) : (
           <>
-            <Typography.Title level={2} className="mb-4">Danh sách quyền hạn</Typography.Title>
+            <Title level={2} className="mb-4 text-xl sm:text-2xl md:text-3xl">
+              Danh sách quyền hạn
+            </Title>
 
-            <div className="mb-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
-              <Input
-                placeholder="Tìm kiếm quyền hạn..."
-                prefix={<SearchOutlined />}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                allowClear
-                className="w-full sm:w-80"
-              />
+            <div className="mb-4 flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex-grow">
+                <Input
+                  placeholder="Tìm kiếm quyền hạn..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  allowClear
+                  className="w-full"
+                />
+              </div>
+
               {ability.can(Action.Create, Subject.Permission) && (
-                <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Thêm mới</Button>
+                <div className="flex-shrink-0">
+                  <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+                    Thêm mới
+                  </Button>
+                </div>
               )}
             </div>
 
@@ -202,7 +227,13 @@ const PermissionTable: React.FC = () => {
                 columns={columns}
                 dataSource={filteredPermissions}
                 rowKey="id"
-                pagination={{ pageSize, current: currentPage, total: filteredPermissions.length, onChange: setCurrentPage, onShowSizeChange: (_, size) => setPageSize(size) }}
+                pagination={{
+                  pageSize,
+                  current: currentPage,
+                  total: filteredPermissions.length,
+                  onChange: setCurrentPage,
+                  onShowSizeChange: (_, size) => setPageSize(size),
+                }}
                 onChange={handleTableChange}
               />
             </Card>
@@ -215,19 +246,55 @@ const PermissionTable: React.FC = () => {
               width={800}
             >
               <Form form={form} layout="vertical">
-                <Form.Item label="Tên Permission" name="name" rules={[{ required: true, message: 'Vui lòng nhập tên quyền hạn' }]}><Input /></Form.Item>
-                <Form.Item label="API Path" name="apiPath" rules={[{ required: true, message: 'Vui lòng nhập đường dẫn API' }]}><Input /></Form.Item>
-                <Form.Item label="Method" name="method" rules={[{ required: true, message: 'Vui lòng chọn phương thức' }]}>
-                  <Select>{['GET','POST','PUT','DELETE'].map(m => <Option key={m} value={m}>{m}</Option>)}</Select>
+                <Form.Item
+                  label="Tên Permission"
+                  name="name"
+                  rules={[{ required: true, message: 'Vui lòng nhập tên quyền hạn' }]}
+                >
+                  <Input />
                 </Form.Item>
-                <Form.Item label="Thuộc Module" name="module" rules={[{ required: true, message: 'Vui lòng chọn module' }]}>
+
+                <Form.Item
+                  label="API Path"
+                  name="apiPath"
+                  rules={[{ required: true, message: 'Vui lòng nhập đường dẫn API' }]}
+                >
+                  <Input />
+                </Form.Item>
+
+                <Form.Item
+                  label="Method"
+                  name="method"
+                  rules={[{ required: true, message: 'Vui lòng chọn phương thức' }]}
+                >
                   <Select>
-                    {modules.map(m => <Option key={m} value={m}>{m}</Option>)}
+                    {['GET', 'POST', 'PUT', 'DELETE'].map(m => (
+                      <Option key={m} value={m}>{m}</Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+
+                <Form.Item
+                  label="Thuộc Module"
+                  name="module"
+                  rules={[{ required: true, message: 'Vui lòng chọn module' }]}
+                >
+                  <Select>
+                    {modules.map(m => (
+                      <Option key={m} value={m}>{m}</Option>
+                    ))}
                     <Option value="New">Thêm module mới</Option>
                   </Select>
                 </Form.Item>
+                
                 {form.getFieldValue('module') === 'New' && (
-                  <Form.Item label="Module mới" name="newModule" rules={[{ required: true, message: 'Vui lòng nhập tên module mới' }]}><Input /></Form.Item>
+                  <Form.Item
+                    label="Module mới"
+                    name="newModule"
+                    rules={[{ required: true, message: 'Vui lòng nhập tên module mới' }]}
+                  >
+                    <Input />
+                  </Form.Item>
                 )}
               </Form>
             </Modal>
