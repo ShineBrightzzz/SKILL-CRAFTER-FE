@@ -128,6 +128,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
           height: '100vh', // Ensure it spans the full height of the viewport
           left: 0,
           zIndex: 1000, // Ensure it stays above other content
+          overflowY: 'auto', // Enable vertical scrolling
         }}
       >
         <div
