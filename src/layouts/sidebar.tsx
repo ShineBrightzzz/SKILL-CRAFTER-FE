@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Layout, Menu, Typography } from 'antd';
+import { Layout, Menu, Typography, Button } from 'antd';
 import {
   HomeOutlined,
   CalendarOutlined,
@@ -15,7 +15,8 @@ import {
   UsergroupAddOutlined,
   DownOutlined,
   RightOutlined,
-  FormOutlined
+  FormOutlined,
+  LeftOutlined
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
@@ -124,13 +125,30 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
         style={{
           background: '#1468a2',
           boxShadow: '2px 0 8px rgba(0, 0, 0, 0.15)',
-          position: 'fixed', // Make the sidebar fixed
-          height: '100vh', // Ensure it spans the full height of the viewport
-          left: 0,
-          zIndex: 1000, // Ensure it stays above other content
-          overflowY: 'auto', // Enable vertical scrolling
+          position: isMobile ? 'absolute' : 'fixed', // Change position to absolute for mobile
+          height: '100vh',
+          left: collapsed && isMobile ? '-200px' : 0, // Hide sidebar when collapsed on mobile
+          zIndex: 1000,
+          overflowY: 'auto',
+          transition: 'left 0.3s ease', // Smooth transition for showing/hiding
         }}
       >
+        <div
+          className="toggle-button"
+          style={{
+            position: 'fixed',
+            top: 16,
+            left: collapsed ? 16 : 200,
+            zIndex: 1100, // Ensure it is above the sidebar
+            transition: 'left 0.3s ease',
+          }}
+        >
+          <Button
+            type="primary"
+            icon={collapsed ? <RightOutlined /> : <LeftOutlined />}
+            onClick={() => setCollapsed(!collapsed)}
+          />
+        </div>
         <div
           className="logo"
           style={{
