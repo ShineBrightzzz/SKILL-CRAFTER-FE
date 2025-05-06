@@ -209,7 +209,7 @@ const EventsPage = () => {
               Danh sách sự kiện
             </Typography.Title>
 
-            <div className="mb-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
               <Input
                 placeholder="Tìm kiếm sự kiện..."
                 prefix={<SearchOutlined />}
