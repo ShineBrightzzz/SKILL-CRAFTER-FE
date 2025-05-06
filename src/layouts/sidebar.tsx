@@ -113,15 +113,12 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
       >
         {/* Logo */}
         <div
-          className="logo"
           style={{
             height: 64,
             margin: 16,
             display: 'flex',
             alignItems: 'center',
             justifyContent: collapsed ? 'center' : 'flex-start',
-            borderRadius: 8,
-            overflow: 'hidden',
             padding: collapsed ? 0 : '0 16px',
           }}
         >
@@ -130,17 +127,16 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
             alt="BAV Logo"
             width={collapsed ? 40 : 50}
             height={collapsed ? 40 : 50}
-            style={{ transition: 'width 0.3s, height 0.3s' }}
           />
           {!collapsed && (
-            <Title level={4} style={{ color: '#fff', margin: '0 0 0 8px', fontSize: isMobile ? 18 : 20 }}>
+            <Title level={4} style={{ color: '#fff', marginLeft: 8, fontSize: isMobile ? 18 : 20 }}>
               BAV Score
             </Title>
           )}
         </div>
 
-        {/* Menu cuộn riêng */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        {/* Cuộn menu riêng */}
+        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           <Menu
             theme="dark"
             mode="inline"
@@ -154,12 +150,13 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
               background: '#1468a2',
               color: '#fff',
             }}
-            subMenuOpenDelay={0.3}
-            subMenuCloseDelay={0.3}
             expandIcon={null}
           />
         </div>
+
+        {/* Nút collapse của Ant Design sẽ tự hiển thị ở đây */}
       </Sider>
+
 
       <Layout style={{ marginLeft: collapsed ? (isMobile ? 60 : 80) : (isMobile ? 200 : 250) }}>
         <Navbar collapsed={collapsed} />
