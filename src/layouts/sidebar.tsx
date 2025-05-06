@@ -86,8 +86,6 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
     .ant-menu-submenu-title:hover {
       background-color: rgba(255, 255, 255, 0.1) !important;
     }
-
-    /* Responsive Sidebar */
     @media (max-width: 768px) {
       .ant-layout-sider {
         position: absolute !important;
@@ -113,7 +111,8 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
           height: '100vh',
           left: 0,
           zIndex: 1000,
-          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         <div
@@ -143,39 +142,24 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
           )}
         </div>
 
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[pathname]}
-          openKeys={openKeys}
-          onOpenChange={onOpenChange}
-          onClick={({ key }) => router.push(key)}
-          items={menuItems}
-          style={{
-            fontSize: isMobile ? 14 : 16,
-            background: '#1468a2',
-            color: '#fff',
-            flex: 1,
-          }}
-          subMenuOpenDelay={0.3}
-          subMenuCloseDelay={0.3}
-          expandIcon={null}
-        />
-
-        {/* Nút thu gọn ở dưới cùng */}
-        <div
-          style={{
-            position: 'sticky',
-            bottom: 0,
-            background: '#1468a2',
-            padding: 12,
-            textAlign: 'center',
-            cursor: 'pointer',
-            borderTop: '1px solid rgba(255,255,255,0.15)',
-          }}
-          onClick={() => setCollapsed(!collapsed)}
-        >
-          <Typography.Text style={{ color: '#fff' }}>{collapsed ? '→' : '←'} Thu gọn</Typography.Text>
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          <Menu
+            theme="dark"
+            mode="inline"
+            selectedKeys={[pathname]}
+            openKeys={openKeys}
+            onOpenChange={onOpenChange}
+            onClick={({ key }) => router.push(key)}
+            items={menuItems}
+            style={{
+              fontSize: isMobile ? 14 : 16,
+              background: '#1468a2',
+              color: '#fff',
+            }}
+            subMenuOpenDelay={0.3}
+            subMenuCloseDelay={0.3}
+            expandIcon={null}
+          />
         </div>
       </Sider>
 
