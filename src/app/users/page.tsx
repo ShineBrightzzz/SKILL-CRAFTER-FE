@@ -1,19 +1,36 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Table, Card, Input, Typography, Tag, Button, Modal, Form, Select, Popconfirm, message } from 'antd';
+import {
+  Table,
+  Card,
+  Input,
+  Typography,
+  Tag,
+  Button,
+  Modal,
+  Form,
+  Select,
+  Popconfirm,
+  message,
+} from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import Sidebar from '@/layouts/sidebar';
-import { 
-  useGetAllUserQuery, 
-  useUpdateUserMutation, 
+import {
+  useGetAllUserQuery,
+  useUpdateUserMutation,
   useDeleteUserMutation,
-  useCreateUserMutation 
+  useCreateUserMutation,
 } from '@/services/user.service';
 import { useGetRoleQuery } from '@/services/role.service';
 import Loading from '@/components/Loading';
 import ErrorHandler from '@/components/ErrorHandler';
-import { SearchOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import {
+  SearchOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+} from '@ant-design/icons';
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
 import withPermission from '@/hocs/withPermission';
@@ -121,10 +138,7 @@ const UsersManagement: React.FC = () => {
         </Tag>
       ),
     },
-  ];
-
-  if (ability.can(Action.Update, Subject.Account) || ability.can(Action.Delete, Subject.Account)) {
-    columns.push({
+    {
       title: 'Hành động',
       key: 'actions',
       align: 'center',
@@ -145,8 +159,8 @@ const UsersManagement: React.FC = () => {
           )}
         </div>
       ),
-    });
-  }
+    },
+  ];
 
   if (error) {
     const status = (error as any)?.status || 500;
@@ -159,113 +173,109 @@ const UsersManagement: React.FC = () => {
 
   return (
     <Sidebar>
-      <div className="flex flex-col min-h-screen bg-[#f8f9fa] px-4 py-6 sm:px-8 lg:px-12">
-        <div className="w-full max-w-7xl mx-auto">
-          <Typography.Title level={2} className="text-center sm:text-left mb-6">Danh sách Người dùng</Typography.Title>
+      <div className="p-6 max-w-screen-xl mx-auto w-full">
+        <Typography.Title level={2} className="text-center sm:text-left mb-6">
+          Danh sách Người dùng
+        </Typography.Title>
 
-          {isLoading || isLoadingRoles ? (
-            <Loading message="Đang tải danh sách người dùng..." />
-          ) : (
-            <>
-              <Card className="border border-gray-200 rounded-none">
-                <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-                  <Input
-                    placeholder="Tìm kiếm người dùng..."
-                    prefix={<SearchOutlined />}
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    className="w-full sm:w-72"
-                    allowClear
-                  />
-                  {ability.can(Action.Create, Subject.Account) && (
-                    <Button 
-                      type="primary" 
-                      onClick={openCreateModal}
-                      icon={<PlusOutlined />}
-                    >
-                      Thêm tài khoản
-                    </Button>
-                  )}
-                </div>
-                <Table
-                  dataSource={filteredUsers}
-                  columns={columns}
-                  rowKey="username"
-                  pagination={{ pageSize: 10 }}
-                  scroll={{ x: 'max-content' }}
-                  className="w-full"
+        {isLoading || isLoadingRoles ? (
+          <Loading message="Đang tải danh sách người dùng..." />
+        ) : (
+          <>
+            <Card className="border border-gray-200 rounded-none">
+              <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <Input
+                  placeholder="Tìm kiếm người dùng..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  className="w-full sm:w-72"
+                  allowClear
                 />
-              </Card>
+                {ability.can(Action.Create, Subject.Account) && (
+                  <Button type="primary" onClick={openCreateModal} icon={<PlusOutlined />}>
+                    Thêm tài khoản
+                  </Button>
+                )}
+              </div>
+              <Table
+                dataSource={filteredUsers}
+                columns={columns}
+                rowKey="username"
+                pagination={{ pageSize: 10 }}
+                scroll={{ x: 'max-content' }}
+                className="w-full"
+              />
+            </Card>
 
-              <Modal
-                title="Sửa thông tin người dùng"
-                open={modalVisible}
-                onCancel={() => setModalVisible(false)}
-                onOk={handleSubmit}
-                width={600}
-              >
-                <Form layout="vertical" form={form}>
-                  <Form.Item name="username" label="Username" rules={[{ required: true }]}> 
-                    <Input disabled />
-                  </Form.Item>
-                  <Form.Item name="studentId" label="Student ID">
-                    <Input />
-                  </Form.Item>
-                  <Form.Item name="roleId" label="Role" rules={[{ required: true }]}> 
-                    <Select>
-                      {roles.map((role: any) => (
-                        <Select.Option key={role.id} value={role.id}>
-                          {role.name}
-                        </Select.Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Form>
-              </Modal>
+            <Modal
+              title="Sửa thông tin người dùng"
+              open={modalVisible}
+              onCancel={() => setModalVisible(false)}
+              onOk={handleSubmit}
+              width={600}
+            >
+              <Form layout="vertical" form={form}>
+                <Form.Item name="username" label="Username" rules={[{ required: true }]}> 
+                  <Input disabled />
+                </Form.Item>
+                <Form.Item name="studentId" label="Student ID">
+                  <Input />
+                </Form.Item>
+                <Form.Item name="roleId" label="Role" rules={[{ required: true }]}> 
+                  <Select>
+                    {roles.map((role: any) => (
+                      <Select.Option key={role.id} value={role.id}>
+                        {role.name}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Form>
+            </Modal>
 
-              <Modal
-                title="Tạo tài khoản mới"
-                open={createModalVisible}
-                onCancel={() => setCreateModalVisible(false)}
-                onOk={handleCreateUser}
-                width={600}
-              >
-                <Form layout="vertical" form={createForm}>
-                  <Form.Item 
-                    name="username" 
-                    label="Username" 
-                    rules={[{ required: true, message: 'Vui lòng nhập username' }]}
-                  >
-                    <Input />
-                  </Form.Item>
-                  <Form.Item 
-                    name="password" 
-                    label="Password" 
-                    rules={[{ required: true, message: 'Vui lòng nhập mật khẩu' }]}
-                  >
-                    <Input.Password />
-                  </Form.Item>
-                  <Form.Item name="studentId" label="Student ID">
-                    <Input />
-                  </Form.Item>
-                  <Form.Item 
-                    name="roleId" 
-                    label="Role" 
-                    rules={[{ required: true, message: 'Vui lòng chọn vai trò' }]}
-                  >
-                    <Select>
-                      {roles.map((role: any) => (
-                        <Select.Option key={role.id} value={role.id}>
-                          {role.name}
-                        </Select.Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Form>
-              </Modal>
-            </>
-          )}
-        </div>
+            <Modal
+              title="Tạo tài khoản mới"
+              open={createModalVisible}
+              onCancel={() => setCreateModalVisible(false)}
+              onOk={handleCreateUser}
+              width={600}
+            >
+              <Form layout="vertical" form={createForm}>
+                <Form.Item 
+                  name="username" 
+                  label="Username" 
+                  rules={[{ required: true, message: 'Vui lòng nhập username' }]}
+                >
+                  <Input />
+                </Form.Item>
+                <Form.Item 
+                  name="password" 
+                  label="Password" 
+                  rules={[{ required: true, message: 'Vui lòng nhập mật khẩu' }]}
+                >
+                  <Input.Password />
+                </Form.Item>
+                <Form.Item name="studentId" label="Student ID">
+                  <Input />
+                </Form.Item>
+                <Form.Item 
+                  name="roleId" 
+                  label="Role" 
+                  rules={[{ required: true, message: 'Vui lòng chọn vai trò' }]}
+                >
+                  <Select>
+                    {roles.map((role: any) => (
+                      <Select.Option key={role.id} value={role.id}>
+                        {role.name}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Form>
+            </Modal>
+          </>
+        )}
       </div>
     </Sidebar>
   );

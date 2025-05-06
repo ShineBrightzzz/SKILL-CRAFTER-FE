@@ -173,19 +173,17 @@ const RoleManagement: React.FC = () => {
     </Collapse>
   );
 
-  const baseColumns: ColumnsType<any> = [
-    { title: 'Tên vai trò', dataIndex: 'name' },
+  const columns: ColumnsType<any> = [
+    {
+      title: 'Tên vai trò',
+      dataIndex: 'name',
+    },
     {
       title: 'Trạng thái',
       dataIndex: 'active',
       render: (active: boolean) => <Tag color={active ? 'green' : 'red'}>{active ? 'ACTIVE' : 'INACTIVE'}</Tag>,
     },
-  ];
-
-  const columns: ColumnsType<any> = [...baseColumns];
-
-  if (ability.can(Action.Update, Subject.Role) || ability.can(Action.Delete, Subject.Role)) {
-    columns.push({
+    {
       title: 'Hành động',
       key: 'actions',
       align: 'center',
@@ -206,8 +204,8 @@ const RoleManagement: React.FC = () => {
           )}
         </div>
       ),
-    });
-  }
+    },
+  ];
 
   if (rolesError || permissionsError) {
     const status = (rolesError as any)?.status || (permissionsError as any)?.status || 500;
@@ -216,7 +214,7 @@ const RoleManagement: React.FC = () => {
 
   return (
     <Sidebar>
-      <div className="p-6 max-w-screen-xl mx-auto w-full">
+      <div className="p-4 max-w-screen-xl mx-auto w-full">
         {isLoadingRoles || isLoadingPermissions ? (
           <Loading message="Đang tải dữ liệu vai trò và quyền hạn..." />
         ) : (
