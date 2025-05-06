@@ -183,11 +183,14 @@ const UsersManagement: React.FC = () => {
           <Loading message="Đang tải danh sách người dùng..." />
         ) : (
           <>
-            <Title level={2} className="mb-4 text-xl sm:text-2xl md:text-3xl">
-              Danh sách Người dùng
-            </Title>
+            <Typography.Title
+              level={2}
+              className="mb-4 text-xl sm:text-2xl md:text-3xl"
+            >
+              Danh sách sự kiện
+            </Typography.Title>
 
-            <div className="mb-4 flex items-center justify-between gap-2 flex-wrap">
+            <div className="mb-4 flex items-center justify-between gap-2 ">
               <div className="flex-grow">
                 <Input
                   placeholder="Tìm kiếm người dùng..."
