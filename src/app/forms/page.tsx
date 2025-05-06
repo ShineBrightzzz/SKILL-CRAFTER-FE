@@ -83,9 +83,19 @@ const FormsPage: React.FC = () => {
   };
 
   const handleAddForm = async (formData: any) => {
-    console.log('Form Data:', formData); // Debugging
     try {
-      await createForm(formData).unwrap();
+      const body = {
+        title: formData.title,
+        semesterId: formData.semesterId,
+        endTime: formData.endTime,
+        startTime: formData.startTime,
+        questions: formData.questions.map((question: any) => ({
+          id: question.id,
+          question: question.question,
+          max: question.max,
+        })),
+      };
+      await createForm({ body }).unwrap();
       toast.success('Thêm biểu mẫu thành công');
       setIsAddFormModalOpen(false);
       refetch();
