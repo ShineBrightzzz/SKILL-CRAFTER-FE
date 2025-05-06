@@ -1,25 +1,40 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Sidebar from "@/layouts/sidebar";
-import { Card, Typography, Table, Button, Tag, Input, Modal, Form, message, Popconfirm, DatePicker, Tooltip } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, FileTextOutlined } from '@ant-design/icons';
+import React, { useState } from 'react';
+import Sidebar from '@/layouts/sidebar';
+import {
+  Card,
+  Typography,
+  Table,
+  Button,
+  Input,
+  Tag,
+  Popconfirm,
+  Tooltip,
+} from 'antd';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  SearchOutlined,
+} from '@ant-design/icons';
+import { ColumnsType } from 'antd/es/table';
 import { useGetCurrentFormQuery, useCreateFormMutation } from '@/services/form.service';
-import type { ColumnsType } from 'antd/es/table';
+// , useUpdateFormMutation, useDeleteFormMutation
+import AddFormModal from '@/components/AddFormModal';
 import Loading from '@/components/Loading';
 import ErrorHandler from '@/components/ErrorHandler';
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
 import withPermission from '@/hocs/withPermission';
-import moment from 'moment';
-import dayjs from 'dayjs';
 import { useMediaQuery } from 'react-responsive';
 import { toast } from 'react-toastify';
-import AddFormModal from '@/components/AddFormModal';
+import moment from 'moment';
 
 interface Form {
-  semesterId: string;
+  formId?: string;
   title: string;
+  semesterId: string;
   endTime: string;
   semester: {
     id: string;
@@ -31,37 +46,26 @@ interface Form {
 }
 
 const FormsPage: React.FC = () => {
-  const isSmallScreen = useMediaQuery({ maxWidth: 767 });
-
   const [searchText, setSearchText] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [sortField, setSortField] = useState<string | null>(null);
-  const [sortOrder, setSortOrder] = useState<'ascend' | 'descend' | null>(null);
-
   const [isAddFormModalOpen, setIsAddFormModalOpen] = useState(false);
   const [isEditFormModalOpen, setIsEditFormModalOpen] = useState(false);
   const [selectedForm, setSelectedForm] = useState<Form | null>(null);
 
+  const ability = useAbility();
+  const isSmallScreen = useMediaQuery({ maxWidth: 767 });
+
   const { data: formResponse, isLoading, error, refetch } = useGetCurrentFormQuery();
   const [createForm] = useCreateFormMutation();
-  const ability = useAbility();
+  // const [updateForm] = useUpdateFormMutation();
+  // const [deleteForm] = useDeleteFormMutation();
 
   const forms = formResponse?.data?.data ? [formResponse.data.data] : [];
 
-  const filteredForms = forms.filter((form: Form) => {
-    if (!searchText) return true;
-    return form.title.toLowerCase().includes(searchText.toLowerCase());
-  });
+  const filteredForms = forms.filter((form: Form) =>
+    form.title.toLowerCase().includes(searchText.toLowerCase())
+  );
 
   const isExpired = (endTime: string) => new Date() > new Date(endTime);
-
-  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
-    setCurrentPage(pagination.current);
-    setPageSize(pagination.pageSize);
-    setSortField(sorter.field || null);
-    setSortOrder(sorter.order || null);
-  };
 
   const handleEdit = (form: Form) => {
     setSelectedForm(form);
@@ -69,12 +73,13 @@ const FormsPage: React.FC = () => {
   };
 
   const handleDelete = async (semesterId: string) => {
-    try {
-      message.success('Xóa biểu mẫu thành công');
-      refetch();
-    } catch (error: any) {
-      message.error(error?.data?.message || 'Có lỗi khi xóa biểu mẫu');
-    }
+    // try {
+    //   await deleteForm(semesterId).unwrap();
+    //   toast.success('Xóa biểu mẫu thành công');
+    //   refetch();
+    // } catch (error: any) {
+    //   toast.error(error?.data?.message || 'Xóa biểu mẫu thất bại');
+    // }
   };
 
   const handleAddForm = async (formData: any) => {
@@ -89,14 +94,15 @@ const FormsPage: React.FC = () => {
   };
 
   const handleEditForm = async (formData: any) => {
-    if (!selectedForm) return;
-    try {
-      toast.success('Cập nhật biểu mẫu thành công');
-      setIsEditFormModalOpen(false);
-      refetch();
-    } catch (error) {
-      toast.error('Cập nhật biểu mẫu thất bại');
-    }
+    // if (!selectedForm) return;
+    // try {
+    //   await updateForm({ ...formData, formId: selectedForm.formId }).unwrap();
+    //   toast.success('Cập nhật biểu mẫu thành công');
+    //   setIsEditFormModalOpen(false);
+    //   refetch();
+    // } catch (error) {
+    //   toast.error('Cập nhật biểu mẫu thất bại');
+    // }
   };
 
   const columns: ColumnsType<Form> = [
@@ -107,14 +113,12 @@ const FormsPage: React.FC = () => {
     },
     {
       title: 'Học kỳ',
-      render: (_, record) => `Kì ${record.semester.number} năm ${record.semester.year}`,
+      render: (_, record) => `Kỳ ${record.semester.number} năm ${record.semester.year}`,
     },
     {
       title: 'Thời gian bắt đầu',
       render: (_, record) =>
-        record.semester.startTime
-          ? moment(record.semester.startTime).format('DD/MM/YYYY HH:mm')
-          : 'Chưa xác định',
+        moment(record.semester.startTime).format('DD/MM/YYYY HH:mm'),
       sorter: (a, b) =>
         new Date(a.semester.startTime).getTime() - new Date(b.semester.startTime).getTime(),
     },
@@ -122,7 +126,7 @@ const FormsPage: React.FC = () => {
       title: 'Thời hạn nộp',
       dataIndex: 'endTime',
       render: (endTime) =>
-        endTime ? moment(endTime).format('DD/MM/YYYY HH:mm') : 'Chưa xác định',
+        moment(endTime).format('DD/MM/YYYY HH:mm'),
       sorter: (a, b) =>
         new Date(a.endTime).getTime() - new Date(b.endTime).getTime(),
     },
@@ -182,38 +186,32 @@ const FormsPage: React.FC = () => {
             </Typography.Title>
 
             <div className="mb-4 flex items-center justify-between gap-2">
-              <div className="flex-grow">
-                <Input
-                  placeholder="Tìm kiếm biểu mẫu..."
-                  prefix={<SearchOutlined />}
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  allowClear
-                  className="w-full"
-                />
-              </div>
+              <Input
+                placeholder="Tìm kiếm biểu mẫu..."
+                prefix={<SearchOutlined />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                allowClear
+              />
               {ability.can(Action.Create, Subject.Form) && (
-                <div className="flex-shrink-0">
-                  {isSmallScreen ? (
-                    <Tooltip title="Thêm biểu mẫu">
-                      <Button
-                        type="primary"
-                        shape="circle"
-                        icon={<PlusOutlined />}
-                        onClick={() => setIsAddFormModalOpen(true)}
-                        className="min-w-[40px]"
-                      />
-                    </Tooltip>
-                  ) : (
+                isSmallScreen ? (
+                  <Tooltip title="Thêm biểu mẫu">
                     <Button
                       type="primary"
+                      shape="circle"
                       icon={<PlusOutlined />}
                       onClick={() => setIsAddFormModalOpen(true)}
-                    >
-                      Thêm biểu mẫu
-                    </Button>
-                  )}
-                </div>
+                    />
+                  </Tooltip>
+                ) : (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => setIsAddFormModalOpen(true)}
+                  >
+                    Thêm biểu mẫu
+                  </Button>
+                )
               )}
             </div>
 
@@ -222,14 +220,7 @@ const FormsPage: React.FC = () => {
                 dataSource={filteredForms}
                 columns={columns}
                 rowKey="semesterId"
-                pagination={{
-                  pageSize,
-                  current: currentPage,
-                  total: filteredForms?.length,
-                  onChange: setCurrentPage,
-                  onShowSizeChange: (_, size) => setPageSize(size),
-                }}
-                onChange={handleTableChange}
+                pagination={false}
                 locale={{ emptyText: 'Không có biểu mẫu nào' }}
               />
             </Card>
@@ -247,7 +238,10 @@ const FormsPage: React.FC = () => {
             isOpen={isEditFormModalOpen}
             onClose={() => setIsEditFormModalOpen(false)}
             onAddForm={handleEditForm}
-            initialValues={selectedForm}
+            initialValues={{
+              ...selectedForm,
+              semesterId: selectedForm.semester.id, // ✅ Bắt buộc
+            }}
             isEditing
           />
         )}
