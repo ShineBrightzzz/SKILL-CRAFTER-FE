@@ -198,14 +198,9 @@ const EventsPage = () => {
           <Loading message="Đang tải danh sách sự kiện..." />
         ) : (
           <>
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-              <Typography.Title level={2} className="text-center md:text-left">Danh sách sự kiện</Typography.Title>
-              {ability.can(Action.Create, Subject.Event) && (
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsAddEventModalOpen(true)}>Thêm sự kiện</Button>
-              )}
-            </div>
+            <Typography.Title level={2} className="mb-4">Danh sách sự kiện</Typography.Title>
 
-            <div className="mb-4 flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="mb-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
               <Input
                 placeholder="Tìm kiếm sự kiện..."
                 prefix={<SearchOutlined />}
@@ -214,6 +209,11 @@ const EventsPage = () => {
                 allowClear
                 className="w-full sm:w-80"
               />
+              {ability.can(Action.Create, Subject.Event) && (
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsAddEventModalOpen(true)}>
+                  Thêm sự kiện
+                </Button>
+              )}
             </div>
 
             <Card className="overflow-auto">
