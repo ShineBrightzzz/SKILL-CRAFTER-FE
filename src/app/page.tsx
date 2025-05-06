@@ -17,6 +17,7 @@ import {
   BulbOutlined
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import { useGetTopRegisteredEventsQuery } from '@/services/events.service';
 
 const Column = dynamic(() => import('@ant-design/plots').then(mod => mod.Column), { ssr: false });
 const Pie = dynamic(() => import('@ant-design/plots').then(mod => mod.Pie), { ssr: false });
@@ -47,13 +48,14 @@ export default function Home() {
     return () => clearTimeout(animateTimeout);
   }, []);
 
-  const topEvents: EventItem[] = [
-    { name: 'Chào đón tân sinh viên 2024', organizer: 'Đoàn Thanh niên', month: 'Tháng 9', registrations: 300, icon: '🎉' },
-    { name: 'Hội thảo Kỹ năng mềm', organizer: 'CLB Kỹ năng', month: 'Tháng 10', registrations: 250, icon: '💼' },
-    { name: 'Giải bóng đá sinh viên', organizer: 'CLB Thể thao', month: 'Tháng 11', registrations: 200, icon: '⚽' },
-    { name: 'Cuộc thi Lập trình', organizer: 'Khoa CNTT', month: 'Tháng 3', registrations: 180, icon: '💻' },
-    { name: 'Ngày hội việc làm', organizer: 'Trung tâm QHDN', month: 'Tháng 5', registrations: 150, icon: '🏢' },
-  ];
+  const { data: topEventsData, isLoading: isLoadingTopEvents } = useGetTopRegisteredEventsQuery();
+
+  const topEvents: EventItem[] = topEventsData?.data?.map((event: any) => ({
+    name: event.title,
+    organizer: event.organizingUnit,
+    month: new Date(event.startTime).toLocaleString('vi-VN', { month: 'long' }),
+    registrations: event.totalRegisteredStudents,
+  })) || [];
 
   const scoreDistribution: ScoreItem[] = [
     { range: '0-20', count: 50, type: 'Điểm rèn luyện' },
