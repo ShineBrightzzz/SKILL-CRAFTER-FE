@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Layout, Menu, Typography, Button } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Layout, Menu, Typography } from 'antd';
 import {
   HomeOutlined,
   CalendarOutlined,
@@ -15,8 +15,7 @@ import {
   UsergroupAddOutlined,
   DownOutlined,
   RightOutlined,
-  FormOutlined,
-  LeftOutlined
+  FormOutlined
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
@@ -37,7 +36,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
   const pathname = usePathname();
   const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (['/permissions', '/roles', '/users'].includes(pathname)) {
       setOpenKeys(['admin']);
     }
@@ -57,9 +56,9 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
     {
       key: 'admin',
       label: (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <span>Quản trị hệ thống</span>
-          {openKeys.includes('admin') ? <DownOutlined /> : <RightOutlined />}
+          {openKeys.includes('admin') ? <DownOutlined style={{ fontSize: 12 }} /> : <RightOutlined style={{ fontSize: 12 }} />}
         </div>
       ),
       icon: <LockOutlined />,
@@ -87,6 +86,15 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
     .ant-menu-submenu-title:hover {
       background-color: rgba(255, 255, 255, 0.1) !important;
     }
+
+    /* Responsive Sidebar */
+    @media (max-width: 768px) {
+      .ant-layout-sider {
+        position: absolute !important;
+        max-height: 100vh !important;
+        overflow-y: auto !important;
+      }
+    }
   `;
 
   return (
@@ -97,17 +105,15 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
         collapsible
         collapsed={collapsed}
         onCollapse={setCollapsed}
-        width={250}
-        collapsedWidth={isMobile ? 60 : 80}
+        width={isMobile ? 200 : 250}
         style={{
           background: '#1468a2',
           boxShadow: '2px 0 8px rgba(0, 0, 0, 0.15)',
           position: 'fixed',
           height: '100vh',
+          left: 0,
           zIndex: 1000,
           overflowY: 'auto',
-          left: 0,
-          transition: 'all 0.3s ease',
         }}
       >
         <div
@@ -119,6 +125,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
             alignItems: 'center',
             justifyContent: collapsed ? 'center' : 'flex-start',
             borderRadius: 8,
+            overflow: 'hidden',
             padding: collapsed ? 0 : '0 16px',
           }}
         >
@@ -130,10 +137,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
             style={{ transition: 'width 0.3s, height 0.3s' }}
           />
           {!collapsed && (
-            <Title
-              level={4}
-              style={{ color: '#fff', margin: '0 0 0 8px', fontSize: isMobile ? 18 : 20 }}
-            >
+            <Title level={4} style={{ color: '#fff', margin: '0 0 0 8px', fontSize: isMobile ? 18 : 20 }}>
               BAV Score
             </Title>
           )}
@@ -147,29 +151,35 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
           onOpenChange={onOpenChange}
           onClick={({ key }) => router.push(key)}
           items={menuItems}
-          style={{ fontSize: isMobile ? 14 : 16, background: '#1468a2', color: '#fff' }}
+          style={{
+            fontSize: isMobile ? 14 : 16,
+            background: '#1468a2',
+            color: '#fff',
+            flex: 1,
+          }}
+          subMenuOpenDelay={0.3}
+          subMenuCloseDelay={0.3}
           expandIcon={null}
         />
 
-        {/* Toggle button dưới cùng */}
+        {/* Nút thu gọn ở dưới cùng */}
         <div
           style={{
-            position: 'absolute',
-            bottom: 20,
-            left: collapsed ? (isMobile ? 10 : 20) : 90,
-            transition: 'left 0.3s ease',
+            position: 'sticky',
+            bottom: 0,
+            background: '#1468a2',
+            padding: 12,
+            textAlign: 'center',
+            cursor: 'pointer',
+            borderTop: '1px solid rgba(255,255,255,0.15)',
           }}
+          onClick={() => setCollapsed(!collapsed)}
         >
-          <Button
-            type="primary"
-            icon={collapsed ? <RightOutlined /> : <LeftOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-            size={isMobile ? 'small' : 'middle'}
-          />
+          <Typography.Text style={{ color: '#fff' }}>{collapsed ? '→' : '←'} Thu gọn</Typography.Text>
         </div>
       </Sider>
 
-      <Layout style={{ marginLeft: collapsed ? (isMobile ? 60 : 80) : 250 }}>
+      <Layout style={{ marginLeft: collapsed ? (isMobile ? 60 : 80) : (isMobile ? 200 : 250) }}>
         <Navbar collapsed={collapsed} />
         <Content
           style={{
