@@ -44,7 +44,19 @@ const EditScoreModal: React.FC<EditScoreModalProps> = ({
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      await onSubmit(values); // Use the onSubmit prop for external handling
+
+      // Filter out undefined values
+      const scoreData = Object.fromEntries(
+        Object.entries(values).filter(([_, value]) => value !== undefined)
+      );
+
+      await updateScore({
+        studentId,
+        semesterId,
+        body: scoreData
+      }).unwrap();
+
+      message.success('Cập nhật điểm thành công');
       onClose();
     } catch (error) {
       console.error('Failed to update scores:', error);

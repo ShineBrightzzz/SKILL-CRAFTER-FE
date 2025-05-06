@@ -31,6 +31,7 @@ import ErrorHandler from '@/components/ErrorHandler';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import withPermission from '@/hocs/withPermission';
 import { useMediaQuery } from 'react-responsive';
+import { toast } from 'react-toastify';
 
 const { Option } = Select;
 const { Title } = Typography;
@@ -88,15 +89,16 @@ const PermissionTable: React.FC = () => {
     setEditingPermission(null);
     form.resetFields();
     setIsModalVisible(true);
+    toast.info('Mở form thêm quyền hạn');
   };
 
   const handleDelete = async (id: string) => {
     try {
       await deletePermission({ id }).unwrap();
-      message.success('Xóa quyền hạn thành công');
+      toast.success('Xóa quyền hạn thành công');
       refetch();
     } catch (error: any) {
-      message.error(error?.data?.message || 'Lỗi khi xóa quyền hạn');
+      toast.error(error?.data?.message || 'Lỗi khi xóa quyền hạn');
     }
   };
 
