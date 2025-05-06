@@ -10,7 +10,8 @@ import {
   Button,
   Input,
   message,
-  Popconfirm
+  Popconfirm,
+  Tooltip
 } from 'antd';
 import { UploadOutlined, PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import UploadModal from '@/components/UploadModal';
@@ -210,9 +211,28 @@ const EventsPage = () => {
                 className="w-full sm:w-80"
               />
               {ability.can(Action.Create, Subject.Event) && (
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsAddEventModalOpen(true)}>
-                  Thêm sự kiện
-                </Button>
+                <>
+                  {/* Nút đầy đủ hiển thị ở màn hình lớn */}
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => setIsAddEventModalOpen(true)}
+                    className="hidden sm:flex items-center"
+                  >
+                    Thêm sự kiện
+                  </Button>
+
+                  {/* Nút rút gọn chỉ có dấu + kèm Tooltip, hiển thị ở màn hình nhỏ */}
+                  <Tooltip title="Thêm sự kiện">
+                    <Button
+                      type="primary"
+                      shape="circle"
+                      icon={<PlusOutlined />}
+                      onClick={() => setIsAddEventModalOpen(true)}
+                      className="flex sm:hidden"
+                    />
+                  </Tooltip>
+                </>
               )}
             </div>
 
