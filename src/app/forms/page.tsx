@@ -95,6 +95,9 @@ const FormsPage: React.FC = () => {
           max: question.max,
         })),
       };
+
+
+      console.log('body', body);
       await createForm({ body }).unwrap();
       toast.success('Thêm biểu mẫu thành công');
       setIsAddFormModalOpen(false);
