@@ -43,23 +43,19 @@ interface Semester {
 }
 
 const SemestersPage: React.FC = () => {
-  // Table states
   const [searchText, setSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'ascend' | 'descend' | null>(null);
 
-  // Modal states
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
 
-  // Form states
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
 
-  // API hooks
   const { data: semesterData, isLoading, error, refetch } = useGetSemesterQuery();
   const [createSemester] = useCreateSemesterMutation();
   const [updateSemester] = useUpdateSemesterMutation();
@@ -209,23 +205,22 @@ const SemestersPage: React.FC = () => {
 
   return (
     <Sidebar>
-      <div style={{ padding: 24 }}>
+      <div className="p-6 max-w-screen-xl mx-auto w-full">
         {isLoading ? (
           <Loading message="Đang tải danh sách học kỳ..." />
         ) : (
           <>
-            <div
-              style={{
-                marginBottom: 16,
-                display: 'flex',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: 16,
-              }}
-            >
-              <Typography.Title level={2} style={{ flex: 1, minWidth: 200 }}>
-                Danh sách học kỳ
-              </Typography.Title>
+            <Typography.Title level={2} className="mb-4">Danh sách học kỳ</Typography.Title>
+
+            <div className="mb-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
+              <Input
+                placeholder="Tìm kiếm học kỳ..."
+                prefix={<SearchOutlined />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                allowClear
+                className="w-full sm:w-80"
+              />
               {ability.can(Action.Create, Subject.Semester) && (
                 <Button
                   type="primary"
@@ -238,15 +233,6 @@ const SemestersPage: React.FC = () => {
             </div>
 
             <Card className="shadow-md">
-              <div style={{ marginBottom: 16, maxWidth: 320 }}>
-                <Input
-                  placeholder="Tìm kiếm học kỳ..."
-                  prefix={<SearchOutlined />}
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  allowClear
-                />
-              </div>
               <Table
                 dataSource={filteredSemesters}
                 columns={columns}
@@ -262,7 +248,6 @@ const SemestersPage: React.FC = () => {
               />
             </Card>
 
-            {/* Add Modal */}
             <AddSemesterModal
               isOpen={addModalVisible}
               onCancel={() => setAddModalVisible(false)}
@@ -272,7 +257,6 @@ const SemestersPage: React.FC = () => {
               onAddSemester={handleAddSubmit}
             />
 
-            {/* Edit Modal */}
             <EditSemesterModal
               visible={editModalVisible}
               onCancel={() => setEditModalVisible(false)}
