@@ -11,6 +11,7 @@ import {
   message,
   Popconfirm,
   Form,
+  Tooltip,
 } from 'antd';
 import {
   PlusOutlined,
@@ -33,6 +34,7 @@ import withPermission from '@/hocs/withPermission';
 import AddSemesterModal from '@/components/AddSemesterModal';
 import EditSemesterModal from '@/components/EditSemesterModal';
 import dayjs from 'dayjs';
+import { useMediaQuery } from 'react-responsive';
 
 interface Semester {
   id: string;
@@ -62,6 +64,7 @@ const SemestersPage: React.FC = () => {
   const [deleteSemester] = useDeleteSemesterMutation();
 
   const ability = useAbility();
+  const isSmallScreen = useMediaQuery({ maxWidth: 767 });
 
   const filteredSemesters = semesterData?.data
     ?.filter((semester: Semester) => {
@@ -210,25 +213,43 @@ const SemestersPage: React.FC = () => {
           <Loading message="Đang tải danh sách học kỳ..." />
         ) : (
           <>
-            <Typography.Title level={2} className="mb-4">Danh sách học kỳ</Typography.Title>
+            <Typography.Title level={2} className="mb-4 text-xl sm:text-2xl md:text-3xl">
+              Danh sách học kỳ
+            </Typography.Title>
 
-            <div className="mb-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
-              <Input
-                placeholder="Tìm kiếm học kỳ..."
-                prefix={<SearchOutlined />}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                allowClear
-                className="w-full sm:w-80"
-              />
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <div className="flex-grow">
+                <Input
+                  placeholder="Tìm kiếm học kỳ..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  allowClear
+                  className="w-full"
+                />
+              </div>
               {ability.can(Action.Create, Subject.Semester) && (
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => setAddModalVisible(true)}
-                >
-                  Thêm học kỳ
-                </Button>
+                <div className="flex-shrink-0">
+                  {isSmallScreen ? (
+                    <Tooltip title="Thêm học kỳ">
+                      <Button
+                        type="primary"
+                        shape="circle"
+                        icon={<PlusOutlined />}
+                        onClick={() => setAddModalVisible(true)}
+                        className="min-w-[40px]"
+                      />
+                    </Tooltip>
+                  ) : (
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={() => setAddModalVisible(true)}
+                    >
+                      Thêm học kỳ
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
 

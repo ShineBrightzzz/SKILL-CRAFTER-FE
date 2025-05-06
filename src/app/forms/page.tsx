@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Sidebar from "@/layouts/sidebar";
-import { Card, Typography, Table, Button, Tag, Input, Modal, Form, message, Popconfirm, DatePicker } from 'antd';
+import { Card, Typography, Table, Button, Tag, Input, Modal, Form, message, Popconfirm, DatePicker, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useGetCurrentFormQuery, useCreateFormMutation } from '@/services/form.service';
 import type { ColumnsType } from 'antd/es/table';
@@ -13,6 +13,7 @@ import { useAbility } from '@/hooks/useAbility';
 import withPermission from '@/hocs/withPermission';
 import moment from 'moment';
 import dayjs from 'dayjs';
+import { useMediaQuery } from 'react-responsive';
 
 interface Form {
   semesterId: string;
@@ -28,22 +29,7 @@ interface Form {
 }
 
 const FormsPage: React.FC = () => {
-  useEffect(() => {
-    const handleResize = () => {
-      const root = document.documentElement;
-      if (window.innerWidth < 768) {
-        root.style.setProperty('--table-width', '100%');
-        root.style.setProperty('--input-width', '100%');
-      } else {
-        root.style.setProperty('--table-width', 'auto');
-        root.style.setProperty('--input-width', '300px');
-      }
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const isSmallScreen = useMediaQuery({ maxWidth: 767 });
 
   const [searchText, setSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -193,33 +179,48 @@ const FormsPage: React.FC = () => {
 
   return (
     <Sidebar>
-      <div style={{ padding: 24 }}>
+      <div className="p-4 max-w-screen-xl mx-auto w-full">
         {isLoading ? (
           <Loading message="Đang tải danh sách biểu mẫu..." />
         ) : (
           <>
-            <Typography.Title level={2} style={{ marginBottom: 24 }}>
-              <FileTextOutlined className="mr-2" />
+            <Typography.Title level={2} className="mb-4 text-xl sm:text-2xl md:text-3xl">
               Danh sách biểu mẫu
             </Typography.Title>
 
-            <div className="mb-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
-              <Input
-                placeholder="Tìm kiếm biểu mẫu..."
-                prefix={<SearchOutlined />}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                allowClear
-                className="w-full sm:w-80"
-              />
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <div className="flex-grow">
+                <Input
+                  placeholder="Tìm kiếm biểu mẫu..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  allowClear
+                  className="w-full"
+                />
+              </div>
               {ability.can(Action.Create, Subject.Form) && (
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => setAddModalVisible(true)}
-                >
-                  Thêm biểu mẫu
-                </Button>
+                <div className="flex-shrink-0">
+                  {isSmallScreen ? (
+                    <Tooltip title="Thêm biểu mẫu">
+                      <Button
+                        type="primary"
+                        shape="circle"
+                        icon={<PlusOutlined />}
+                        onClick={() => setAddModalVisible(true)}
+                        className="min-w-[40px]"
+                      />
+                    </Tooltip>
+                  ) : (
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={() => setAddModalVisible(true)}
+                    >
+                      Thêm biểu mẫu
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
 
@@ -237,95 +238,8 @@ const FormsPage: React.FC = () => {
                 }}
                 onChange={handleTableChange}
                 locale={{ emptyText: 'Không có biểu mẫu nào' }}
-                style={{ width: 'var(--table-width)' }}
               />
             </Card>
-
-            {/* Modal Thêm biểu mẫu */}
-            <Modal
-              title="Thêm biểu mẫu mới"
-              open={addModalVisible}
-              onCancel={() => setAddModalVisible(false)}
-              footer={null}
-            >
-              <Form
-                form={form}
-                layout="vertical"
-                onFinish={handleAddSubmit}
-              >
-                <Form.Item
-                  name="title"
-                  label="Tiêu đề"
-                  rules={[{ required: true, message: 'Vui lòng nhập tiêu đề biểu mẫu' }]}
-                >
-                  <Input placeholder="Nhập tiêu đề biểu mẫu" />
-                </Form.Item>
-
-                <Form.Item
-                  name="semesterId"
-                  label="Học kỳ"
-                  rules={[{ required: true, message: 'Vui lòng chọn học kỳ' }]}
-                >
-                  <Input placeholder="Mã học kỳ (ví dụ: S2_2025)" />
-                </Form.Item>
-
-                <Form.Item
-                  name="endTime"
-                  label="Thời hạn nộp"
-                  rules={[{ required: true, message: 'Vui lòng chọn thời hạn nộp' }]}
-                >
-                  <DatePicker showTime format="DD/MM/YYYY HH:mm:ss" style={{ width: '100%' }} />
-                </Form.Item>
-
-                <div className="flex justify-end gap-2 mt-4">
-                  <Button onClick={() => setAddModalVisible(false)}>Hủy</Button>
-                  <Button type="primary" htmlType="submit">Thêm biểu mẫu</Button>
-                </div>
-              </Form>
-            </Modal>
-
-            {/* Modal Chỉnh sửa biểu mẫu */}
-            <Modal
-              title="Chỉnh sửa biểu mẫu"
-              open={editModalVisible}
-              onCancel={() => setEditModalVisible(false)}
-              footer={null}
-            >
-              <Form
-                form={editForm}
-                layout="vertical"
-                onFinish={handleEditSubmit}
-              >
-                <Form.Item
-                  name="title"
-                  label="Tiêu đề"
-                  rules={[{ required: true, message: 'Vui lòng nhập tiêu đề biểu mẫu' }]}
-                >
-                  <Input placeholder="Nhập tiêu đề biểu mẫu" />
-                </Form.Item>
-
-                <Form.Item
-                  name="semesterId"
-                  label="Học kỳ"
-                  rules={[{ required: true, message: 'Vui lòng chọn học kỳ' }]}
-                >
-                  <Input placeholder="Mã học kỳ" disabled />
-                </Form.Item>
-
-                <Form.Item
-                  name="endTime"
-                  label="Thời hạn nộp"
-                  rules={[{ required: true, message: 'Vui lòng chọn thời hạn nộp' }]}
-                >
-                  <DatePicker showTime format="DD/MM/YYYY HH:mm:ss" style={{ width: '100%' }} />
-                </Form.Item>
-
-                <div className="flex justify-end gap-2 mt-4">
-                  <Button onClick={() => setEditModalVisible(false)}>Hủy</Button>
-                  <Button type="primary" htmlType="submit">Cập nhật</Button>
-                </div>
-              </Form>
-            </Modal>
           </>
         )}
       </div>
