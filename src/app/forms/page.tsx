@@ -15,6 +15,7 @@ import moment from 'moment';
 import dayjs from 'dayjs';
 import { useMediaQuery } from 'react-responsive';
 import { toast } from 'react-toastify';
+import AddFormModal from '@/components/AddFormModal';
 
 interface Form {
   semesterId: string;
@@ -38,12 +39,9 @@ const FormsPage: React.FC = () => {
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'ascend' | 'descend' | null>(null);
 
-  const [addModalVisible, setAddModalVisible] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [isAddFormModalOpen, setIsAddFormModalOpen] = useState(false);
+  const [isEditFormModalOpen, setIsEditFormModalOpen] = useState(false);
   const [selectedForm, setSelectedForm] = useState<Form | null>(null);
-
-  const [form] = Form.useForm();
-  const [editForm] = Form.useForm();
 
   const { data: formResponse, isLoading, error, refetch } = useGetCurrentFormQuery();
   const [createForm] = useCreateFormMutation();
@@ -67,12 +65,7 @@ const FormsPage: React.FC = () => {
 
   const handleEdit = (form: Form) => {
     setSelectedForm(form);
-    editForm.setFieldsValue({
-      title: form.title,
-      semesterId: form.semesterId,
-      endTime: form.endTime ? dayjs(form.endTime) : null
-    });
-    setEditModalVisible(true);
+    setIsEditFormModalOpen(true);
   };
 
   const handleDelete = async (semesterId: string) => {
@@ -84,44 +77,25 @@ const FormsPage: React.FC = () => {
     }
   };
 
-  const handleAddSubmit = async (values: any) => {
+  const handleAddForm = async (formData: any) => {
     try {
-      const body = {
-        semesterId: values.semesterId,
-        title: values.title,
-        endTime: values.endTime ? values.endTime.toISOString() : null,
-        questions: [
-          { id: 1, question: "Ý thức chấp hành văn bản chỉ đạo ngành, của cơ quan chỉ đạo cấp trên được thực hiện trong HV", max: 7 },
-          { id: 2, question: "Ý thức chấp hành các nội quy, quy chế và các quy định khác được áp dụng trong HV", max: 18 },
-          { id: 3, question: "Ý thức và hiệu quả tham gia các hoạt động rèn luyện về chính trị, xã hội, văn hóa, văn nghệ, thể thao", max: 6 },
-          { id: 4, question: "Tham gia tuyên truyền, phòng chống tội phạm và các tệ nạn xã hội", max: 5 },
-          { id: 5, question: "Ý thức chấp hành và tham gia tuyên truyền các chủ trương của Đảng, chính sách, pháp luật của Nhà nước trong cộng đồng", max: 15 },
-          { id: 6, question: "Ý thức tham gia các hoạt động xã hội có thành tích được ghi nhận, biểu dương, khen thưởng", max: 5 },
-          { id: 7, question: "Có tinh thần chia sẻ, giúp đỡ người thân, người có khó khăn, hoạn nạn", max: 5 },
-          { id: 8, question: "Ý thức, tinh thần, thái độ, uy tín và hiệu quả công việc của người học được phân công quản lý lớp, tổ chức Đảng, Đoàn TN, Hội SV và các tổ chức khác trong HV", max: 3 },
-          { id: 9, question: "Kỹ năng tổ chức, quản lý lớp, quản lý tổ chức Đảng, Đoàn TN, Hội SV và các tổ chức khác trong HV", max: 3 },
-          { id: 10, question: "Người học đạt được các thành tích đặc biệt trong học tập, rèn luyện", max: 2 }
-        ]
-      };
-
-      await createForm(body).unwrap();
+      await createForm(formData).unwrap();
       toast.success('Thêm biểu mẫu thành công');
-      setAddModalVisible(false);
-      form.resetFields();
+      setIsAddFormModalOpen(false);
       refetch();
-    } catch (error: any) {
-      toast.error(error?.data?.message || 'Có lỗi khi thêm biểu mẫu');
+    } catch (error) {
+      toast.error('Thêm biểu mẫu thất bại');
     }
   };
 
-  const handleEditSubmit = async (values: any) => {
+  const handleEditForm = async (formData: any) => {
     if (!selectedForm) return;
     try {
-      message.success('Cập nhật biểu mẫu thành công');
-      setEditModalVisible(false);
+      toast.success('Cập nhật biểu mẫu thành công');
+      setIsEditFormModalOpen(false);
       refetch();
-    } catch (error: any) {
-      message.error(error?.data?.message || 'Có lỗi khi cập nhật biểu mẫu');
+    } catch (error) {
+      toast.error('Cập nhật biểu mẫu thất bại');
     }
   };
 
@@ -226,7 +200,7 @@ const FormsPage: React.FC = () => {
                         type="primary"
                         shape="circle"
                         icon={<PlusOutlined />}
-                        onClick={() => setAddModalVisible(true)}
+                        onClick={() => setIsAddFormModalOpen(true)}
                         className="min-w-[40px]"
                       />
                     </Tooltip>
@@ -234,7 +208,7 @@ const FormsPage: React.FC = () => {
                     <Button
                       type="primary"
                       icon={<PlusOutlined />}
-                      onClick={() => setAddModalVisible(true)}
+                      onClick={() => setIsAddFormModalOpen(true)}
                     >
                       Thêm biểu mẫu
                     </Button>
@@ -260,6 +234,22 @@ const FormsPage: React.FC = () => {
               />
             </Card>
           </>
+        )}
+
+        <AddFormModal
+          isOpen={isAddFormModalOpen}
+          onClose={() => setIsAddFormModalOpen(false)}
+          onAddForm={handleAddForm}
+        />
+
+        {selectedForm && (
+          <AddFormModal
+            isOpen={isEditFormModalOpen}
+            onClose={() => setIsEditFormModalOpen(false)}
+            onAddForm={handleEditForm}
+            initialValues={selectedForm}
+            isEditing
+          />
         )}
       </div>
     </Sidebar>
