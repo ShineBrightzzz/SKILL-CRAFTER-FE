@@ -91,11 +91,6 @@ const RoleManagement: React.FC = () => {
 
   const openEditModal = (role: any) => {
     setEditingRole(role);
-    form.setFieldsValue({
-      name: role.name || '',
-      description: role.description || '',
-      active: role.active || false,
-    });
     setSelectedPermissionIds(role.permissionIds || []);
     setModalVisible(true);
   };
@@ -282,17 +277,38 @@ const RoleManagement: React.FC = () => {
             <Modal
               title={editingRole ? 'Sửa Role' : 'Tạo mới Role'}
               open={modalVisible}
-              onCancel={() => setModalVisible(false)}
+              onCancel={() => {
+                setModalVisible(false);
+                setEditingRole(null);
+              }}
               onOk={handleSubmit}
               width={800}
+              afterClose={() => form.resetFields()} // reset lại form mỗi lần đóng
             >
-              <Form layout="vertical" form={form}>
-                <Form.Item name="name" label="Tên Role" rules={[{ required: true }]}> <Input /> </Form.Item>
-                <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}> <Input.TextArea /> </Form.Item>
+              <Form
+                layout="vertical"
+                form={form}
+                initialValues={
+                  editingRole
+                    ? {
+                      name: editingRole.name,
+                      description: editingRole.description,
+                      active: editingRole.active,
+                    }
+                    : { name: '', description: '', active: false }
+                }
+              >
+                <Form.Item name="name" label="Tên Role" rules={[{ required: true }]}>
+                  <Input />
+                </Form.Item>
+                <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}>
+                  <Input.TextArea />
+                </Form.Item>
                 <Form.Item name="active" label="Trạng thái" valuePropName="checked">
                   <Switch checkedChildren="ACTIVE" unCheckedChildren="INACTIVE" />
                 </Form.Item>
               </Form>
+
               <h4>Quyền hạn</h4>
               {renderPermissionGroups()}
             </Modal>
