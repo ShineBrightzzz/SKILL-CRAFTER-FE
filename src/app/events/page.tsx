@@ -71,6 +71,8 @@ const EventsPage = () => {
 
   
   const { data: eventData, isLoading, error, refetch } = useGetEventsQuery();
+  console.log('Event data:', eventData);
+  
   const [createEvent] = useCreateEventMutation();
   const [updateEvent] = useUpdateEventMutation();
   const [deleteEvent] = useDeleteEventMutation();
