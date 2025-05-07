@@ -69,6 +69,7 @@ const EventsPage = () => {
   const ability = useAbility();
   const isSmallScreen = useMediaQuery({ maxWidth: 767 });
 
+  
   const { data: eventData, isLoading, error, refetch } = useGetEventsQuery();
   const [createEvent] = useCreateEventMutation();
   const [updateEvent] = useUpdateEventMutation();
