@@ -163,12 +163,12 @@ const FormsPage: React.FC = () => {
       render: (_, record) => (
         <div className="flex justify-center gap-2">
           {ability.can(Action.Update, Subject.Form) && (
-            <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+            <Button icon={<EditOutlined />} onClick={() => console.log('Edit clicked', record)} />
           )}
           {ability.can(Action.Delete, Subject.Form) && (
             <Popconfirm
               title="Bạn có chắc chắn muốn xóa biểu mẫu này?"
-              onConfirm={() => handleDelete(record.semesterId)}
+              onConfirm={() => console.log('Delete confirmed', record)}
               okText="Có"
               cancelText="Không"
             >
