@@ -8,7 +8,7 @@ interface EditScoreModalProps {
   studentId: string;
   semesterId: string;
   initialScores: {
-    self_score?: number;
+    discipline_score?: number;
     academic_score?: number;
     event_score?: number;
     research_score?: number;
@@ -32,7 +32,7 @@ const EditScoreModal: React.FC<EditScoreModalProps> = ({
   useEffect(() => {
     if (isVisible) {
       form.setFieldsValue({
-        self_score: initialScores.self_score,
+        discipline_score: initialScores.discipline_score,
         academic_score: initialScores.academic_score,
         event_score: initialScores.event_score,
         research_score: initialScores.research_score,
@@ -88,7 +88,7 @@ const EditScoreModal: React.FC<EditScoreModalProps> = ({
         layout="vertical"
       >
         <Form.Item
-          name="self_score"
+          name="discipline_score"
           label="Điểm tự chấm"
           rules={[{ type: 'number', min: 0, max: 100 }]}
         >

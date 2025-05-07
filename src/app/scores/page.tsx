@@ -240,7 +240,7 @@ const ScoresPage = () => {
               scoreType={selectedScoreType}
               studentId={currentStudentId}
               initialScores={{
-                self_score: undefined,
+                discipline_score: undefined,
                 academic_score: undefined,
                 event_score: undefined,
                 research_score: undefined,

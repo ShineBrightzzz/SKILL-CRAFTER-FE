@@ -16,7 +16,7 @@ const { Option } = Select;
 interface Score {
   studentId: string;
   scores: {
-    self_score?: number;
+    discipline_score?: number;
     academic_score?: number;
     event_score?: number;
     research_score?: number;
@@ -34,7 +34,6 @@ export default function ScoresPage() {
   const { data: semesterOptions, isLoading: isLoadingOptions, error: semesterError } = useGetSemesterQuery();
   const { data: studentScoresData, isLoading: isLoadingScore, error: scoreError, refetch } = useGetStudentScoresBySemesterQuery({ semesterId: selectedSemesterId });
   const [updateScore] = useUpdateScoreMutation();
-
   useEffect(() => {
     if (semesterOptions?.data?.length > 0 && !selectedSemesterId) {
       setSelectedSemesterId(semesterOptions.data[0].id);
@@ -46,7 +45,7 @@ export default function ScoresPage() {
 
     return studentScoresData.data.map((student: Score) => {
       const scores = {
-        self: student.scores.self_score || 0,
+        self: student.scores.discipline_score || 0,
         academic: student.scores.academic_score || 0,
         research: student.scores.research_score || 0,
         club: student.scores.club_score || 0,
@@ -108,8 +107,8 @@ export default function ScoresPage() {
       key: 'self',
       align: 'center',
       render: (_: any, record: Score) =>
-        record.scores.self_score !== undefined ? (
-          <span>{record.scores.self_score}</span>
+        record.scores.discipline_score !== undefined ? (
+          <span>{record.scores.discipline_score}</span>
         ) : (
           <Tag color="blue">Chưa có điểm</Tag>
         ),
