@@ -69,6 +69,17 @@ const RoleManagement: React.FC = () => {
     }
   }, [permissions]);
 
+  useEffect(() => {
+    if (modalVisible && editingRole) {
+      form.setFieldsValue({
+        name: editingRole.name || '',
+        description: editingRole.description || '',
+        active: editingRole.active ?? true,
+      });
+      setSelectedPermissionIds(editingRole.permissionIds || []);
+    }
+  }, [modalVisible, editingRole, form]);
+
   const filteredRoles = roles.filter((role: any) => {
     if (!searchText) return true;
     const searchTermLower = searchText.toLowerCase();
@@ -84,19 +95,13 @@ const RoleManagement: React.FC = () => {
 
   const openCreateModal = () => {
     setEditingRole(null);
-    form.resetFields();
-    setSelectedPermissionIds([]);
     setModalVisible(true);
+    setSelectedPermissionIds([]);
+    form.resetFields();
   };
 
   const openEditModal = (role: any) => {
     setEditingRole(role);
-    form.setFieldsValue({
-      name: role.name || '',
-      description: role.description || '',
-      active: role.active || false,
-    });
-    setSelectedPermissionIds(role.permissionIds || []);
     setModalVisible(true);
   };
 
