@@ -37,7 +37,7 @@ const customBaseQuery = fetchBaseQuery({
 const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: customBaseQuery,
-  tagTypes: ['Permission'],
+  tagTypes: ['Permission', 'Roles'],
   endpoints: builder => ({}),
 })
 

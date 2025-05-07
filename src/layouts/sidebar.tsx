@@ -47,10 +47,10 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
 
   const menuItems = [
     { key: '/', label: 'Trang chủ', icon: <HomeOutlined /> },
-    { key: '/forms', label: 'Form', icon: <FormOutlined /> },
+    { key: '/forms', label: 'Quản lý biểu mẫu', icon: <FormOutlined /> },
     { key: '/events', label: 'Sự kiện', icon: <CalendarOutlined /> },
     { key: '/semesters', label: 'Học kì', icon: <BookOutlined /> },
-    { key: '/scores', label: 'Upload điểm', icon: <UploadOutlined /> },
+    { key: '/scores', label: 'Cập nhật điểm', icon: <UploadOutlined /> },
     { key: '/students', label: 'Điểm sinh viên', icon: <UserOutlined /> },
     {
       key: 'admin',

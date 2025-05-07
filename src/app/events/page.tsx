@@ -248,6 +248,7 @@ const EventsPage = () => {
     columns.push({
       title: 'Hành động',
       key: 'actions',
+      width: 150,
       render: (_: any, record: Event) => (
         <div className="flex flex-wrap gap-2 justify-center">
           {ability.can(Action.Update, Subject.Event) && (
