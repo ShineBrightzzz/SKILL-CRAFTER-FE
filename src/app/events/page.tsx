@@ -1,265 +1,160 @@
 'use client';
 
-import { useState } from 'react';
-import Sidebar from "@/layouts/sidebar";
-import dayjs from 'dayjs';
+import React, { useState } from 'react';
+import Sidebar from '@/layouts/sidebar';
 import {
   Card,
   Typography,
   Table,
   Button,
   Input,
+  Tag,
   Popconfirm,
   Tooltip,
-  Tag,
 } from 'antd';
 import {
-  UploadOutlined,
   PlusOutlined,
-  SearchOutlined,
   EditOutlined,
   DeleteOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
-import UploadModal from '@/components/UploadModal';
-import AddEventModal from '@/components/AddEventModal';
-import {
-  useGetEventsQuery,
-  useCreateEventMutation,
-  useUpdateEventMutation,
-  useDeleteEventMutation,
-} from '@/services/events.service';
-import { toast } from 'react-toastify';
+import { ColumnsType } from 'antd/es/table';
+import { useGetCurrentFormQuery, useCreateFormMutation } from '@/services/form.service';
+import AddFormModal from '@/components/AddFormModal';
 import Loading from '@/components/Loading';
 import ErrorHandler from '@/components/ErrorHandler';
 import { Action, Subject } from '@/utils/ability';
 import { useAbility } from '@/hooks/useAbility';
 import withPermission from '@/hocs/withPermission';
 import { useMediaQuery } from 'react-responsive';
+import { toast } from 'react-toastify';
+import moment from 'moment';
 
-interface Semester {
-  id: string;
-  number: number;
-  year: number;
-}
-
-interface Event {
-  eventId: string;
+interface Form {
+  formId?: string;
   title: string;
-  organizingUnit: string;
-  startTime: string;
+  semesterId: string;
   endTime: string;
-  location: string;
-  semester: string;
-  participationMethod?: string;
+  semester: {
+    id: string;
+    number: number;
+    year: number;
+    startTime: string;
+    endTime: string;
+  };
 }
 
-// Utility function to map semester identifiers to meaningful names
-const getSemesterName = (semesterId: string): string => {
-  const match = semesterId.match(/^S(\d)_(\d{4})$/);
-  if (match) {
-    const [_, semesterNumber, year] = match;
-    return `Kỳ ${semesterNumber} năm ${year}`;
-  }
-  return 'Không xác định';
-};
-
-const EventsPage = () => {
+const FormsPage: React.FC = () => {
   const [searchText, setSearchText] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [sortField, setSortField] = useState<string | null>(null);
-  const [sortOrder, setSortOrder] = useState<'ascend' | 'descend' | null>(null);
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [isAddEventModalOpen, setIsAddEventModalOpen] = useState(false);
-  const [isEditEventModalOpen, setIsEditEventModalOpen] = useState(false);
-  const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [uploadType, setUploadType] = useState<string>('');
-  const [localUploadStatus, setLocalUploadStatus] = useState<Record<string, boolean>>({});
+  const [isAddFormModalOpen, setIsAddFormModalOpen] = useState(false);
+  const [isEditFormModalOpen, setIsEditFormModalOpen] = useState(false);
+  const [selectedForm, setSelectedForm] = useState<Form | null>(null);
+
   const ability = useAbility();
   const isSmallScreen = useMediaQuery({ maxWidth: 767 });
 
-  
-  const { data: eventData, isLoading, error, refetch } = useGetEventsQuery();
-  console.log('Event data:', eventData);
-  
-  const [createEvent] = useCreateEventMutation();
-  const [updateEvent] = useUpdateEventMutation();
-  const [deleteEvent] = useDeleteEventMutation();
+  const { data: formResponse, isLoading, error, refetch } = useGetCurrentFormQuery();
+  const [createForm] = useCreateFormMutation();
 
-  const handleTableChange = (pagination: any, _: any, sorter: any) => {
-    setCurrentPage(pagination.current);
-    setPageSize(pagination.pageSize);
-    setSortField(sorter.field || null);
-    setSortOrder(sorter.order || null);
+  const forms = formResponse?.data?.data ? [formResponse.data.data] : [];
+
+  const filteredForms = forms.filter((form: Form) =>
+    form.title.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  const isExpired = (endTime: string) => new Date() > new Date(endTime);
+
+  const handleEdit = (form: Form) => {
+    setSelectedForm(form);
+    setIsEditFormModalOpen(true);
   };
 
-  const handleAddEvent = async (eventData: any) => {
+  const handleDelete = async (formId: string) => {
+    // console.log('Xóa biểu mẫu:', formId);
+    // Tích hợp logic xóa thực nếu cần
+  };
+
+  const handleAddForm = async (formData: any) => {
     try {
-      await createEvent(eventData).unwrap();
-      toast.success("Thêm sự kiện thành công");
-      setIsAddEventModalOpen(false);
+      const body = {
+        title: formData.title,
+        semesterId: formData.semesterId,
+        endTime: formData.endTime,
+        startTime: formData.startTime,
+        questions: formData.questions.map((question: any) => ({
+          id: question.id,
+          question: question.question,
+          max: question.max,
+        })),
+      };
+      await createForm({ body }).unwrap();
+      toast.success('Thêm biểu mẫu thành công');
+      setIsAddFormModalOpen(false);
       refetch();
-    } catch {
-      toast.error("Thêm sự kiện thất bại");
+    } catch (error) {
+      toast.error('Thêm biểu mẫu thất bại');
     }
   };
 
-  const handleEditEvent = async (eventData: any) => {
-    if (!selectedEvent) return;
-    try {
-      await updateEvent({ id: selectedEvent.eventId, body: eventData }).unwrap();
-      toast.success("Cập nhật sự kiện thành công");
-      setIsEditEventModalOpen(false);
-      refetch();
-    } catch {
-      toast.error("Cập nhật sự kiện thất bại");
-    }
+  const handleEditForm = async (formData: any) => {
+    // Cập nhật logic chỉnh sửa nếu cần
   };
 
-  const handleDeleteEvent = async (eventId: string) => {
-    try {
-      await deleteEvent({ id: eventId }).unwrap();
-      toast.success("Xóa sự kiện thành công");
-      refetch();
-    } catch (error: any) {
-      toast.error(error?.data?.message || "Lỗi khi xóa sự kiện");
-    }
-  };
-
-  const handleUpload = async (file: File, metadata?: Record<string, any>): Promise<void> => {
-    const semesterId = metadata?.semesterId;
-    const type = metadata?.type;
-
-    if (!semesterId || !type) {
-      toast.error('Thiếu thông tin học kỳ hoặc loại upload');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('semester_id', semesterId);
-
-    const uploadUrl =
-      type === 'Điểm sự kiện'
-        ? 'http://localhost:8000/file-processing/event'
-        : '';
-
-    if (!uploadUrl) {
-      toast.error('Không xác định được loại upload');
-      return;
-    }
-
-    try {
-      const response = await fetch(uploadUrl, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error('Upload failed');
-
-      setLocalUploadStatus((prev) => ({
-        ...prev,
-        [semesterId]: true,
-      }));
-
-      toast.success(`Tải lên ${type} thành công`);
-      setIsUploadModalOpen(false);
-    } catch {
-      toast.error(`Lỗi khi tải lên ${type}`);
-    }
-  };
-
-  const openUploadModal = (semesterId: string, type: string) => {
-    const match = semesterId.match(/^S(\d)_(\d{4})$/);
-    if (match) {
-      const [_, semesterNumber, year] = match;
-      setSelectedSemester({ id: semesterId, number: parseInt(semesterNumber), year: parseInt(year) });
-    } else {
-      setSelectedSemester({ id: semesterId, number: 0, year: 0 });
-    }
-    setUploadType(type);
-    setIsUploadModalOpen(true);
-  };
-
-  const filteredEvents = eventData?.data?.filter((event: any) => {
-    const searchTerm = searchText.toLowerCase();
-    return (
-      event.title?.toLowerCase().includes(searchTerm) ||
-      event.organizingUnit?.toLowerCase().includes(searchTerm) ||
-      event.location?.toLowerCase().includes(searchTerm)
-    );
-  });
-
-  const columns: any = [
+  const columns: ColumnsType<Form> = [
     {
-      title: 'Tên sự kiện',
+      title: 'Tiêu đề',
       dataIndex: 'title',
-      sorter: (a: Event, b: Event) => a.title.localeCompare(b.title),
-    },
-    {
-      title: 'Đơn vị tổ chức',
-      dataIndex: 'organizingUnit',
-    },
-    {
-      title: 'Địa điểm',
-      dataIndex: 'location',
-    },
-    {
-      title: 'Thời gian bắt đầu',
-      dataIndex: 'startTime',
-      render: (text: string) => dayjs(text).format('DD/MM/YYYY HH:mm'),
-    },
-    {
-      title: 'Thời gian kết thúc',
-      dataIndex: 'endTime',
-      render: (text: string) => dayjs(text).format('DD/MM/YYYY HH:mm'),
+      sorter: (a, b) => a.title.localeCompare(b.title),
     },
     {
       title: 'Học kỳ',
-      dataIndex: 'semester',
-      render: (semesterId: string) => getSemesterName(semesterId),
+      render: (_, record) => `Kỳ ${record.semester.number} năm ${record.semester.year}`,
     },
     {
-      title: 'Điểm sự kiện',
-      key: 'eventScore',
-      align: 'center' as const,
-      render: (_: any, record: Event) => {
-        const uploaded = localUploadStatus[record.semester];
-        return (
-          <div className="flex justify-center items-center gap-2">
-            {uploaded ? (
-              <Tag color="success">Đã upload</Tag>
-            ) : (
-              <Tooltip title="Tải lên điểm sự kiện">
-                <Button
-                  icon={<UploadOutlined />}
-                  onClick={() => openUploadModal(record.semester, 'Điểm sự kiện')}
-                />
-              </Tooltip>
-            )}
-          </div>
-        );
-      },
+      title: 'Thời gian bắt đầu',
+      render: (_, record) =>
+        moment(record.semester.startTime).format('DD/MM/YYYY HH:mm'),
+      sorter: (a, b) =>
+        new Date(a.semester.startTime).getTime() - new Date(b.semester.startTime).getTime(),
+    },
+    {
+      title: 'Thời hạn nộp',
+      dataIndex: 'endTime',
+      render: (endTime) =>
+        moment(endTime).format('DD/MM/YYYY HH:mm'),
+      sorter: (a, b) =>
+        new Date(a.endTime).getTime() - new Date(b.endTime).getTime(),
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'endTime',
+      render: (endTime) => (
+        <Tag color={isExpired(endTime) ? 'red' : 'green'}>
+          {isExpired(endTime) ? 'Đã hết hạn' : 'Còn hạn'}
+        </Tag>
+      ),
     },
   ];
 
-  if (ability.can(Action.Update, Subject.Event) || ability.can(Action.Delete, Subject.Event)) {
+  if (ability.can(Action.Update, Subject.Form) || ability.can(Action.Delete, Subject.Form)) {
     columns.push({
       title: 'Hành động',
       key: 'actions',
-      render: (_: any, record: Event) => (
+      render: (_, record) => (
         <div className="flex flex-wrap gap-2 justify-center">
-          {ability.can(Action.Update, Subject.Event) && (
-            <Button icon={<EditOutlined />} onClick={() => {
-              setSelectedEvent(record);
-              setIsEditEventModalOpen(true);
-            }} />
+          {ability.can(Action.Update, Subject.Form) && (
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => {
+                setSelectedForm(record);
+                setIsEditFormModalOpen(true);
+              }}
+            />
           )}
-          {ability.can(Action.Delete, Subject.Event) && (
+          {ability.can(Action.Delete, Subject.Form) && (
             <Popconfirm
-              title="Xóa sự kiện này?"
-              onConfirm={() => handleDeleteEvent(record.eventId)}
+              title="Xóa biểu mẫu này?"
+              onConfirm={() => handleDelete(record.formId!)}
               okText="Có"
               cancelText="Không"
             >
@@ -271,97 +166,82 @@ const EventsPage = () => {
     });
   }
 
-  if (error) return <Sidebar><ErrorHandler status={(error as any).status || 500} /></Sidebar>;
+  if (error) {
+    return (
+      <Sidebar>
+        <ErrorHandler status={(error as any)?.status || 500} />
+      </Sidebar>
+    );
+  }
 
   return (
     <Sidebar>
       <div className="p-4 max-w-screen-xl mx-auto w-full">
         {isLoading ? (
-          <Loading message="Đang tải danh sách sự kiện..." />
+          <Loading message="Đang tải danh sách biểu mẫu..." />
         ) : (
           <>
             <Typography.Title level={2} className="mb-4 text-xl sm:text-2xl md:text-3xl">
-              Danh sách sự kiện
+              Danh sách biểu mẫu
             </Typography.Title>
 
             <div className="mb-4 flex items-center justify-between gap-2">
-              <div className="flex-grow">
-                <Input
-                  placeholder="Tìm kiếm sự kiện..."
-                  prefix={<SearchOutlined />}
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  allowClear
-                  className="w-full"
-                />
-              </div>
-
-              {ability.can(Action.Create, Subject.Event) && (
-                <div className="flex-shrink-0">
-                  {isSmallScreen ? (
-                    <Tooltip title="Thêm sự kiện">
-                      <Button
-                        type="primary"
-                        shape="circle"
-                        icon={<PlusOutlined />}
-                        onClick={() => setIsAddEventModalOpen(true)}
-                        className="min-w-[40px]"
-                      />
-                    </Tooltip>
-                  ) : (
+              <Input
+                placeholder="Tìm kiếm biểu mẫu..."
+                prefix={<SearchOutlined />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                allowClear
+              />
+              {ability.can(Action.Create, Subject.Form) && (
+                isSmallScreen ? (
+                  <Tooltip title="Thêm biểu mẫu">
                     <Button
                       type="primary"
+                      shape="circle"
                       icon={<PlusOutlined />}
-                      onClick={() => setIsAddEventModalOpen(true)}
-                    >
-                      Thêm sự kiện
-                    </Button>
-                  )}
-                </div>
+                      onClick={() => setIsAddFormModalOpen(true)}
+                    />
+                  </Tooltip>
+                ) : (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => setIsAddFormModalOpen(true)}
+                  >
+                    Thêm biểu mẫu
+                  </Button>
+                )
               )}
             </div>
 
-            <Card className="overflow-auto">
+            <Card className="shadow-md">
               <Table
+                dataSource={filteredForms}
                 columns={columns}
-                dataSource={filteredEvents}
-                rowKey="eventId"
-                pagination={{
-                  pageSize,
-                  current: currentPage,
-                  total: filteredEvents?.length,
-                  onChange: setCurrentPage,
-                  onShowSizeChange: (_, size) => setPageSize(size),
-                }}
-                onChange={handleTableChange}
+                rowKey="semesterId"
+                pagination={false}
+                locale={{ emptyText: 'Không có biểu mẫu nào' }}
               />
             </Card>
           </>
         )}
 
-        <UploadModal
-          isOpen={isUploadModalOpen}
-          onClose={() => {
-            setIsUploadModalOpen(false);
-            setSelectedSemester(null);
-          }}
-          semester={selectedSemester}
-          uploadType={uploadType}
-          onUpload={handleUpload}
+        <AddFormModal
+          isOpen={isAddFormModalOpen}
+          onClose={() => setIsAddFormModalOpen(false)}
+          onAddForm={handleAddForm}
         />
 
-        <AddEventModal
-          isOpen={isAddEventModalOpen}
-          onClose={() => setIsAddEventModalOpen(false)}
-          onAddEvent={handleAddEvent}
-        />
-
-        {selectedEvent && (
-          <AddEventModal
-            isOpen={isEditEventModalOpen}
-            onClose={() => setIsEditEventModalOpen(false)}
-            onAddEvent={handleEditEvent}
-            initialValues={selectedEvent}
+        {selectedForm && (
+          <AddFormModal
+            isOpen={isEditFormModalOpen}
+            onClose={() => setIsEditFormModalOpen(false)}
+            onAddForm={handleEditForm}
+            initialValues={{
+              ...selectedForm,
+              semesterId: selectedForm.semester.id,
+            }}
             isEditing
           />
         )}
@@ -370,4 +250,4 @@ const EventsPage = () => {
   );
 };
 
-export default withPermission(EventsPage, Action.Read, Subject.EventParticipation);
+export default withPermission(FormsPage, Action.Read, Subject.Form);
