@@ -13,6 +13,7 @@ import {
   Popconfirm,
   Typography,
   Tooltip,
+  Collapse,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import Sidebar from '@/layouts/sidebar';
@@ -23,7 +24,6 @@ import {
   useDeleteRoleMutation,
 } from '@/services/role.service';
 import { useGetPermissionsQuery } from '@/services/permission.service';
-import { Collapse } from 'antd';
 import Loading from '@/components/Loading';
 import ErrorHandler from '@/components/ErrorHandler';
 import { Action, Subject } from '@/utils/ability';
@@ -39,7 +39,8 @@ import { useMediaQuery } from 'react-responsive';
 import { toast } from 'react-toastify';
 
 const { Panel } = Collapse;
-const { Text } = Typography;
+const { Text, Title } = Typography;
+
 const RoleManagement: React.FC = () => {
   const [form] = Form.useForm();
   const [modalVisible, setModalVisible] = useState(false);
@@ -101,8 +102,10 @@ const RoleManagement: React.FC = () => {
         description: editingRole.description || '',
         active: editingRole.active || false,
       });
+      setSelectedPermissionIds(editingRole.permissionIds || []);
     } else if (modalVisible && !editingRole) {
-      form.resetFields(); // Trường hợp tạo mới
+      form.resetFields();
+      setSelectedPermissionIds([]);
     }
   }, [modalVisible, editingRole, form]);
 
@@ -132,8 +135,7 @@ const RoleManagement: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      const stringId = id.toString();
-      await deleteRole({ id: stringId }).unwrap();
+      await deleteRole({ id: id.toString() }).unwrap();
       toast.success('Xóa vai trò thành công');
       refetch();
     } catch (error: any) {
@@ -232,9 +234,9 @@ const RoleManagement: React.FC = () => {
           <Loading message="Đang tải dữ liệu vai trò và quyền hạn..." />
         ) : (
           <>
-            <Typography.Title level={2} className="mb-4 text-xl sm:text-2xl md:text-3xl">
+            <Title level={2} className="mb-4 text-xl sm:text-2xl md:text-3xl">
               Danh sách Roles (Vai Trò)
-            </Typography.Title>
+            </Title>
 
             <div className="mb-4 flex items-center justify-between gap-2">
               <div className="flex-grow">
@@ -289,7 +291,19 @@ const RoleManagement: React.FC = () => {
               onOk={handleSubmit}
               width={800}
             >
-              <Form layout="vertical" form={form}>
+              <Form
+                layout="vertical"
+                form={form}
+                initialValues={
+                  editingRole
+                    ? {
+                        name: editingRole.name,
+                        description: editingRole.description,
+                        active: editingRole.active,
+                      }
+                    : { name: '', description: '', active: false }
+                }
+              >
                 <Form.Item name="name" label="Tên Role" rules={[{ required: true }]}> <Input /> </Form.Item>
                 <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}> <Input.TextArea /> </Form.Item>
                 <Form.Item name="active" label="Trạng thái" valuePropName="checked">
