@@ -4,15 +4,12 @@ import React, { useEffect, useState } from 'react';
 import {
   Button,
   Table,
-  Modal,
-  Form,
-  Input,
-  Switch,
-  Tag,
   Card,
   Popconfirm,
   Typography,
   Tooltip,
+  Input,
+  Tag,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import Sidebar from '@/layouts/sidebar';
@@ -23,7 +20,6 @@ import {
   useDeleteRoleMutation,
 } from '@/services/role.service';
 import { useGetPermissionsQuery } from '@/services/permission.service';
-import { Collapse } from 'antd';
 import Loading from '@/components/Loading';
 import ErrorHandler from '@/components/ErrorHandler';
 import { Action, Subject } from '@/utils/ability';
@@ -37,16 +33,13 @@ import {
 } from '@ant-design/icons';
 import { useMediaQuery } from 'react-responsive';
 import { toast } from 'react-toastify';
+import AddRoleModal from '@/components/AddRoleModal';
 
-const { Panel } = Collapse;
 const { Text } = Typography;
 
 const RoleManagement: React.FC = () => {
-  const [form] = Form.useForm();
-  const [modalVisible, setModalVisible] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<any | null>(null);
-  const [selectedPermissionIds, setSelectedPermissionIds] = useState<string[]>([]);
-  const [groupedPermissions, setGroupedPermissions] = useState<{ [module: string]: any[] }>({});
   const [searchText, setSearchText] = useState('');
 
   const { data: rolesData, isLoading: isLoadingRoles, error: rolesError, refetch } = useGetRoleQuery();
@@ -57,28 +50,6 @@ const RoleManagement: React.FC = () => {
 
   const ability = useAbility();
   const isSmallScreen = useMediaQuery({ maxWidth: 768 });
-
-  useEffect(() => {
-    if (permissions.length > 0) {
-      const grouped: { [key: string]: any[] } = {};
-      permissions.forEach((perm: any) => {
-        if (!grouped[perm.module]) grouped[perm.module] = [];
-        grouped[perm.module].push(perm);
-      });
-      setGroupedPermissions(grouped);
-    }
-  }, [permissions]);
-
-  useEffect(() => {
-    if (modalVisible && editingRole) {
-      form.setFieldsValue({
-        name: editingRole.name || '',
-        description: editingRole.description || '',
-        active: editingRole.active ?? true,
-      });
-      setSelectedPermissionIds(editingRole.permissionIds || []);
-    }
-  }, [modalVisible, editingRole, form]);
 
   const filteredRoles = roles.filter((role: any) => {
     if (!searchText) return true;
@@ -95,25 +66,16 @@ const RoleManagement: React.FC = () => {
 
   const openCreateModal = () => {
     setEditingRole(null);
-    setModalVisible(true);
-    setSelectedPermissionIds([]);
-    form.resetFields();
+    setIsModalOpen(true);
   };
 
   const openEditModal = (role: any) => {
     setEditingRole(role);
-    setModalVisible(true);
+    setIsModalOpen(true);
   };
 
-  const handleSubmit = async () => {
+  const handleModalSubmit = async (rolePayload: any) => {
     try {
-      const values = await form.validateFields();
-      const rolePayload = {
-        ...values,
-        permissionIds: selectedPermissionIds,
-        active: values.active || false,
-      };
-
       if (editingRole) {
         await updateRole({ id: editingRole.id, body: rolePayload }).unwrap();
         toast.success('Cập nhật thành công');
@@ -121,8 +83,7 @@ const RoleManagement: React.FC = () => {
         await createRole({ body: rolePayload }).unwrap();
         toast.success('Tạo mới thành công');
       }
-
-      setModalVisible(false);
+      setIsModalOpen(false);
       refetch();
     } catch (error: any) {
       toast.error(error?.data?.message || 'Có lỗi xảy ra');
@@ -140,46 +101,6 @@ const RoleManagement: React.FC = () => {
       refetch();
     }
   };
-
-  const togglePermission = (id: string) => {
-    setSelectedPermissionIds((prev) =>
-      prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id]
-    );
-  };
-
-  const getMethodColor = (method: string) => {
-    switch (method) {
-      case 'GET': return 'blue';
-      case 'POST': return 'green';
-      case 'PUT': return 'orange';
-      case 'DELETE': return 'red';
-      default: return 'gray';
-    }
-  };
-
-  const renderPermissionGroups = () => (
-    <Collapse>
-      {Object.keys(groupedPermissions).map((mod) => (
-        <Panel header={mod} key={mod}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-            {groupedPermissions[mod].map((perm) => (
-              <div
-                key={perm.id}
-                className={`flex justify-between items-center p-3 rounded border transition-all ${selectedPermissionIds.includes(perm.id) ? 'bg-blue-50 border-blue-300' : 'bg-gray-50 border-gray-200'}`}
-              >
-                <div className="max-w-[80%]">
-                  <Text strong style={{ color: getMethodColor(perm.method) }}>{perm.method}</Text>{' '}
-                  <Text>{perm.name}</Text><br />
-                  <Text type="secondary" style={{ fontSize: 12 }}>{perm.api}</Text>
-                </div>
-                <Switch size="small" checked={selectedPermissionIds.includes(perm.id)} onChange={() => togglePermission(perm.id)} />
-              </div>
-            ))}
-          </div>
-        </Panel>
-      ))}
-    </Collapse>
-  );
 
   const columns: ColumnsType<any> = [
     {
@@ -284,23 +205,13 @@ const RoleManagement: React.FC = () => {
               />
             </Card>
 
-            <Modal
-              title={editingRole ? 'Sửa Role' : 'Tạo mới Role'}
-              open={modalVisible}
-              onCancel={() => setModalVisible(false)}
-              onOk={handleSubmit}
-              width={800}
-            >
-              <Form layout="vertical" form={form}>
-                <Form.Item name="name" label="Tên Role" rules={[{ required: true }]}> <Input /> </Form.Item>
-                <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}> <Input.TextArea /> </Form.Item>
-                <Form.Item name="active" label="Trạng thái" valuePropName="checked">
-                  <Switch checkedChildren="ACTIVE" unCheckedChildren="INACTIVE" />
-                </Form.Item>
-              </Form>
-              <h4>Quyền hạn</h4>
-              {renderPermissionGroups()}
-            </Modal>
+            <AddRoleModal
+              isOpen={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
+              onSubmit={handleModalSubmit}
+              initialValues={editingRole}
+              isEditing={!!editingRole}
+            />
           </>
         )}
       </div>
