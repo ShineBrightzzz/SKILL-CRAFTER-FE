@@ -82,6 +82,13 @@ const RoleManagement: React.FC = () => {
   const [updateRole] = useUpdateRoleMutation();
   const [deleteRole] = useDeleteRoleMutation();
 
+  const openCreateModal = () => {
+    setEditingRole(null);
+    form.resetFields();
+    setSelectedPermissionIds([]);
+    setModalVisible(true);
+  };
+
   const openEditModal = (role: any) => {
     setEditingRole(role);
     form.setFieldsValue({
@@ -90,13 +97,6 @@ const RoleManagement: React.FC = () => {
       active: role.active,
     });
     setSelectedPermissionIds(role.permissionIds || []);
-    setModalVisible(true);
-  };
-
-  const openCreateModal = () => {
-    setEditingRole(null);
-    form.resetFields();
-    setSelectedPermissionIds([]);
     setModalVisible(true);
   };
 
@@ -180,6 +180,10 @@ const RoleManagement: React.FC = () => {
     {
       title: 'Tên vai trò',
       dataIndex: 'name',
+    },
+    {
+      title: 'Miêu tả',
+      dataIndex: 'description',
     },
     {
       title: 'Trạng thái',
