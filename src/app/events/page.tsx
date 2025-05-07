@@ -53,6 +53,16 @@ interface Event {
   participationMethod?: string;
 }
 
+// Utility function to map semester identifiers to meaningful names
+const getSemesterName = (semesterId: string): string => {
+  const match = semesterId.match(/^S(\d)_(\d{4})$/);
+  if (match) {
+    const [_, semesterNumber, year] = match;
+    return `Kỳ ${semesterNumber} năm ${year}`;
+  }
+  return 'Không xác định';
+};
+
 const EventsPage = () => {
   const [searchText, setSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -161,7 +171,13 @@ const EventsPage = () => {
   };
 
   const openUploadModal = (semesterId: string, type: string) => {
-    setSelectedSemester({ id: semesterId, number: 0, year: 0 });
+    const match = semesterId.match(/^S(\d)_(\d{4})$/);
+    if (match) {
+      const [_, semesterNumber, year] = match;
+      setSelectedSemester({ id: semesterId, number: parseInt(semesterNumber), year: parseInt(year) });
+    } else {
+      setSelectedSemester({ id: semesterId, number: 0, year: 0 });
+    }
     setUploadType(type);
     setIsUploadModalOpen(true);
   };
@@ -198,6 +214,11 @@ const EventsPage = () => {
       title: 'Thời gian kết thúc',
       dataIndex: 'endTime',
       render: (text: string) => dayjs(text).format('DD/MM/YYYY HH:mm'),
+    },
+    {
+      title: 'Học kỳ',
+      dataIndex: 'semester',
+      render: (semesterId: string) => getSemesterName(semesterId),
     },
     {
       title: 'Điểm sự kiện',
