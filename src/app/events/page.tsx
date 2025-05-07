@@ -11,6 +11,7 @@ import {
   Input,
   Popconfirm,
   Tooltip,
+  Tag,
 } from 'antd';
 import {
   UploadOutlined,
@@ -64,6 +65,7 @@ const EventsPage = () => {
   const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [uploadType, setUploadType] = useState<string>('');
+  const [localUploadStatus, setLocalUploadStatus] = useState<Record<string, boolean>>({});
   const ability = useAbility();
   const isSmallScreen = useMediaQuery({ maxWidth: 767 });
 
@@ -142,6 +144,12 @@ const EventsPage = () => {
       });
 
       if (!response.ok) throw new Error('Upload failed');
+
+      setLocalUploadStatus((prev) => ({
+        ...prev,
+        [semesterId]: true,
+      }));
+
       toast.success(`Tải lên ${type} thành công`);
       setIsUploadModalOpen(false);
     } catch {
@@ -192,14 +200,23 @@ const EventsPage = () => {
       title: 'Điểm sự kiện',
       key: 'eventScore',
       align: 'center' as const,
-      render: (_: any, record: Event) => (
-        <Tooltip title="Tải lên điểm sự kiện">
-          <Button
-            icon={<UploadOutlined />}
-            onClick={() => openUploadModal(record.semester, 'Điểm sự kiện')}
-          />
-        </Tooltip>
-      ),
+      render: (_: any, record: Event) => {
+        const uploaded = localUploadStatus[record.semester];
+        return (
+          <div className="flex justify-center items-center gap-2">
+            {uploaded ? (
+              <Tag color="success">Đã upload</Tag>
+            ) : (
+              <Tooltip title="Tải lên điểm sự kiện">
+                <Button
+                  icon={<UploadOutlined />}
+                  onClick={() => openUploadModal(record.semester, 'Điểm sự kiện')}
+                />
+              </Tooltip>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
