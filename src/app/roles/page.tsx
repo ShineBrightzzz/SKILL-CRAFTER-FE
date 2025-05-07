@@ -92,9 +92,9 @@ const RoleManagement: React.FC = () => {
   const openEditModal = (role: any) => {
     setEditingRole(role);
     form.setFieldsValue({
-      name: role.name,
-      description: role.description,
-      active: role.active,
+      name: role.name || '',
+      description: role.description || '',
+      active: role.active || false,
     });
     setSelectedPermissionIds(role.permissionIds || []);
     setModalVisible(true);
