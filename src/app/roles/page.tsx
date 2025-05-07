@@ -40,7 +40,6 @@ import { toast } from 'react-toastify';
 
 const { Panel } = Collapse;
 const { Text } = Typography;
-
 const RoleManagement: React.FC = () => {
   const [form] = Form.useForm();
   const [modalVisible, setModalVisible] = useState(false);
@@ -94,6 +93,18 @@ const RoleManagement: React.FC = () => {
     setSelectedPermissionIds(role.permissionIds || []);
     setModalVisible(true);
   };
+
+  useEffect(() => {
+    if (modalVisible && editingRole) {
+      form.setFieldsValue({
+        name: editingRole.name || '',
+        description: editingRole.description || '',
+        active: editingRole.active || false,
+      });
+    } else if (modalVisible && !editingRole) {
+      form.resetFields(); // Trường hợp tạo mới
+    }
+  }, [modalVisible, editingRole, form]);
 
   const handleSubmit = async () => {
     try {
@@ -221,10 +232,7 @@ const RoleManagement: React.FC = () => {
           <Loading message="Đang tải dữ liệu vai trò và quyền hạn..." />
         ) : (
           <>
-            <Typography.Title
-              level={2}
-              className="mb-4 text-xl sm:text-2xl md:text-3xl"
-            >
+            <Typography.Title level={2} className="mb-4 text-xl sm:text-2xl md:text-3xl">
               Danh sách Roles (Vai Trò)
             </Typography.Title>
 
@@ -277,38 +285,17 @@ const RoleManagement: React.FC = () => {
             <Modal
               title={editingRole ? 'Sửa Role' : 'Tạo mới Role'}
               open={modalVisible}
-              onCancel={() => {
-                setModalVisible(false);
-                setEditingRole(null);
-              }}
+              onCancel={() => setModalVisible(false)}
               onOk={handleSubmit}
               width={800}
-              afterClose={() => form.resetFields()} // reset lại form mỗi lần đóng
             >
-              <Form
-                layout="vertical"
-                form={form}
-                initialValues={
-                  editingRole
-                    ? {
-                      name: editingRole.name,
-                      description: editingRole.description,
-                      active: editingRole.active,
-                    }
-                    : { name: '', description: '', active: false }
-                }
-              >
-                <Form.Item name="name" label="Tên Role" rules={[{ required: true }]}>
-                  <Input />
-                </Form.Item>
-                <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}>
-                  <Input.TextArea />
-                </Form.Item>
+              <Form layout="vertical" form={form}>
+                <Form.Item name="name" label="Tên Role" rules={[{ required: true }]}> <Input /> </Form.Item>
+                <Form.Item name="description" label="Miêu tả" rules={[{ required: true }]}> <Input.TextArea /> </Form.Item>
                 <Form.Item name="active" label="Trạng thái" valuePropName="checked">
                   <Switch checkedChildren="ACTIVE" unCheckedChildren="INACTIVE" />
                 </Form.Item>
               </Form>
-
               <h4>Quyền hạn</h4>
               {renderPermissionGroups()}
             </Modal>
