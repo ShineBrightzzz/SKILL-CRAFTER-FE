@@ -9,14 +9,24 @@ import {
   Table,
   Button,
   Input,
-  message,
   Popconfirm,
-  Tooltip
+  Tooltip,
 } from 'antd';
-import { UploadOutlined, PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import {
+  UploadOutlined,
+  PlusOutlined,
+  SearchOutlined,
+  EditOutlined,
+  DeleteOutlined,
+} from '@ant-design/icons';
 import UploadModal from '@/components/UploadModal';
 import AddEventModal from '@/components/AddEventModal';
-import { useGetEventsQuery, useCreateEventMutation, useUpdateEventMutation, useDeleteEventMutation } from '@/services/events.service';
+import {
+  useGetEventsQuery,
+  useCreateEventMutation,
+  useUpdateEventMutation,
+  useDeleteEventMutation,
+} from '@/services/events.service';
 import { toast } from 'react-toastify';
 import Loading from '@/components/Loading';
 import ErrorHandler from '@/components/ErrorHandler';
@@ -54,16 +64,15 @@ const EventsPage = () => {
   const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [uploadType, setUploadType] = useState<string>('');
+  const ability = useAbility();
+  const isSmallScreen = useMediaQuery({ maxWidth: 767 });
 
   const { data: eventData, isLoading, error, refetch } = useGetEventsQuery();
   const [createEvent] = useCreateEventMutation();
   const [updateEvent] = useUpdateEventMutation();
   const [deleteEvent] = useDeleteEventMutation();
-  const ability = useAbility();
 
-  const isSmallScreen = useMediaQuery({ maxWidth: 767 });
-
-  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
+  const handleTableChange = (pagination: any, _: any, sorter: any) => {
     setCurrentPage(pagination.current);
     setPageSize(pagination.pageSize);
     setSortField(sorter.field || null);
@@ -76,7 +85,7 @@ const EventsPage = () => {
       toast.success("Thêm sự kiện thành công");
       setIsAddEventModalOpen(false);
       refetch();
-    } catch (error) {
+    } catch {
       toast.error("Thêm sự kiện thất bại");
     }
   };
@@ -88,7 +97,7 @@ const EventsPage = () => {
       toast.success("Cập nhật sự kiện thành công");
       setIsEditEventModalOpen(false);
       refetch();
-    } catch (error) {
+    } catch {
       toast.error("Cập nhật sự kiện thất bại");
     }
   };
@@ -96,18 +105,19 @@ const EventsPage = () => {
   const handleDeleteEvent = async (eventId: string) => {
     try {
       await deleteEvent({ id: eventId }).unwrap();
-      message.success("Xóa sự kiện thành công");
+      toast.success("Xóa sự kiện thành công");
       refetch();
     } catch (error: any) {
-      message.error(error?.data?.message || "Lỗi khi xóa sự kiện");
+      toast.error(error?.data?.message || "Lỗi khi xóa sự kiện");
     }
   };
 
   const handleUpload = async (file: File, metadata?: Record<string, any>): Promise<void> => {
     const semesterId = metadata?.semesterId;
     const type = metadata?.type;
+
     if (!semesterId || !type) {
-      toast.error('Thiếu thông tin');
+      toast.error('Thiếu thông tin học kỳ hoặc loại upload');
       return;
     }
 
@@ -115,16 +125,27 @@ const EventsPage = () => {
     formData.append('file', file);
     formData.append('semester_id', semesterId);
 
+    const uploadUrl =
+      type === 'Điểm sự kiện'
+        ? 'http://localhost:8000/file-processing/event'
+        : '';
+
+    if (!uploadUrl) {
+      toast.error('Không xác định được loại upload');
+      return;
+    }
+
     try {
-      const response = await fetch('http://localhost:8000/file-processing/event', {
+      const response = await fetch(uploadUrl, {
         method: 'POST',
         body: formData,
       });
+
       if (!response.ok) throw new Error('Upload failed');
-      toast.success('Tải lên thành công');
+      toast.success(`Tải lên ${type} thành công`);
       setIsUploadModalOpen(false);
-    } catch (error) {
-      toast.error('Lỗi khi tải lên');
+    } catch {
+      toast.error(`Lỗi khi tải lên ${type}`);
     }
   };
 
@@ -135,11 +156,11 @@ const EventsPage = () => {
   };
 
   const filteredEvents = eventData?.data?.filter((event: any) => {
-    const searchTermLower = searchText.toLowerCase();
+    const searchTerm = searchText.toLowerCase();
     return (
-      event.title?.toLowerCase().includes(searchTermLower) ||
-      event.organizingUnit?.toLowerCase().includes(searchTermLower) ||
-      event.location?.toLowerCase().includes(searchTermLower)
+      event.title?.toLowerCase().includes(searchTerm) ||
+      event.organizingUnit?.toLowerCase().includes(searchTerm) ||
+      event.location?.toLowerCase().includes(searchTerm)
     );
   });
 
@@ -167,6 +188,19 @@ const EventsPage = () => {
       dataIndex: 'endTime',
       render: (text: string) => dayjs(text).format('DD/MM/YYYY HH:mm'),
     },
+    {
+      title: 'Điểm sự kiện',
+      key: 'eventScore',
+      align: 'center' as const,
+      render: (_: any, record: Event) => (
+        <Tooltip title="Tải lên điểm sự kiện">
+          <Button
+            icon={<UploadOutlined />}
+            onClick={() => openUploadModal(record.semester, 'Điểm sự kiện')}
+          />
+        </Tooltip>
+      ),
+    },
   ];
 
   if (ability.can(Action.Update, Subject.Event) || ability.can(Action.Delete, Subject.Event)) {
@@ -176,19 +210,15 @@ const EventsPage = () => {
       render: (_: any, record: Event) => (
         <div className="flex flex-wrap gap-2 justify-center">
           {ability.can(Action.Update, Subject.Event) && (
-            <Button icon={<EditOutlined />} onClick={() => { setSelectedEvent(record); setIsEditEventModalOpen(true); }} />
+            <Button icon={<EditOutlined />} onClick={() => {
+              setSelectedEvent(record);
+              setIsEditEventModalOpen(true);
+            }} />
           )}
           {ability.can(Action.Delete, Subject.Event) && (
             <Popconfirm
               title="Xóa sự kiện này?"
-              onConfirm={async () => {
-                try {
-                  await handleDeleteEvent(record.eventId);
-                  toast.success("Xóa sự kiện thành công");
-                } catch (error) {
-                  toast.error("Xóa sự kiện thất bại");
-                }
-              }}
+              onConfirm={() => handleDeleteEvent(record.eventId)}
               okText="Có"
               cancelText="Không"
             >
@@ -209,10 +239,7 @@ const EventsPage = () => {
           <Loading message="Đang tải danh sách sự kiện..." />
         ) : (
           <>
-            <Typography.Title
-              level={2}
-              className="mb-4 text-xl sm:text-2xl md:text-3xl"
-            >
+            <Typography.Title level={2} className="mb-4 text-xl sm:text-2xl md:text-3xl">
               Danh sách sự kiện
             </Typography.Title>
 
@@ -253,14 +280,18 @@ const EventsPage = () => {
               )}
             </div>
 
-
-
             <Card className="overflow-auto">
               <Table
                 columns={columns}
                 dataSource={filteredEvents}
                 rowKey="eventId"
-                pagination={{ pageSize, current: currentPage, total: filteredEvents?.length, onChange: setCurrentPage, onShowSizeChange: (_, size) => setPageSize(size) }}
+                pagination={{
+                  pageSize,
+                  current: currentPage,
+                  total: filteredEvents?.length,
+                  onChange: setCurrentPage,
+                  onShowSizeChange: (_, size) => setPageSize(size),
+                }}
                 onChange={handleTableChange}
               />
             </Card>
@@ -269,7 +300,10 @@ const EventsPage = () => {
 
         <UploadModal
           isOpen={isUploadModalOpen}
-          onClose={() => setIsUploadModalOpen(false)}
+          onClose={() => {
+            setIsUploadModalOpen(false);
+            setSelectedSemester(null);
+          }}
           semester={selectedSemester}
           uploadType={uploadType}
           onUpload={handleUpload}
