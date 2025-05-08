@@ -126,7 +126,7 @@ const Sidebar: React.FC<DashboardLayoutProps> = ({ children }) => {
           }}
         >
           <Image
-            src="/HVNH.svg"
+            src="/logo.png"
             alt="BAV Logo"
             width={collapsed ? 40 : 50}
             height={collapsed ? 40 : 50}

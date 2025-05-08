@@ -51,7 +51,7 @@ export default function Login() {
       <div className="p-4 shadow-lg rounded w-full sm:max-w-sm md:max-w-md">
         <div className="flex justify-center mb-4">
           <Image 
-            src="/HVNH.svg" 
+            src="/logo.png" 
             alt="Logo Học viện Ngân hàng" 
             width={150} 
             height={150}

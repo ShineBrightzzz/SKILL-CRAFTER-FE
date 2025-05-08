@@ -20,8 +20,8 @@ export const metadata: Metadata = {
   title: 'BAV Score',
   description: 'Banking Academy of Vietnam Score Management System',
   icons: {
-    icon: '/HVNH.svg',
-    apple: '/HVNH.svg',
+    icon: '/logo.png',
+    apple: '/logo.png',
   },
 };
 
