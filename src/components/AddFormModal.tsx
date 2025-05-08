@@ -266,7 +266,12 @@ const AddFormModal: React.FC<AddFormModalProps> = ({
                         style={{ width: '100%' }} 
                         placeholder="Nhập điểm tối đa"
                         formatter={value => `${value} điểm`}
-                        parser={value => value!.replace(' điểm', '')} 
+                        parser={value => {
+                          const parsed = parseInt(value!.replace(' điểm', ''), 10);
+                          // Ensure the value is within the allowed range
+                          if (isNaN(parsed)) return 1;
+                          return Math.max(1, Math.min(100, parsed)) as 1 | 100;
+                        }} 
                       />
                     </Form.Item>
                   </Card>
