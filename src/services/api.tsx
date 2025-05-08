@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 
 const customBaseQuery = fetchBaseQuery({
-  baseUrl: 'https://bav-itde-be-deploy-production.up.railway.app/',
+  baseUrl: 'http://localhost:8080',
   prepareHeaders: async (headers) => {
     try {
       const token = localStorage.getItem('accessToken');
