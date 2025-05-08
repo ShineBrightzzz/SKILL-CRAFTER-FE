@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from "@/layouts/sidebar";
 import dayjs from 'dayjs';
 import {
@@ -129,16 +129,18 @@ const EventsPage = () => {
 
   const handleUpload = async (file: File, metadata?: Record<string, any>): Promise<void> => {
     const semesterId = metadata?.semesterId;
+    const eventId = metadata?.eventId; // Get the event ID from metadata
     const type = metadata?.type;
 
-    if (!semesterId || !type) {
-      toast.error('Thiếu thông tin học kỳ hoặc loại upload');
+    if (!semesterId || !type || !eventId) {
+      toast.error('Thiếu thông tin học kỳ, sự kiện hoặc loại upload');
       return;
     }
 
     const formData = new FormData();
     formData.append('file', file);
     formData.append('semester_id', semesterId);
+    formData.append('event_id', eventId); // Add event ID to form data
 
     const uploadUrl =
       type === 'Điểm sự kiện'
@@ -158,9 +160,10 @@ const EventsPage = () => {
 
       if (!response.ok) throw new Error('Upload failed');
 
+      // Update local state using eventId as the key instead of semesterId
       setLocalUploadStatus((prev) => ({
         ...prev,
-        [semesterId]: true,
+        [eventId]: true, // Use eventId instead of semesterId
       }));
 
       toast.success(`Tải lên ${type} thành công`);
@@ -170,7 +173,9 @@ const EventsPage = () => {
     }
   };
 
-  const openUploadModal = (semesterId: string, type: string) => {
+  // Remove localStorage effect
+  
+  const openUploadModal = (semesterId: string, type: string, eventId: string) => {
     const match = semesterId.match(/^S(\d)_(\d{4})$/);
     if (match) {
       const [_, semesterNumber, year] = match;
@@ -178,6 +183,7 @@ const EventsPage = () => {
     } else {
       setSelectedSemester({ id: semesterId, number: 0, year: 0 });
     }
+    setSelectedEvent({ eventId } as Event); // Set selected event with ID
     setUploadType(type);
     setIsUploadModalOpen(true);
   };
@@ -225,7 +231,7 @@ const EventsPage = () => {
       key: 'eventScore',
       align: 'center' as const,
       render: (_: any, record: Event) => {
-        const uploaded = localUploadStatus[record.semester];
+        const uploaded = localUploadStatus[record.eventId]; // Use eventId instead of semesterId
         return (
           <div className="flex justify-center items-center gap-2">
             {uploaded ? (
@@ -234,7 +240,7 @@ const EventsPage = () => {
               <Tooltip title="Tải lên điểm sự kiện">
                 <Button
                   icon={<UploadOutlined />}
-                  onClick={() => openUploadModal(record.semester, 'Điểm sự kiện')}
+                  onClick={() => openUploadModal(record.semester, 'Điểm sự kiện', record.eventId)}
                 />
               </Tooltip>
             )}
@@ -349,6 +355,7 @@ const EventsPage = () => {
           semester={selectedSemester}
           uploadType={uploadType}
           onUpload={handleUpload}
+          eventId={selectedEvent?.eventId} // Pass the event ID to the modal
         />
 
         <AddEventModal

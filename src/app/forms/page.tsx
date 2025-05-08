@@ -84,11 +84,17 @@ const FormsPage: React.FC = () => {
 
   const handleAddForm = async (formData: any) => {
     try {
-      const body = {
+      // Chuyển đổi định dạng ngày tháng từ "YYYY-MM-DD HH:mm:ss" sang "YYYY-MM-DDThh:mm:ss"
+      // để tương thích với java.time.LocalDateTime
+      const endTime = formData.endTime.replace(' ', 'T');
+      const startTime = formData.startTime ? formData.startTime.replace(' ', 'T') : undefined;
+      
+      // Tạo dữ liệu form theo đúng định dạng API yêu cầu
+      const formPayload = {
         title: formData.title,
         semesterId: formData.semesterId,
-        endTime: formData.endTime,
-        startTime: formData.startTime,
+        endTime: endTime,
+        startTime: startTime,
         questions: formData.questions.map((question: any) => ({
           id: question.id,
           question: question.question,
@@ -96,14 +102,14 @@ const FormsPage: React.FC = () => {
         })),
       };
 
-
-      console.log('body', body);
-      await createForm({ body }).unwrap();
+      console.log('Dữ liệu gửi đi:', formPayload);
+      await createForm(formPayload).unwrap();
       toast.success('Thêm biểu mẫu thành công');
       setIsAddFormModalOpen(false);
       refetch();
-    } catch (error) {
-      toast.error('Thêm biểu mẫu thất bại');
+    } catch (error: any) {
+      toast.error(error?.data?.message || 'Thêm biểu mẫu thất bại');
+      console.error('Lỗi khi thêm biểu mẫu:', error);
     }
   };
 

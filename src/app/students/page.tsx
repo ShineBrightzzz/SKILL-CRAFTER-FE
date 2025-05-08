@@ -61,10 +61,27 @@ export default function ScoresPage() {
   }, [studentScoresData]);
 
   const filteredData = useMemo(() => {
-    return processedData.filter((student: any) => {
-      if (!searchText) return true;
-      return student.studentId.toLowerCase().includes(searchText.toLowerCase());
-    });
+    return processedData
+      .filter((student: any) => {
+        if (!searchText) return true;
+        return student.studentId.toLowerCase().includes(searchText.toLowerCase());
+      })
+      .sort((a: any, b: any) => {
+        // Sort students with any scores to the top
+        const hasScoresA = a.calculatedTotal !== undefined;
+        const hasScoresB = b.calculatedTotal !== undefined;
+        
+        if (hasScoresA && !hasScoresB) return -1;
+        if (!hasScoresA && hasScoresB) return 1;
+        
+        // If both have scores or both don't have scores, sort by total score (descending)
+        if (hasScoresA && hasScoresB) {
+          return (b.calculatedTotal || 0) - (a.calculatedTotal || 0);
+        }
+        
+        // Otherwise, sort by student ID
+        return a.studentId.localeCompare(b.studentId);
+      });
   }, [processedData, searchText]);
 
   const handleSemesterChange = (value: string) => setSelectedSemesterId(value);

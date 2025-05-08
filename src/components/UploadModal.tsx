@@ -14,9 +14,10 @@ interface UploadModalProps {
   semester: Semester | null;
   uploadType: string;
   onUpload: (file: File, metadata?: Record<string, any>) => Promise<void>;
+  eventId?: string; // Add optional eventId parameter
 }
 
-const UploadModal = ({ isOpen, onClose, semester, uploadType, onUpload }: UploadModalProps) => {
+const UploadModal = ({ isOpen, onClose, semester, uploadType, onUpload, eventId }: UploadModalProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [fileList, setFileList] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -39,6 +40,7 @@ const UploadModal = ({ isOpen, onClose, semester, uploadType, onUpload }: Upload
       await onUpload(file, {
         semesterId: semester?.id,
         type: uploadType,
+        eventId: eventId, // Pass the eventId to the upload handler
       });
       message.success(`Tải lên ${uploadType} thành công`);
       handleClose();

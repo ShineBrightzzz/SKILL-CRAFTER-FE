@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from "@/layouts/sidebar";
 import { Card, Typography, Table, Button, Tag, Input, message } from 'antd';
 import { UploadOutlined, SearchOutlined } from '@ant-design/icons';

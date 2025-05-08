@@ -86,7 +86,9 @@ const eventsService = apiSlice.injectEndpoints({
         getTopRegisteredEvents: builder.query<any, void>({
             query: () => `/eventDetails/top-registered`,
         }),
-
+        getExistsScore: builder.query({
+            query: () => `/score/check-all`,
+        }),
     }),
     overrideExisting: true,
 });
@@ -102,5 +104,6 @@ export const {
     useCheckinEventMutation, 
     useGetCheckinCountQuery, 
     useCheckoutEventMutation,
-    useGetTopRegisteredEventsQuery 
+    useGetTopRegisteredEventsQuery,
+    useGetExistsScoreQuery
 } = eventsService;
