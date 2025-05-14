@@ -5,7 +5,6 @@ import { Layout, Avatar, Dropdown, Menu, Typography } from 'antd';
 import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
-import { logout } from '@/store/slices/userSlice';
 import { useRouter } from 'next/navigation';
 import { useMediaQuery } from 'react-responsive';
 
@@ -25,8 +24,6 @@ const Navbar: React.FC<NavbarProps> = ({ collapsed }) => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('userId');
 
-    // Dispatch logout action to reset Redux state
-    dispatch(logout());
 
     // Redirect to login page
     router.push('/login');
@@ -35,7 +32,7 @@ const Navbar: React.FC<NavbarProps> = ({ collapsed }) => {
   const menu = (
     <Menu>
       <Menu.Item key="userInfo" disabled>
-        <Text strong>{user.name || 'Guest'}</Text>
+        <Text strong>{user?.name || 'Guest'}</Text>
       </Menu.Item>
       <Menu.Divider />
       <Menu.Item key="logout" icon={<LogoutOutlined />} onClick={handleLogout}>

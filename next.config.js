@@ -1,6 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   devIndicators: false,
   /* config options here */
   transpilePackages: ["@ant-design/plots"],
@@ -10,7 +9,6 @@ const nextConfig: NextConfig = {
     config.module.exprContextCritical = false;
     return config;
   }
-  
 };
 
-export default nextConfig;
+module.exports = nextConfig;

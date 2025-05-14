@@ -4,8 +4,6 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { useLazyGetUserInfoQuery, useLoginMutation } from '@/services/user.service';
 import { useAppDispatch } from '@/store/hooks';
-import { setUser } from '@/store/slices/userSlice';
-import { setAbility } from '@/store/slices/abilitySlice';
 
 export default function Login() {
   const [login, { isLoading }] = useLoginMutation();
@@ -33,11 +31,6 @@ export default function Login() {
         setIsSubmitting(false);
         return;
       }
-      dispatch(setUser({
-        ...user.data,
-        isAuthenticated: true
-      }));
-      dispatch(setAbility(data?.data?.role?.permissions || []));
       window.location.href = '/';
     } catch (err: any) {
       setError('Tên đăng nhập hoặc mật khẩu không hợp lệ');

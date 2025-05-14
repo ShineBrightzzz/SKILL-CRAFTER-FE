@@ -1,28 +1,15 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import './globals.css';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import Providers from '../providers/Providers';
-import AuthGuard from '@/components/AuthGuard';
+import Providers from '@/providers/Providers';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'BAV Score',
-  description: 'Banking Academy of Vietnam Score Management System',
-  icons: {
-    icon: '/logo.svg',
-    apple: '/logo.svg',
-  },
+  title: 'CodeLearn - Học Lập Trình Trực Tuyến',
+  description: 'Nền tảng học lập trình trực tuyến với các khóa học chất lượng cao',
 };
 
 export default function RootLayout({
@@ -31,18 +18,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="vi">
+      <body className={inter.className}>
         <Providers>
-          <AuthGuard>
-            {children}
-          </AuthGuard>
+          <Navbar />
+          {children}
+          <Footer />
         </Providers>
       </body>
     </html>
-    
-    <ToastContainer />
-    </>
   );
 }
