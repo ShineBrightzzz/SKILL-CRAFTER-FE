@@ -1,5 +1,8 @@
+'use client'
+
 import Image from 'next/image';
 import Link from 'next/link';
+import { useState } from 'react';
 
 const courseData = {
   id: 1,
@@ -92,6 +95,8 @@ const courseData = {
 };
 
 export default function CourseDetailPage({ params }: { params: { id: string } }) {
+  const [registered, setRegistered] = useState(false);
+
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
@@ -114,7 +119,22 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
             </div>
             <h1 className="text-3xl font-bold mb-4">{courseData.title}</h1>
             <p className="text-gray-600 mb-6">{courseData.description}</p>
-            
+            {/* Nút đăng ký và vào học */}
+            {!registered ? (
+              <button
+                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition mb-4"
+                onClick={() => setRegistered(true)}
+              >
+                Đăng ký khóa học
+              </button>
+            ) : (
+              <Link
+                href={`/learning/${params.id}/study`}
+                className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition mb-4 inline-block"
+              >
+                Vào học ngay
+              </Link>
+            )}
             {/* Course Stats */}
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="text-center">
@@ -136,7 +156,6 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                 <div className="text-sm text-gray-500">Học viên</div>
               </div>
             </div>
-
             {/* Instructor */}
             <div className="flex items-center space-x-4">
               <div className="relative w-12 h-12">
@@ -154,7 +173,6 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
             </div>
           </div>
         </div>
-
         {/* Syllabus */}
         <div className="bg-white rounded-lg shadow-lg p-6">
           <h2 className="text-2xl font-bold mb-6">Nội dung khóa học</h2>
