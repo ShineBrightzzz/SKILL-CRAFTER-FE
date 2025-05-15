@@ -1,68 +1,33 @@
+
+
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
+import { useGetAllCoursesQuery } from '@/services/course.service';
 
-const courses = [
-  {
-    id: 1,
-    title: 'Java Cơ Bản',
-    description: 'Học lập trình Java từ cơ bản đến nâng cao',
-    image: '/images/java-basic.jpg',
-    level: 'Cơ bản',
-    duration: '8 tuần',
-    students: 15000,
-    category: 'Backend',
-    tags: ['Java', 'OOP', 'Spring']
-  },
-  {
-    id: 2,
-    title: 'Python Cơ Bản',
-    description: 'Làm quen với ngôn ngữ lập trình Python',
-    image: '/images/python-basic.jpg',
-    level: 'Cơ bản',
-    duration: '6 tuần',
-    students: 12000,
-    category: 'Backend',
-    tags: ['Python', 'Data Science']
-  },
-  {
-    id: 3,
-    title: 'Web Development',
-    description: 'Xây dựng website với HTML, CSS và JavaScript',
-    image: '/images/web-dev.jpg',
-    level: 'Trung cấp',
-    duration: '10 tuần',
-    students: 20000,
-    category: 'Frontend',
-    tags: ['HTML', 'CSS', 'JavaScript']
-  },
-  {
-    id: 4,
-    title: 'React.js',
-    description: 'Xây dựng ứng dụng web với React.js',
-    image: '/images/react.jpg',
-    level: 'Trung cấp',
-    duration: '8 tuần',
-    students: 18000,
-    category: 'Frontend',
-    tags: ['React', 'JavaScript', 'Web Development']
-  },
-  {
-    id: 5,
-    title: 'Node.js',
-    description: 'Xây dựng backend với Node.js',
-    image: '/images/nodejs.jpg',
-    level: 'Trung cấp',
-    duration: '8 tuần',
-    students: 16000,
-    category: 'Backend',
-    tags: ['Node.js', 'JavaScript', 'Backend']
+// Map level number to text
+const getLevelText = (level: number) => {
+  switch (level) {
+    case 1:
+      return 'Cơ bản';
+    case 2:
+      return 'Trung cấp';
+    case 3:
+      return 'Nâng cao';
+    default:
+      return 'Không xác định';
   }
-];
+};
 
 const categories = ['Tất cả', 'Frontend', 'Backend', 'Mobile', 'DevOps'];
 const levels = ['Tất cả', 'Cơ bản', 'Trung cấp', 'Nâng cao'];
 
 export default function LearningPage() {
+  // Fetch courses data from API
+  const { data: coursesResponse, isLoading, error } = useGetAllCoursesQuery({});
+  const courses = coursesResponse?.data || [];
+  console.log('Courses:', courses);
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
@@ -98,14 +63,28 @@ export default function LearningPage() {
           </div>
         </div>
 
+        {/* Loading state */}
+        {isLoading && (
+          <div className="flex justify-center items-center h-64">
+            <p className="text-xl text-gray-600">Đang tải khóa học...</p>
+          </div>
+        )}
+
+        {/* Error state */}
+        {error && (
+          <div className="flex justify-center items-center h-64">
+            <p className="text-xl text-red-600">Có lỗi xảy ra khi tải khóa học</p>
+          </div>
+        )}
+
         {/* Course Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {courses.map((course) => (
-            <Link href={`/learning/${course.id}`} key={course.id}>
-              <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition">
-                <div className="relative h-48">
+        {!isLoading && !error && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {courses.map((course) => (            
+              <Link href={`/learning/${course.id}`} key={course.id}>
+              <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition">                <div className="relative h-48">
                   <Image
-                    src={course.image}
+                    src={'/logo.png'}
                     alt={course.title}
                     fill
                     className="object-cover"
@@ -114,14 +93,14 @@ export default function LearningPage() {
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-blue-600">
-                      {course.category}
+                      {course.categoryName || 'Chưa phân loại'}
                     </span>
-                    <span className="text-sm text-gray-500">{course.level}</span>
+                    <span className="text-sm text-gray-500">{getLevelText(course.level)}</span>
                   </div>
                   <h3 className="text-xl font-semibold mb-2">{course.title}</h3>
                   <p className="text-gray-600 mb-4">{course.description}</p>
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {course.tags.map((tag) => (
+                    {course.tags && Array.isArray(course.tags) && course.tags.map((tag: string) => (
                       <span
                         key={tag}
                         className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-sm"
@@ -131,15 +110,16 @@ export default function LearningPage() {
                     ))}
                   </div>
                   <div className="flex justify-between text-sm text-gray-500">
-                    <span>{course.duration}</span>
-                    <span>{course.students} học viên</span>
+                    <span>{course.duration ? `${course.duration} giờ` : 'Không xác định'}</span>
+                    <span>{new Intl.NumberFormat('vi-VN').format(course.price || 0)} VNĐ</span>
                   </div>
                 </div>
               </div>
             </Link>
           ))}
         </div>
+      )}
       </div>
     </main>
   );
-} 
+}

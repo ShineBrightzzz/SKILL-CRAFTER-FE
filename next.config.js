@@ -3,6 +3,9 @@ const nextConfig = {
   devIndicators: false,
   /* config options here */
   transpilePackages: ["@ant-design/plots"],
+  images: {
+    domains: ['example.com'],
+  },
   webpack: (config) => {
     // This is needed to handle dynamic imports properly
     config.module = config.module || {};
