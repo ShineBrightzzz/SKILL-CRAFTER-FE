@@ -39,6 +39,27 @@ export const courseApiSlice = apiSlice.injectEndpoints({
       query: (chapterId) => `/api/chapters/${chapterId}/lessons`,
     }),
 
+    getEnrollmentsByUserId: builder.query({
+      query: ({userId}) => `/api/enrollments/user/${userId}`,
+    }),
+
+    getEnrollmentsByCourseId: builder.query({
+      query: ({courseId}) => `/api/enrollments/course/${courseId}`,
+    }),
+
+    enrollCourse: builder.mutation({
+      query: ({ courseId, userId }) => ({
+        url: `/api/enrollments/user/${userId}/course/${courseId}`,
+        method: 'POST',
+      }),
+    }),
+    unenrollCourse: builder.mutation({
+      query: ({ courseId, userId }) => ({
+        url: `/api/enrollments/user/${userId}/course/${courseId}`,
+        method: 'DELETE',
+      }),
+    }),
+
   }),
   overrideExisting: true,
 });

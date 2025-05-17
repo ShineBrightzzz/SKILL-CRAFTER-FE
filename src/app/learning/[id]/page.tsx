@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useGetCourseByIdQuery } from '@/services/course.service';
 import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import VideoPlayer from '@/components/VideoPlayer';
 
 // Define types for the API response
 interface Lesson {
@@ -12,8 +13,10 @@ interface Lesson {
   chapterId: string;
   chapterName: string;
   title: string;
-  content: string;
-  duration: number;
+  type: number;
+  content: string | null;
+  videoUrl: string | null;
+  duration: number | null;
 }
 
 interface Chapter {
@@ -237,7 +240,15 @@ export default function CourseDetailPage({ params, searchParams }: {
                 <>
                   <h2 className="text-2xl font-bold mb-6">{currentLesson.title}</h2>
                   <div className="prose max-w-none">
-                    {currentLesson.content}
+                    {currentLesson.type === 4 && currentLesson.content && (
+                      <div dangerouslySetInnerHTML={{ __html: currentLesson.content }} />
+                    )}
+                    {currentLesson.type === 2 && currentLesson.videoUrl && (
+                      <VideoPlayer 
+                        src={currentLesson.videoUrl}
+                        className="w-full"
+                      />
+                    )}
                   </div>
                 </>
               ) : (
