@@ -1,0 +1,56 @@
+import apiSlice from './api';
+
+// Language ID mapping theo Judge0
+export const LANGUAGE_IDS = {
+  javascript: 63,  // Node.js
+  typescript: 74,  // TypeScript
+  python: 71,      // Python 3
+  java: 62,        // Java
+  cpp: 54,         // C++
+  csharp: 51,      // C#
+  go: 60,          // Go
+  rust: 73,        // Rust
+} as const;
+
+interface SubmitCodeRequest {
+  language_id: number;
+  source_code: string;
+  stdin?: string;
+  expected_output?: string;
+}
+
+interface SubmitCodeResponse {
+  statusCode: number;
+  error: string | null;
+  message: string;
+  data: {
+    success: boolean;
+    output: string | null;
+    error: string | null;
+    executionTime: number;
+    memoryUsed: number;
+    testCasesPassed: number | null;
+    totalTestCases: number | null;
+  };
+}
+
+export const codeSubmitApiSlice = apiSlice.injectEndpoints({
+  endpoints: (builder) => ({      
+    submitCode: builder.mutation<SubmitCodeResponse, SubmitCodeRequest>({
+      query: (payload) => {
+        console.log('Request Payload:', JSON.stringify(payload, null, 2));
+        return {
+          url: '/api/code/submit',
+          method: 'POST',
+          body: payload
+        };
+      },
+    }),
+  }),
+  overrideExisting: true,
+});
+
+
+export const {
+  useSubmitCodeMutation
+} = codeSubmitApiSlice;

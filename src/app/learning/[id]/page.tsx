@@ -7,6 +7,8 @@ import { useGetCourseByIdQuery } from '@/services/course.service';
 import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import VideoPlayer from '@/components/VideoPlayer';
 import Quiz from '@/components/Quiz';
+import MarkdownCode from '@/components/MarkdownCode';
+import CodeEditor from '@/components/CodeEditor';
 
 // Define types for the API response
 interface Lesson {
@@ -240,17 +242,16 @@ export default function CourseDetailPage({ params, searchParams }: {
               {currentLesson ? (
                 <>
                   <h2 className="text-2xl font-bold mb-6">{currentLesson.title}</h2>
-                  <div className="prose max-w-none">                    {currentLesson.type === 4 && currentLesson.content && (
-                      <div dangerouslySetInnerHTML={{ __html: currentLesson.content }} />
+                  <div className="prose max-w-none">                    
+                    {currentLesson.type === 4 && currentLesson.content && (
+                      <MarkdownCode content={currentLesson.content} />
                     )}
                     {currentLesson.type === 2 && currentLesson.videoUrl && (
                       <>
-                        {/* Video chính */}
                         <VideoPlayer 
                           src={currentLesson.videoUrl}
                           className="w-full relative z-10"
                         />
-                        {/* Video nền */}
                         <VideoPlayer 
                           src={currentLesson.videoUrl}
                           backgroundMode={true}
@@ -260,6 +261,25 @@ export default function CourseDetailPage({ params, searchParams }: {
                     )}
                     {currentLesson.type === 1 && currentLesson.quizData && (
                       <Quiz data={currentLesson.quizData} />
+                    )}                   
+                     {currentLesson.type === 3 && (
+                      <div>
+                        <CodeEditor
+                          initialCode={currentLesson.initialCode || '// Write your code here\n// Viết code của bạn ở đây'}
+                          language={currentLesson.language || 'javascript'}
+                          lessonId={currentLesson.id}
+                          className="mb-4"
+                        />
+                        {currentLesson.solutionCode && (
+                          <div className="mt-6">
+                            <h3 className="text-lg font-semibold mb-2">Giải pháp mẫu:</h3>
+                            <MarkdownCode
+                              content={'```java\n' + currentLesson.solutionCode + '\n```'}
+                              className="solution-code"
+                            />
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </>
