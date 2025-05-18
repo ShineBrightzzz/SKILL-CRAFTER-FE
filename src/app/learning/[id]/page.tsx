@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useGetCourseByIdQuery } from '@/services/course.service';
 import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import VideoPlayer from '@/components/VideoPlayer';
+import Quiz from '@/components/Quiz';
 
 // Define types for the API response
 interface Lesson {
@@ -239,15 +240,26 @@ export default function CourseDetailPage({ params, searchParams }: {
               {currentLesson ? (
                 <>
                   <h2 className="text-2xl font-bold mb-6">{currentLesson.title}</h2>
-                  <div className="prose max-w-none">
-                    {currentLesson.type === 4 && currentLesson.content && (
+                  <div className="prose max-w-none">                    {currentLesson.type === 4 && currentLesson.content && (
                       <div dangerouslySetInnerHTML={{ __html: currentLesson.content }} />
                     )}
                     {currentLesson.type === 2 && currentLesson.videoUrl && (
-                      <VideoPlayer 
-                        src={currentLesson.videoUrl}
-                        className="w-full"
-                      />
+                      <>
+                        {/* Video chính */}
+                        <VideoPlayer 
+                          src={currentLesson.videoUrl}
+                          className="w-full relative z-10"
+                        />
+                        {/* Video nền */}
+                        <VideoPlayer 
+                          src={currentLesson.videoUrl}
+                          backgroundMode={true}
+                          className="background-video"
+                        />
+                      </>
+                    )}
+                    {currentLesson.type === 1 && currentLesson.quizData && (
+                      <Quiz data={currentLesson.quizData} />
                     )}
                   </div>
                 </>
