@@ -125,9 +125,9 @@ export default function CourseDetailPage({ params, searchParams }: {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4">
-        {!searchParams.activityId ? (
+    <main className="min-h-screen bg-gray-50">
+      {!searchParams.activityId ? (
+        <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Left side - Course info and content */}
             <div className="md:col-span-2">
@@ -208,60 +208,58 @@ export default function CourseDetailPage({ params, searchParams }: {
               </div>
             </div>
           </div>
-        ) : (
-          // Main Content Area with sidebar and lesson content
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {/* Sidebar with Chapters and Lessons */}
-            <div className="md:col-span-1">
-              <div className="bg-white rounded-lg shadow-lg p-4">
-                <h2 className="text-xl font-bold mb-4">Nội dung khóa học</h2>
-                <div className="space-y-2">
-                  {course.chapters?.map((chapter: Chapter, index: number) => (
-                    <div key={chapter.id} className="border-b pb-2 last:border-b-0">
-                      <button
-                        onClick={() => toggleChapter(chapter.id)}
-                        className="flex items-center justify-between w-full p-2 hover:bg-gray-50 rounded"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm font-medium">Chương {index + 1}:</span>
-                          <span className="text-sm">{chapter.name}</span>
+        </div>
+      ) : (
+        <div className="min-h-screen">
+          {currentLesson ? (
+            <>
+              <h2 className="text-2xl font-bold p-6 border-b bg-white">{currentLesson.title}</h2>
+              {currentLesson.type === 3 ? (
+                // Code editor split view layout
+                <div className="grid grid-cols-2 h-[calc(100vh-76px)]">
+                  {/* Left side - Content/Description */}
+                  <div className="border-r bg-white overflow-y-auto">
+                    <div className="p-6">
+                      {currentLesson.content ? (
+                        <div className="prose max-w-none">
+                          <MarkdownCode content={currentLesson.content} />
                         </div>
-                        {expandedChapters.has(chapter.id) ? (
-                          <ChevronDownIcon className="h-4 w-4" />
-                        ) : (
-                          <ChevronRightIcon className="h-4 w-4" />
-                        )}
-                      </button>
-                      
-                      {expandedChapters.has(chapter.id) && chapter.lessons && (
-                        <div className="ml-4 space-y-1 mt-1">
-                          {chapter.lessons.map((lesson: Lesson, lessonIndex: number) => (
-                            <Link
-                              key={lesson.id}
-                              href={`/learning/${params.id}?activityId=${lesson.id}`}
-                              className={`block p-2 text-sm rounded ${
-                                currentLesson?.id === lesson.id
-                                  ? 'bg-blue-50 text-blue-600'
-                                  : 'hover:bg-gray-50'
-                              }`}
-                            >
-                              {index + 1}.{lessonIndex + 1} {lesson.title}
-                            </Link>
-                          ))}
+                      ) : (
+                        <div className="prose max-w-none">
+                          <h3>Bài tập: {currentLesson.title}</h3>
+                          <p>Vui lòng tạo một chương trình Java theo yêu cầu bên dưới:</p>
+                          <ul>
+                            <li>Triển khai các yêu cầu của bài tập</li>
+                            <li>Test tất cả các trường hợp có thể</li>
+                            <li>Đảm bảo code rõ ràng và có comment đầy đủ</li>
+                          </ul>
                         </div>
                       )}
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+                  </div>
 
-            {/* Lesson Content Area */}
-            <div className="md:col-span-3">
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                {currentLesson ? (
-                  <>
-                    <h2 className="text-2xl font-bold mb-6">{currentLesson.title}</h2>
+                  {/* Right side - Code Editor and Test */}
+                  <div className="flex flex-col bg-[#1e1e1e]">
+                    <div className="flex-1">
+                      <CodeEditor
+                        initialCode={currentLesson.initialCode || '// Write your code here\n// Viết code của bạn ở đây'}
+                        language={currentLesson.language || 'javascript'}
+                        lessonId={currentLesson.id}
+                      />
+                    </div>
+                    <div className="h-[300px] border-t border-gray-700 text-white overflow-y-auto">
+                      <div className="p-4">
+                        <h3 className="text-sm font-medium mb-2">KIỂM THỬ</h3>
+                        <div className="text-sm text-gray-400">
+                          Vui lòng chạy thử code của bạn trước!
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-6">
+                  <div className="bg-white rounded-lg shadow-lg p-6">
                     <div className="prose max-w-none">                    
                       {currentLesson.type === 4 && currentLesson.content && (
                         <MarkdownCode content={currentLesson.content} />
@@ -281,38 +279,19 @@ export default function CourseDetailPage({ params, searchParams }: {
                       )}
                       {currentLesson.type === 1 && currentLesson.quizData && (
                         <Quiz data={currentLesson.quizData} />
-                      )}                   
-                       {currentLesson.type === 3 && (
-                        <div>
-                          <CodeEditor
-                            initialCode={currentLesson.initialCode || '// Write your code here\n// Viết code của bạn ở đây'}
-                            language={currentLesson.language || 'javascript'}
-                            lessonId={currentLesson.id}
-                            className="mb-4"
-                          />
-                          {currentLesson.solutionCode && (
-                            <div className="mt-6">
-                              <h3 className="text-lg font-semibold mb-2">Giải pháp mẫu:</h3>
-                              <MarkdownCode
-                                content={'```java\n' + currentLesson.solutionCode + '\n```'}
-                                className="solution-code"
-                              />
-                            </div>
-                          )}
-                        </div>
                       )}
                     </div>
-                  </>
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-gray-500">Chọn một bài học để bắt đầu</p>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500">Chọn một bài học để bắt đầu</p>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </main>
   );
 }
