@@ -23,8 +23,7 @@ export default function Login() {
     const username = formData.get('username') as string;
     const password = formData.get('password') as string;
     try {
-      const data = await login({ username, password }).unwrap();
-      const user = await fetchUserInfo({ userId : username }).unwrap();
+      const user = await login({ username, password }).unwrap();
       
       if (!user) {
         console.log('Error', 'Không tìm thấy người dùng');

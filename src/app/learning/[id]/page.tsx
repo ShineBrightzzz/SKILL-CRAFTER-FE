@@ -127,170 +127,191 @@ export default function CourseDetailPage({ params, searchParams }: {
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
-        {!searchParams.activityId && (
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
-            <div className="relative h-64 md:h-96">
-              <Image
-                src={'/logo.png'}
-                alt={course.title}
-                fill
-                className="object-cover"
-              />
-            </div>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-medium text-blue-600">
-                  {course.categoryName || 'Chưa phân loại'}
-                </span>
-                <span className="text-sm text-gray-500">{getLevelText(course.level)}</span>
+        {!searchParams.activityId ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Left side - Course info and content */}
+            <div className="md:col-span-2">
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h1 className="text-3xl font-bold mb-4">{course.title}</h1>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-sm font-medium text-blue-600">
+                    {course.categoryName || 'Chưa phân loại'}
+                  </span>
+                  <span className="text-sm text-gray-500">{getLevelText(course.level)}</span>
+                </div>
+                <p className="text-gray-600 mb-6">{course.description}</p>
               </div>
-              <h1 className="text-3xl font-bold mb-4">{course.title}</h1>
-              <p className="text-gray-600 mb-6">{course.description}</p>
-              {/* Nút đăng ký và vào học */}
-              {!registered ? (
-                <button
-                  className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition mb-4"
-                  onClick={() => setRegistered(true)}
-                >
-                  Đăng ký khóa học
-                </button>
-              ) : (
-                <Link
-                  href={`/learning/${params.id}${course.chapters && course.chapters[0]?.lessons?.[0] 
-                    ? `?activityId=${course.chapters[0].lessons[0].id}` 
-                    : ''}`}
-                  className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition mb-4 inline-block"
-                >
-                  Vào học ngay
-                </Link>
-              )}
-              {/* Course Stats */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {course.duration ? `${course.duration} giờ` : 'Không xác định'}
-                  </div>
-                  <div className="text-sm text-gray-500">Thời lượng</div>
+
+              {/* Course content overview */}
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h2 className="text-xl font-bold mb-4">Nội dung khóa học</h2>
+                <div className="space-y-4">
+                  {course.chapters?.map((chapter: Chapter, index: number) => (
+                    <div key={chapter.id} className="border rounded-lg p-4">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <span className="text-lg font-medium">Chương {index + 1}:</span>
+                        <span className="text-lg">{chapter.name}</span>
+                      </div>
+                      {chapter.lessons && (
+                        <div className="ml-6 space-y-2">
+                          {chapter.lessons.map((lesson: Lesson, lessonIndex: number) => (
+                            <div key={lesson.id} className="text-gray-600">
+                              {index + 1}.{lessonIndex + 1} {lesson.title}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {course.chapters ? course.chapters.length : 0}
-                  </div>
-                  <div className="text-sm text-gray-500">Chương</div>
+              </div>
+            </div>
+
+            {/* Right side - Registration card */}
+            <div className="md:col-span-1">
+              <div className="bg-white rounded-lg shadow-lg p-6 sticky top-8">
+                <div className="text-3xl font-bold text-blue-600 mb-4">
+                  {new Intl.NumberFormat('vi-VN').format(course.price || 0)} VNĐ
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {new Intl.NumberFormat('vi-VN').format(course.price || 0)}
+                <div className="space-y-4 mb-6">
+                  <div className="flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-600">{course.duration ? `${course.duration} giờ học` : 'Không xác định'}</span>
                   </div>
-                  <div className="text-sm text-gray-500">VNĐ</div>
+                  <div className="flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/>
+                    </svg>
+                    <span className="text-gray-600">{course.chapters?.length || 0} chương học</span>
+                  </div>
                 </div>
+                
+                {!registered ? (
+                  <button
+                    className="w-full bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition font-medium"
+                    onClick={() => setRegistered(true)}
+                  >
+                    Đăng ký khóa học
+                  </button>
+                ) : (
+                  <Link
+                    href={`/learning/${params.id}${course.chapters && course.chapters[0]?.lessons?.[0] 
+                      ? `?activityId=${course.chapters[0].lessons[0].id}` 
+                      : ''}`}
+                    className="w-full bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 transition font-medium text-center block"
+                  >
+                    Vào học ngay
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          // Main Content Area with sidebar and lesson content
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            {/* Sidebar with Chapters and Lessons */}
+            <div className="md:col-span-1">
+              <div className="bg-white rounded-lg shadow-lg p-4">
+                <h2 className="text-xl font-bold mb-4">Nội dung khóa học</h2>
+                <div className="space-y-2">
+                  {course.chapters?.map((chapter: Chapter, index: number) => (
+                    <div key={chapter.id} className="border-b pb-2 last:border-b-0">
+                      <button
+                        onClick={() => toggleChapter(chapter.id)}
+                        className="flex items-center justify-between w-full p-2 hover:bg-gray-50 rounded"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-medium">Chương {index + 1}:</span>
+                          <span className="text-sm">{chapter.name}</span>
+                        </div>
+                        {expandedChapters.has(chapter.id) ? (
+                          <ChevronDownIcon className="h-4 w-4" />
+                        ) : (
+                          <ChevronRightIcon className="h-4 w-4" />
+                        )}
+                      </button>
+                      
+                      {expandedChapters.has(chapter.id) && chapter.lessons && (
+                        <div className="ml-4 space-y-1 mt-1">
+                          {chapter.lessons.map((lesson: Lesson, lessonIndex: number) => (
+                            <Link
+                              key={lesson.id}
+                              href={`/learning/${params.id}?activityId=${lesson.id}`}
+                              className={`block p-2 text-sm rounded ${
+                                currentLesson?.id === lesson.id
+                                  ? 'bg-blue-50 text-blue-600'
+                                  : 'hover:bg-gray-50'
+                              }`}
+                            >
+                              {index + 1}.{lessonIndex + 1} {lesson.title}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Lesson Content Area */}
+            <div className="md:col-span-3">
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                {currentLesson ? (
+                  <>
+                    <h2 className="text-2xl font-bold mb-6">{currentLesson.title}</h2>
+                    <div className="prose max-w-none">                    
+                      {currentLesson.type === 4 && currentLesson.content && (
+                        <MarkdownCode content={currentLesson.content} />
+                      )}
+                      {currentLesson.type === 2 && currentLesson.videoUrl && (
+                        <>
+                          <VideoPlayer 
+                            src={currentLesson.videoUrl}
+                            className="w-full relative z-10"
+                          />
+                          <VideoPlayer 
+                            src={currentLesson.videoUrl}
+                            backgroundMode={true}
+                            className="background-video"
+                          />
+                        </>
+                      )}
+                      {currentLesson.type === 1 && currentLesson.quizData && (
+                        <Quiz data={currentLesson.quizData} />
+                      )}                   
+                       {currentLesson.type === 3 && (
+                        <div>
+                          <CodeEditor
+                            initialCode={currentLesson.initialCode || '// Write your code here\n// Viết code của bạn ở đây'}
+                            language={currentLesson.language || 'javascript'}
+                            lessonId={currentLesson.id}
+                            className="mb-4"
+                          />
+                          {currentLesson.solutionCode && (
+                            <div className="mt-6">
+                              <h3 className="text-lg font-semibold mb-2">Giải pháp mẫu:</h3>
+                              <MarkdownCode
+                                content={'```java\n' + currentLesson.solutionCode + '\n```'}
+                                className="solution-code"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500">Chọn một bài học để bắt đầu</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )}
-
-        {/* Main Content Area */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Sidebar with Chapters and Lessons */}
-          <div className="md:col-span-1">
-            <div className="bg-white rounded-lg shadow-lg p-4">
-              <h2 className="text-xl font-bold mb-4">Nội dung khóa học</h2>
-              <div className="space-y-2">
-                {course.chapters?.map((chapter: Chapter, index: number) => (
-                  <div key={chapter.id} className="border-b pb-2 last:border-b-0">
-                    <button
-                      onClick={() => toggleChapter(chapter.id)}
-                      className="flex items-center justify-between w-full p-2 hover:bg-gray-50 rounded"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium">Chương {index + 1}:</span>
-                        <span className="text-sm">{chapter.name}</span>
-                      </div>
-                      {expandedChapters.has(chapter.id) ? (
-                        <ChevronDownIcon className="h-4 w-4" />
-                      ) : (
-                        <ChevronRightIcon className="h-4 w-4" />
-                      )}
-                    </button>
-                    
-                    {expandedChapters.has(chapter.id) && chapter.lessons && (
-                      <div className="ml-4 space-y-1 mt-1">
-                        {chapter.lessons.map((lesson: Lesson, lessonIndex: number) => (
-                          <Link
-                            key={lesson.id}
-                            href={`/learning/${params.id}?activityId=${lesson.id}`}
-                            className={`block p-2 text-sm rounded ${
-                              currentLesson?.id === lesson.id
-                                ? 'bg-blue-50 text-blue-600'
-                                : 'hover:bg-gray-50'
-                            }`}
-                          >
-                            {index + 1}.{lessonIndex + 1} {lesson.title}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Lesson Content Area */}
-          <div className="md:col-span-3">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              {currentLesson ? (
-                <>
-                  <h2 className="text-2xl font-bold mb-6">{currentLesson.title}</h2>
-                  <div className="prose max-w-none">                    
-                    {currentLesson.type === 4 && currentLesson.content && (
-                      <MarkdownCode content={currentLesson.content} />
-                    )}
-                    {currentLesson.type === 2 && currentLesson.videoUrl && (
-                      <>
-                        <VideoPlayer 
-                          src={currentLesson.videoUrl}
-                          className="w-full relative z-10"
-                        />
-                        <VideoPlayer 
-                          src={currentLesson.videoUrl}
-                          backgroundMode={true}
-                          className="background-video"
-                        />
-                      </>
-                    )}
-                    {currentLesson.type === 1 && currentLesson.quizData && (
-                      <Quiz data={currentLesson.quizData} />
-                    )}                   
-                     {currentLesson.type === 3 && (
-                      <div>
-                        <CodeEditor
-                          initialCode={currentLesson.initialCode || '// Write your code here\n// Viết code của bạn ở đây'}
-                          language={currentLesson.language || 'javascript'}
-                          lessonId={currentLesson.id}
-                          className="mb-4"
-                        />
-                        {currentLesson.solutionCode && (
-                          <div className="mt-6">
-                            <h3 className="text-lg font-semibold mb-2">Giải pháp mẫu:</h3>
-                            <MarkdownCode
-                              content={'```java\n' + currentLesson.solutionCode + '\n```'}
-                              className="solution-code"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">Chọn một bài học để bắt đầu</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
     </main>
   );
