@@ -2,13 +2,22 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { useGetCourseByIdQuery } from '@/services/course.service';
-import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect, useMemo } from 'react';
+import { ChevronDownIcon, ChevronRightIcon, ChevronLeftIcon } from '@heroicons/react/24/outline';
 import VideoPlayer from '@/components/VideoPlayer';
 import Quiz from '@/components/Quiz';
 import MarkdownCode from '@/components/MarkdownCode';
 import CodeEditor from '@/components/CodeEditor';
+import { toast } from 'react-toastify';
+import { 
+  useGetCourse,
+  useCheckEnrollment,
+  useEnrollCourse,
+  useCurrentLesson,
+  useUserCode,
+  useAuth
+} from '@/store/hooks';
 
 // Define types for the API response
 interface Lesson {
@@ -63,38 +72,137 @@ const getLevelText = (level: number) => {
   }
 };
 
+// Helper function to get chapter and lesson indices
+const findLessonIndices = (course: Course, lessonId: string) => {
+  for (let chapterIndex = 0; chapterIndex < (course.chapters?.length || 0); chapterIndex++) {
+    const chapter = course.chapters?.[chapterIndex];
+    if (chapter?.lessons) {
+      const lessonIndex = chapter.lessons.findIndex(l => l.id === lessonId);
+      if (lessonIndex !== -1) {
+        return { chapterIndex, lessonIndex };
+      }
+    }
+  }
+  return null;
+};
+
+// Helper function to get the next lesson
+const getNextLesson = (course: Course, currentLessonId: string) => {
+  const indices = findLessonIndices(course, currentLessonId);
+  if (!indices || !course.chapters) return null;
+
+  const { chapterIndex, lessonIndex } = indices;
+  const currentChapter = course.chapters[chapterIndex];
+
+  // Try next lesson in current chapter
+  if (currentChapter.lessons && lessonIndex < currentChapter.lessons.length - 1) {
+    return currentChapter.lessons[lessonIndex + 1];
+  }
+
+  // Try first lesson of next chapter
+  if (chapterIndex < course.chapters.length - 1) {
+    const nextChapter = course.chapters[chapterIndex + 1];
+    return nextChapter.lessons?.[0] || null;
+  }
+
+  return null;
+};
+
+// Helper function to get the previous lesson
+const getPreviousLesson = (course: Course, currentLessonId: string) => {
+  const indices = findLessonIndices(course, currentLessonId);
+  if (!indices || !course.chapters) return null;
+
+  const { chapterIndex, lessonIndex } = indices;
+  const currentChapter = course.chapters[chapterIndex];
+
+  // Try previous lesson in current chapter
+  if (lessonIndex > 0 && currentChapter.lessons) {
+    return currentChapter.lessons[lessonIndex - 1];
+  }
+
+  // Try last lesson of previous chapter
+  if (chapterIndex > 0) {
+    const previousChapter = course.chapters[chapterIndex - 1];
+    if (previousChapter.lessons) {
+      return previousChapter.lessons[previousChapter.lessons.length - 1];
+    }
+  }
+
+  return null;
+};
+
 export default function CourseDetailPage({ params, searchParams }: { 
   params: { id: string }, 
   searchParams: { activityId?: string } 
 }) {
-  const [registered, setRegistered] = useState(false);
-  const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
-  const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
+  const router = useRouter();
+  const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());  // Get current user info from our auth hook
+  const { user: currentUser } = useAuth();
+  // Use our custom hooks for better performance
+  const { course, isLoading: courseLoading } = useGetCourse(params.id);
+  const { isEnrolled } = useCheckEnrollment(params.id, currentUser?.id);
+  const { enrollInCourse, isEnrolling } = useEnrollCourse();
   
-  // Fetch course data using the API
-  const { data: courseResponse, isLoading, error } = useGetCourseByIdQuery(params.id);
-  const course = courseResponse?.data;
-
-  // Handle activityId changes
+  // Ensure we get a valid changeLesson function
+  const currentLessonData = useCurrentLesson();
+  const currentLesson = currentLessonData?.currentLesson;
+  const changeLesson = currentLessonData?.changeLesson;
+  // Update the state to use our new hooks
+  const [isLocalEnrolled, setIsLocalEnrolled] = useState(false);
+  
+  // Combined enrollment status from Redux and local state
+  const effectivelyEnrolled = isEnrolled || isLocalEnrolled;
+  
+  const handleEnrollment = async () => {
+    if (!currentUser || !course) return;
+    const result = await enrollInCourse(course.id, currentUser.id);
+    
+    // If enrollment was successful, update local state immediately
+    if (result.success) {
+      setIsLocalEnrolled(true);
+    }
+  };// Handle activityId changes
   useEffect(() => {
-    if (course?.chapters && searchParams.activityId) {
+    // Don't run the effect if course is still loading
+    if (!course?.chapters) {
+      return;
+    }
+      // Find the appropriate lesson to display
+    if (searchParams.activityId && course.chapters) {
       // Find the lesson with matching activityId
       for (const chapter of course.chapters) {
-        if (chapter.lessons) {
-          const lesson = chapter.lessons.find((l: Lesson) => l.id === searchParams.activityId);
-          if (lesson) {
-            setCurrentLesson(lesson);
-            setExpandedChapters(prev => new Set([...prev, chapter.id]));
-            break;
-          }
+        if (!chapter.lessons) continue;
+        
+        const lesson = chapter.lessons.find((l: Lesson) => l.id === searchParams.activityId);
+        if (lesson && typeof changeLesson === 'function') {
+          changeLesson(lesson);
+          setExpandedChapters(prev => {
+            // Only update if needed to avoid unnecessary re-renders
+            if (!prev.has(chapter.id)) {
+              return new Set([...prev, chapter.id]);
+            }
+            return prev;
+          });
+          break;
         }
-      }
-    } else if (course?.chapters && course.chapters[0]?.lessons?.[0]) {
+      }    } else if (course?.chapters?.[0]?.lessons?.[0] && typeof changeLesson === 'function') {
       // Default to first lesson if no activityId
-      setCurrentLesson(course.chapters[0].lessons[0]);
-      setExpandedChapters(new Set([course.chapters[0].id]));
+      const firstLesson = course.chapters[0].lessons[0];
+      const chapterId = course.chapters[0].id;
+      
+      changeLesson(firstLesson);
+      setExpandedChapters(prev => {
+        // Only update if needed
+        if (!prev.has(chapterId)) {
+          return new Set([...prev, chapterId]);
+        }
+        return prev;
+      });
     }
-  }, [searchParams.activityId, course]);
+  // Don't include setExpandedChapters in dependencies as it's a state setter which doesn't change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.activityId, course, changeLesson]);
 
   const toggleChapter = (chapterId: string) => {
     setExpandedChapters(prev => {
@@ -108,7 +216,7 @@ export default function CourseDetailPage({ params, searchParams }: {
     });
   };
 
-  if (isLoading) {
+  if (courseLoading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
         <p className="text-xl text-gray-600">Đang tải thông tin khóa học...</p>
@@ -116,7 +224,7 @@ export default function CourseDetailPage({ params, searchParams }: {
     );
   }
 
-  if (error || !course) {
+  if (!course) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
         <p className="text-xl text-red-600">Có lỗi xảy ra khi tải thông tin khóa học</p>
@@ -182,18 +290,25 @@ export default function CourseDetailPage({ params, searchParams }: {
                   </div>
                   <div className="flex items-center space-x-2">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/>
+                      <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 005.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/>
                     </svg>
                     <span className="text-gray-600">{course.chapters?.length || 0} chương học</span>
                   </div>
                 </div>
-                
-                {!registered ? (
-                  <button
-                    className="w-full bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition font-medium"
-                    onClick={() => setRegistered(true)}
+                  {!currentUser ? (
+                  <Link
+                    href="/login"
+                    className="w-full bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition font-medium text-center block"
                   >
-                    Đăng ký khóa học
+                    Đăng nhập để đăng ký
+                  </Link>
+                ) : !effectivelyEnrolled ? (
+                  <button
+                    className="w-full bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handleEnrollment}
+                    disabled={isEnrolling}
+                  >
+                    {isEnrolling ? 'Đang đăng ký...' : 'Đăng ký khóa học'}
                   </button>
                 ) : (
                   <Link
@@ -208,13 +323,74 @@ export default function CourseDetailPage({ params, searchParams }: {
               </div>
             </div>
           </div>
-        </div>
-      ) : (
+        </div>      ) : (
         <div className="min-h-screen">
           {currentLesson ? (
             <>
-              <h2 className="text-2xl font-bold p-6 border-b bg-white">{currentLesson.title}</h2>
-              {currentLesson.type === 3 ? (
+              {/* Navigation header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b bg-blue-900">
+                <div className="flex items-center space-x-4">
+                  <Link
+                    href={`/learning/${params.id}`}
+                    className="flex items-center text-white hover:text-blue-200 transition"
+                  >
+                    <ChevronLeftIcon className="h-5 w-5 mr-1" />
+                  </Link>
+                  <h2 className="text-2xl font-bold text-white">{currentLesson.title}</h2>
+                </div>
+                <div className="flex items-center space-x-2">                    <button                    onClick={() => {
+                      const prevLesson = getPreviousLesson(course, currentLesson.id);
+                      if (prevLesson && typeof changeLesson === 'function') {
+                        router.push(`/learning/${params.id}?activityId=${prevLesson.id}`);
+                        changeLesson(prevLesson);
+                      }
+                    }}
+                    className="p-2 rounded-md bg-blue-800 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-white"
+                    disabled={!getPreviousLesson(course, currentLesson.id)}
+                  >
+                    <ChevronLeftIcon className="h-5 w-5" />
+                  </button>
+                  {/* Display lesson number */}
+                  {course.chapters?.map((chapter) => 
+                    chapter.lessons?.map((lesson) => {
+                      const indices = findLessonIndices(course, lesson.id);
+                      if (indices) {
+                        const isActive = lesson.id === currentLesson.id;
+                        return (                          <Link
+                            key={lesson.id}                            onClick={(e) => {
+                              e.preventDefault();
+                              if (typeof changeLesson === 'function') {
+                                changeLesson(lesson);
+                              }
+                              router.push(`/learning/${params.id}?activityId=${lesson.id}`);
+                            }}
+                            href={`/learning/${params.id}?activityId=${lesson.id}`}
+                            className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium cursor-pointer
+                              ${isActive 
+                                ? 'bg-white text-blue-900' 
+                                : 'text-white hover:bg-blue-800'
+                              }`}
+                          >
+                            {indices.lessonIndex + 1}
+                          </Link>
+                        );
+                      }
+                      return null;
+                    })
+                  )}                  <button                    onClick={() => {
+                      const nextLesson = getNextLesson(course, currentLesson.id);
+                      if (nextLesson && typeof changeLesson === 'function') {
+                        router.push(`/learning/${params.id}?activityId=${nextLesson.id}`);
+                        changeLesson(nextLesson);
+                      }
+                    }}
+                    className="p-2 rounded-md bg-blue-800 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-white"
+                    disabled={!getNextLesson(course, currentLesson.id)}
+                  >
+                    <ChevronRightIcon className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>              {currentLesson.type === 3 ? (
                 // Code editor split view layout
                 <div className="grid grid-cols-2 h-[calc(100vh-76px)]">
                   {/* Left side - Content/Description */}
@@ -240,11 +416,11 @@ export default function CourseDetailPage({ params, searchParams }: {
 
                   {/* Right side - Code Editor and Test */}
                   <div className="flex flex-col bg-[#1e1e1e]">
-                    <div className="flex-1">
-                      <CodeEditor
+                    <div className="flex-1">                      <CodeEditor
                         initialCode={currentLesson.initialCode || '// Write your code here\n// Viết code của bạn ở đây'}
                         language={currentLesson.language || 'javascript'}
                         lessonId={currentLesson.id}
+                        useReduxStore={true}
                       />
                     </div>
                     <div className="h-[300px] border-t border-gray-700 text-white overflow-y-auto">
@@ -256,30 +432,79 @@ export default function CourseDetailPage({ params, searchParams }: {
                       </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="p-6">
-                  <div className="bg-white rounded-lg shadow-lg p-6">
-                    <div className="prose max-w-none">                    
-                      {currentLesson.type === 4 && currentLesson.content && (
-                        <MarkdownCode content={currentLesson.content} />
-                      )}
-                      {currentLesson.type === 2 && currentLesson.videoUrl && (
-                        <>
-                          <VideoPlayer 
-                            src={currentLesson.videoUrl}
-                            className="w-full relative z-10"
-                          />
-                          <VideoPlayer 
-                            src={currentLesson.videoUrl}
-                            backgroundMode={true}
-                            className="background-video"
-                          />
-                        </>
-                      )}
-                      {currentLesson.type === 1 && currentLesson.quizData && (
-                        <Quiz data={currentLesson.quizData} />
-                      )}
+                </div>              ) : (
+                // Non-code editor layout with sidebar
+                <div className="flex">
+                  {/* Sidebar */}
+                  <div className="w-64 min-h-[calc(100vh-76px)] bg-white border-r">
+                    <div className="p-4">
+                      <h3 className="text-sm font-medium text-gray-500 mb-4">NỘI DUNG KHÓA HỌC</h3>
+                      {course.chapters?.map((chapter, chapterIndex) => (
+                        <div key={chapter.id} className="mb-4">
+                          <button
+                            onClick={() => toggleChapter(chapter.id)}
+                            className="flex items-center w-full text-left mb-2 text-gray-700 hover:text-blue-600"
+                          >
+                            {expandedChapters.has(chapter.id) ? (
+                              <ChevronDownIcon className="h-4 w-4 mr-2" />
+                            ) : (
+                              <ChevronRightIcon className="h-4 w-4 mr-2" />
+                            )}
+                            <span className="text-sm font-medium">
+                              Chương {chapterIndex + 1}: {chapter.name}
+                            </span>
+                          </button>
+                          {expandedChapters.has(chapter.id) && chapter.lessons && (
+                            <div className="ml-6 space-y-2">
+                              {chapter.lessons.map((lesson, lessonIndex) => (                                <Link
+                                  key={lesson.id}
+                                  href={`/learning/${params.id}?activityId=${lesson.id}`}                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    if (typeof changeLesson === 'function') {
+                                      changeLesson(lesson);
+                                    }
+                                    router.push(`/learning/${params.id}?activityId=${lesson.id}`);
+                                  }}
+                                  className={`block text-sm py-1 px-2 rounded-md ${
+                                    currentLesson?.id === lesson.id
+                                      ? 'bg-blue-50 text-blue-600'
+                                      : 'text-gray-600 hover:text-blue-600'
+                                  }`}
+                                >
+                                  {chapterIndex + 1}.{lessonIndex + 1} {lesson.title}
+                                </Link>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Main content */}
+                  <div className="flex-1 p-6">
+                    <div className="bg-white rounded-lg shadow-lg p-6">
+                      <div className="prose max-w-none">                    
+                        {currentLesson.type === 4 && currentLesson.content && (
+                          <MarkdownCode content={currentLesson.content} />
+                        )}
+                        {currentLesson.type === 2 && currentLesson.videoUrl && (
+                          <>
+                            <VideoPlayer 
+                              src={currentLesson.videoUrl}
+                              className="w-full relative z-10"
+                            />
+                            <VideoPlayer 
+                              src={currentLesson.videoUrl}
+                              backgroundMode={true}
+                              className="background-video"
+                            />
+                          </>
+                        )}
+                        {currentLesson.type === 1 && currentLesson.quizData && (
+                          <Quiz data={currentLesson.quizData} />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

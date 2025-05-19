@@ -4,6 +4,7 @@ import './globals.css';
 import Providers from '@/providers/Providers';
 import Navbar from '@/components/Navbar';
 import ConditionalFooter from '@/components/ConditionalFooter';
+import AuthGuard from '@/components/AuthGuard';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -16,14 +17,14 @@ export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
-}) {
-
-  return (
+}) {  return (
     <html lang="vi">
       <body className={inter.className}>
         <Providers>          
           <Navbar />
-          {children}
+          <AuthGuard>
+            {children}
+          </AuthGuard>
           <ConditionalFooter />
         </Providers>
       </body>

@@ -73,4 +73,8 @@ export const {
     useGetAllCourseByCategoryQuery,
     useGetAllCourseByInstructorQuery,
     useGetAllLessonsByChapterIdQuery,
+    useGetEnrollmentsByUserIdQuery,
+    useEnrollCourseMutation,
+    useUnenrollCourseMutation,
+    useGetEnrollmentsByCourseIdQuery,
 } = courseApiSlice;

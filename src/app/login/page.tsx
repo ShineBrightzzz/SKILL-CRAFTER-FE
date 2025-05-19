@@ -2,35 +2,50 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { useLazyGetUserInfoQuery, useLoginMutation } from '@/services/user.service';
-import { useAppDispatch } from '@/store/hooks';
+import { useRouter } from 'next/navigation';
+import { useLoginMutation } from '@/services/user.service';
+import { useAuth } from '@/store/hooks';
+import { toast } from 'react-toastify';
 
 export default function Login() {
-  const [login, { isLoading }] = useLoginMutation();
-  const dispatch = useAppDispatch();
+  const [login, { isLoading: apiLoading }] = useLoginMutation();
+  const { login: authLogin, loading: authLoading, error: authError } = useAuth();
+  const router = useRouter();
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [fetchUserInfo] = useLazyGetUserInfoQuery();
   
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     
-    // Ngăn chặn submit nhiều lần
+    // Prevent multiple submissions
     if (isSubmitting) return;
     
     setIsSubmitting(true);
     const formData = new FormData(event.target as HTMLFormElement);
     const username = formData.get('username') as string;
     const password = formData.get('password') as string;
+    
     try {
-      const user = await login({ username, password }).unwrap();
+      // Call API to login
+      const response = await login({ username, password }).unwrap();
       
-      if (!user) {
-        console.log('Error', 'Không tìm thấy người dùng');
+      if (!response || response.statusCode !== 200) {
+        setError('Tên đăng nhập hoặc mật khẩu không hợp lệ');
         setIsSubmitting(false);
         return;
       }
-      window.location.href = '/';
+      
+      // Save user in Redux and localStorage
+      const result = await authLogin(response);
+      
+      if (result.success) {
+        // Show success message and redirect
+        toast.success('Đăng nhập thành công!');
+        router.push('/');
+      } else {
+        setError(result.error || 'Đăng nhập không thành công');
+        setIsSubmitting(false);
+      }
     } catch (err: any) {
       setError('Tên đăng nhập hoặc mật khẩu không hợp lệ');
       console.error('Đăng nhập thất bại:', err);
@@ -77,13 +92,12 @@ export default function Login() {
           <div className="mb-3 flex items-center">
             <input type="checkbox" className="mr-2" id="rememberMe" />
             <label className="text-sm" htmlFor="rememberMe">Ghi nhớ đăng nhập</label>
-          </div>
-          <button 
+          </div>          <button 
             type="submit"
             className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
-            disabled={isLoading || isSubmitting}
+            disabled={apiLoading || authLoading || isSubmitting}
           >
-            {isLoading || isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            {apiLoading || authLoading || isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
           {error && <p className="text-red-500 mt-2 text-sm text-center">{error}</p>}
         </form>

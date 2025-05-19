@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { useSubmitCodeMutation, LANGUAGE_IDS } from '@/services/codesubmit.service';
+import { useUserCode } from '@/store/hooks';
 
 const LANGUAGES = [
   { id: 'javascript', name: 'JavaScript', icon: 'js' },
@@ -21,6 +22,7 @@ interface CodeEditorProps {
   className?: string;
   lessonId?: string;
   onCodeChange?: (code: string) => void;
+  useReduxStore?: boolean;
 }
 
 export default function CodeEditor({ 
@@ -28,9 +30,16 @@ export default function CodeEditor({
   language = 'javascript',
   className = '',
   lessonId = '',
-  onCodeChange
+  onCodeChange,
+  useReduxStore = false
 }: CodeEditorProps) {
-  const [code, setCode] = useState(initialCode);
+  // If useReduxStore is true, use Redux hook for code state
+  const reduxCodeHook = useReduxStore && lessonId ? useUserCode(lessonId) : null;
+  
+  // Initialize state either from Redux or from props
+  const [code, setCode] = useState(
+    reduxCodeHook?.code || initialCode
+  );
   const [selectedLanguage, setSelectedLanguage] = useState(language);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [submitCode, { isLoading }] = useSubmitCodeMutation();
@@ -43,9 +52,22 @@ export default function CodeEditor({
     testCasesPassed?: number;
     totalTestCases?: number;
   } | null>(null);
+  
+  // Update local state if Redux state changes
+  useEffect(() => {
+    if (reduxCodeHook?.code && reduxCodeHook.code !== code) {
+      setCode(reduxCodeHook.code);
+    }
+  }, [reduxCodeHook?.code]);
 
   const handleEditorChange = (value: string = '') => {
     setCode(value);
+    
+    // Save to Redux if enabled
+    if (reduxCodeHook?.saveCode) {
+      reduxCodeHook.saveCode(value);
+    }
+    
     if (onCodeChange) {
       onCodeChange(value);
     }
