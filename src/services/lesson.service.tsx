@@ -13,22 +13,22 @@ export const lessonApiSlice = apiSlice.injectEndpoints({
       query: (chapterId) => `/api/lessons/chapter/${chapterId}`,
     }),
     createLesson: builder.mutation({
-      query: (body) => ({
+      query: ({body}) => ({
         url: '/api/lessons',
         method: 'POST',
         body,
       }),
     }),
     updateLesson: builder.mutation({
-      query: ({ lessonId, body }) => ({
-        url: `/api/lessons/${lessonId}`,
+      query: ({ id, body }) => ({
+        url: `/api/lessons/${id}`,
         method: 'PUT',
         body,
       }),
     }),
     deleteLesson: builder.mutation({
-      query: (lessonId) => ({
-        url: `/api/lessons/${lessonId}`,
+      query: ({id}) => ({
+        url: `/api/lessons/${id}`,
         method: 'DELETE',
       }),
     }),

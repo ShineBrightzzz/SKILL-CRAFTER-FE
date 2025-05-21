@@ -57,14 +57,14 @@ export const useGetCourse = (courseId: string) => {
   }, [apiError, dispatch]);
 
   useEffect(() => {
-    if (courseResponse?.data && !course) {
-      dispatch(setCourse(courseResponse.data));
+    if (courseResponse?.data?.result && !course) {
+      dispatch(setCourse(courseResponse.data.result));
       dispatch(setCourseLoading(false));
     }
   }, [courseResponse, course, dispatch]);
 
   return { 
-    course: course || courseResponse?.data || null, 
+    course: course || (courseResponse?.data?.result ? courseResponse.data.result[0] : null), 
     isLoading: isLoading || apiLoading,
     error: error || (apiError ? (apiError as any)?.data?.message || 'Có lỗi xảy ra' : null) 
   };
@@ -91,8 +91,8 @@ export const useCheckEnrollment = (courseId: string, userId?: string) => {
 
   // Store enrollments in Redux when they come from the API
   useEffect(() => {
-    if (enrollmentsResponse?.data && !enrollmentsLoaded && userId) {
-      dispatch(setUserEnrollments(enrollmentsResponse.data));
+    if (enrollmentsResponse?.data?.result && !enrollmentsLoaded && userId) {
+      dispatch(setUserEnrollments(enrollmentsResponse.data.result));
     }
   }, [enrollmentsResponse, enrollmentsLoaded, userId, dispatch]);
 
@@ -114,8 +114,8 @@ export const useEnrollCourse = () => {
       const response = await enrollCourseApi({ courseId, userId }).unwrap();
       
       // Add the enrollment to Redux
-      if (response?.data) {
-        dispatch(addEnrollment(response.data));
+      if (response?.data?.result) {
+        dispatch(addEnrollment(response.data.result));
         toast.success('Đăng ký khóa học thành công!');
       }
       

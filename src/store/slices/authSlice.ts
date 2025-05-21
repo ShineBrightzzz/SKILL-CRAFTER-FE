@@ -4,6 +4,7 @@ export interface User {
   id: string;
   username: string;
   accessToken: string;
+  role?: string;
   // Add any other user properties you need
 }
 

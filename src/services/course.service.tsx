@@ -1,15 +1,59 @@
 import apiSlice from './api';
 
+// Define types for pagination parameters
+interface PaginationParams {
+  page?: number;
+  pageSize?: number;
+  sort?: string;
+  order?: 'asc' | 'desc';
+}
+
+// Extend with category and instructor specific params
+interface CategoryParams extends PaginationParams {
+  categoryId: string;
+}
+
+interface InstructorParams extends PaginationParams {
+  instructorId: string;
+}
+
+interface EnrollmentParams extends PaginationParams {
+  userId?: string;
+  courseId?: string;
+}
+
 export const courseApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getAllCourses: builder.query({
-      query: () => '/api/courses',
+      query: (params: PaginationParams = {}) => {
+        // Build query string for pagination
+        const { page, pageSize, sort, order } = params;
+        const queryParams = [];
+        
+        if (page) queryParams.push(`page=${page}`);
+        if (pageSize) queryParams.push(`pageSize=${pageSize}`);
+        if (sort) queryParams.push(`sort=${sort}`);
+        if (order) queryParams.push(`order=${order}`);
+        
+        const queryString = queryParams.length > 0 
+          ? `?${queryParams.join('&')}` 
+          : '';
+          
+        return `/api/courses${queryString}`;
+      },
     }),
     getCourseById: builder.query({
         query: (courseId) => `/api/courses/${courseId}`,
     }),
     addCourse: builder.mutation({
       query: (body) => ({
+        url: '/api/courses',
+        method: 'POST',
+        body,
+      }),
+    }),
+    createCourse: builder.mutation({
+      query: ({body}) => ({
         url: '/api/courses',
         method: 'POST',
         body,
@@ -22,29 +66,108 @@ export const courseApiSlice = apiSlice.injectEndpoints({
         body,
       }),
     }),
+    updateCourse: builder.mutation({
+      query: ({ id, body }) => ({
+        url: `/api/courses/${id}`,
+        method: 'PUT',
+        body,
+      }),
+    }),
     deleteCourse: builder.mutation({
       query: ({courseId}) => ({
         url: `/api/courses/${courseId}`,
         method: 'DELETE',
       }),
-    }),    getAllCourseByCategory: builder.query({
-      query: ({categoryId}) => `/api/courses/category/${categoryId}`,
+    }),
+    deleteCourseById: builder.mutation({
+      query: ({id}) => ({
+        url: `/api/courses/${id}`,
+        method: 'DELETE',
+      }),
+    }),
+    getAllCourseByCategory: builder.query({
+      query: (params: CategoryParams) => {
+        const { categoryId, page, pageSize, sort, order } = params;
+        const queryParams = [];
+        
+        if (page) queryParams.push(`page=${page}`);
+        if (pageSize) queryParams.push(`pageSize=${pageSize}`);
+        if (sort) queryParams.push(`sort=${sort}`);
+        if (order) queryParams.push(`order=${order}`);
+        
+        const queryString = queryParams.length > 0 
+          ? `?${queryParams.join('&')}` 
+          : '';
+          
+        return `/api/courses/category/${categoryId}${queryString}`;
+      },
     }),    
     
     getAllCourseByInstructor: builder.query({
-      query: ({instructorId}) => `/api/courses/instructor/${instructorId}`,
+      query: (params: InstructorParams) => {
+        const { instructorId, page, pageSize, sort, order } = params;
+        const queryParams = [];
+        
+        if (page) queryParams.push(`page=${page}`);
+        if (pageSize) queryParams.push(`pageSize=${pageSize}`);
+        if (sort) queryParams.push(`sort=${sort}`);
+        if (order) queryParams.push(`order=${order}`);
+        
+        const queryString = queryParams.length > 0 
+          ? `?${queryParams.join('&')}` 
+          : '';
+          
+        return `/api/courses/instructor/${instructorId}${queryString}`;
+      },
     }),
 
     getAllLessonsByChapterId: builder.query({
-      query: (chapterId) => `/api/chapters/${chapterId}/lessons`,
+      query: (chapterId: string, params: PaginationParams = {}) => {
+        // Build query string for pagination
+        const { page, pageSize } = params;
+        const queryParams = [];
+        
+        if (page) queryParams.push(`page=${page}`);
+        if (pageSize) queryParams.push(`pageSize=${pageSize}`);
+        
+        const queryString = queryParams.length > 0 
+          ? `?${queryParams.join('&')}` 
+          : '';
+          
+        return `/api/chapters/${chapterId}/lessons${queryString}`;
+      },
     }),
 
     getEnrollmentsByUserId: builder.query({
-      query: ({userId}) => `/api/enrollments/user/${userId}`,
+      query: (params: EnrollmentParams) => {
+        const { userId, page, pageSize } = params;
+        const queryParams = [];
+        
+        if (page) queryParams.push(`page=${page}`);
+        if (pageSize) queryParams.push(`pageSize=${pageSize}`);
+        
+        const queryString = queryParams.length > 0 
+          ? `?${queryParams.join('&')}` 
+          : '';
+          
+        return `/api/enrollments/user/${userId}${queryString}`;
+      },
     }),
 
     getEnrollmentsByCourseId: builder.query({
-      query: ({courseId}) => `/api/enrollments/course/${courseId}`,
+      query: (params: EnrollmentParams) => {
+        const { courseId, page, pageSize } = params;
+        const queryParams = [];
+        
+        if (page) queryParams.push(`page=${page}`);
+        if (pageSize) queryParams.push(`pageSize=${pageSize}`);
+        
+        const queryString = queryParams.length > 0 
+          ? `?${queryParams.join('&')}` 
+          : '';
+          
+        return `/api/enrollments/course/${courseId}${queryString}`;
+      },
     }),
 
     enrollCourse: builder.mutation({
@@ -68,8 +191,11 @@ export const {
     useGetAllCoursesQuery,
     useGetCourseByIdQuery,
     useAddCourseMutation,
+    useCreateCourseMutation,
     useEditCourseMutation,
+    useUpdateCourseMutation,
     useDeleteCourseMutation,
+    useDeleteCourseByIdMutation,
     useGetAllCourseByCategoryQuery,
     useGetAllCourseByInstructorQuery,
     useGetAllLessonsByChapterIdQuery,

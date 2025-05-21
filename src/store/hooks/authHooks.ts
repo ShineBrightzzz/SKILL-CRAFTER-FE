@@ -18,13 +18,13 @@ export const useAuth = () => {
   const handleLogin = useCallback(async (loginResponse: any) => {
     try {
       dispatch(loginStart());
-      
-      // Process the login response
+        // Process the login response
       if (loginResponse?.statusCode === 200 && loginResponse?.data) {
         const userData: User = {
           id: loginResponse.data.id,
           username: loginResponse.data.username,
           accessToken: loginResponse.data.accessToken,
+          role: loginResponse.data.role || 'user',
           // Add any other user properties you need
         };
         

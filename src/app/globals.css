@@ -63,8 +63,17 @@ html {
   }
 }
 
+@keyframes slideInDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
 .animate-fadeIn {
-  animation: fadeIn 0.5s ease-in-out;
+  animation: fadeIn 0.3s ease-in-out, slideInDown 0.3s ease-in-out;
 }
 
 /* Custom utility classes */
@@ -80,4 +89,71 @@ html {
 
 .hover-scale:hover {
   transform: scale(1.05);
+}
+
+/* Admin Drawer Mobile Styles */
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+.mobile-admin-drawer .ant-drawer-content-wrapper {
+  transition: transform 0.3s ease-in-out !important;
+}
+
+.mobile-admin-drawer.ant-drawer-open .ant-drawer-content {
+  animation: slideDown 0.3s ease-in-out;
+}
+
+.mobile-admin-drawer .ant-drawer-mask {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out !important;
+}
+
+.mobile-admin-drawer.ant-drawer-open .ant-drawer-mask {
+  opacity: 1;
+}
+
+.mobile-admin-drawer .ant-drawer-header {
+  background-color: #f0f8ff;
+}
+
+.mobile-admin-drawer .ant-drawer-header-title {
+  flex: 1;
+  justify-content: space-between;
+}
+
+.mobile-admin-drawer .ant-drawer-close {
+  padding: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.mobile-admin-drawer .ant-drawer-close:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Admin Menu Button Styles */
+.admin-menu-button:active {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+  transform: scale(0.95);
+}
+
+@media (hover: hover) {
+  .admin-menu-button:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+  }
 }

@@ -7,8 +7,13 @@ import Loading from './Loading';
 
 const publicRoutes = ['/login', '/register', '/', '/course', '/api'];
 
-export default function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, loading } = useAuth();
+interface AuthGuardProps {
+  children: React.ReactNode;
+  requiredRole?: string;
+}
+
+export default function AuthGuard({ children, requiredRole }: AuthGuardProps) {
+  const { isAuthenticated, loading, user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -18,12 +23,20 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       const isPublicRoute = publicRoutes.some(route => 
         pathname === route || pathname?.startsWith(`${route}/`)
       );
-      
-      if (!isAuthenticated && !isPublicRoute) {
+        if (!isAuthenticated && !isPublicRoute) {
         router.push('/login');
+        return;
+      }
+      
+      // Check if user has the required role
+      if (isAuthenticated && requiredRole && user?.role === requiredRole) {
+        // Show an error message when a user tries to access a page they don't have permission for
+        alert('Bạn không có quyền truy cập trang này');
+        router.push('/'); // Redirect to home if user doesn't have required role
+        return;
       }
     }
-  }, [isAuthenticated, loading, pathname, router]);
+  }, [isAuthenticated, loading, pathname, router, requiredRole, user]);
 
   if (loading) {
     return <Loading />;

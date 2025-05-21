@@ -54,9 +54,6 @@ export const userApiSlice = apiSlice.injectEndpoints({
       query: () => `/student/check-embedding`,
     }),
 
-    getStudentInfoByClassId: builder.query({
-      query: ({ classId }) => `/student/by-class/${classId}`,
-    }),
 
     getAllClassInfo: builder.query({
       query: () => `/get-all-class-information`,
@@ -68,6 +65,10 @@ export const userApiSlice = apiSlice.injectEndpoints({
 
     getAllUser : builder.query({
       query: () => `/accounts`,
+    }),
+
+    getUserById: builder.query({
+      query: ({ id }) => `/accounts/${id}`,
     }),
     
     deleteUser: builder.mutation({

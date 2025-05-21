@@ -6,8 +6,10 @@ import Footer from './Footer';
 export default function ConditionalFooter() {
   const pathname = usePathname();
   const isLearningPage = pathname?.includes('/learning');
+  const isAdminPage = pathname?.startsWith('/admin');
 
-  if (isLearningPage) {
+  // Ẩn footer cho cả trang learning và trang admin
+  if (isLearningPage || isAdminPage) {
     return null;
   }
 

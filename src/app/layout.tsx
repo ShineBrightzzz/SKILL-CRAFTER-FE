@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Providers from '@/providers/Providers';
-import Navbar from '@/components/Navbar';
+import ConditionalNavbar from '@/components/ConditionalNavbar';
 import ConditionalFooter from '@/components/ConditionalFooter';
 import AuthGuard from '@/components/AuthGuard';
 
@@ -21,7 +21,7 @@ export default function RootLayout({
     <html lang="vi">
       <body className={inter.className}>
         <Providers>          
-          <Navbar />
+          <ConditionalNavbar />
           <AuthGuard>
             {children}
           </AuthGuard>

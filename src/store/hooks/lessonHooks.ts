@@ -38,10 +38,10 @@ export const useChapterLessons = (chapterId: string) => {
   }, [shouldFetch, dispatch]);
 
   useEffect(() => {
-    if (lessonsResponse?.data && shouldFetch) {
+    if (lessonsResponse?.data?.result && shouldFetch) {
       dispatch(setChapterLessons({
         chapterId,
-        lessons: lessonsResponse.data
+        lessons: lessonsResponse.data.result
       }));
       dispatch(setLessonLoading(false));
     }
@@ -53,8 +53,9 @@ export const useChapterLessons = (chapterId: string) => {
   }, [lessonsResponse, apiError, chapterId, shouldFetch, dispatch]);
 
   return {
-    lessons: cachedLessons || lessonsResponse?.data || [],
-    isLoading: isLoading || apiLoading
+    lessons: cachedLessons || lessonsResponse?.data?.result || [],
+    isLoading: isLoading || apiLoading,
+    pagination: lessonsResponse?.data?.meta || { page: 1, pageSize: 10, pages: 1, total: 0 }
   };
 };
 
