@@ -20,6 +20,8 @@ interface LessonPreviewProps {
     initialCode: string | null;
     language: string | null;
     quizData: any | null;
+    contentFile?: File | null;
+    videoFile?: File | null;
   };
 }
 

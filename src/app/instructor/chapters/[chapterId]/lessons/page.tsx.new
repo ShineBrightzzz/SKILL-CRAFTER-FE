@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Table, Button, Space, Modal, Form, Input, Select, 
@@ -29,7 +29,9 @@ interface LessonFormValues {
   chapterId: string;
   type: number;
   content?: string;
+  contentFile?: File;
   videoUrl?: string;
+  videoFile?: File;
   duration?: number;
   initialCode?: string;
   language?: string;
@@ -45,7 +47,8 @@ const lessonTypes = [
 
 export default function ChapterLessonsPage({ params }: { params: { chapterId: string } }) {
   const router = useRouter();
-  const chapterId = params.chapterId;  const [form] = Form.useForm();
+  const chapterId = params.chapterId;
+  const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
   const [previewLesson, setPreviewLesson] = useState<any>(null);
@@ -54,7 +57,7 @@ export default function ChapterLessonsPage({ params }: { params: { chapterId: st
   const [pageSize, setPageSize] = useState(10);
   const [activeTab, setActiveTab] = useState('1');
   const [lessonType, setLessonType] = useState<number>(4); // Default to reading lesson
-  
+
   const { user } = useAuth();
   
   // Fetch chapter details
@@ -77,7 +80,8 @@ export default function ChapterLessonsPage({ params }: { params: { chapterId: st
   const [createLesson] = useCreateLessonMutation();
   const [updateLesson] = useUpdateLessonMutation();
   const [deleteLesson] = useDeleteLessonMutation();
-    const showModal = (lesson?: any) => {
+
+  const showModal = (lesson?: any) => {
     if (lesson) {
       setEditingLesson(lesson);
       setLessonType(lesson.type);
@@ -101,7 +105,7 @@ export default function ChapterLessonsPage({ params }: { params: { chapterId: st
     }
     setIsModalVisible(true);
   };
-  
+
   const showPreviewModal = (lesson: any) => {
     setPreviewLesson(lesson);
     setIsPreviewModalVisible(true);
@@ -114,15 +118,54 @@ export default function ChapterLessonsPage({ params }: { params: { chapterId: st
 
   const handleSubmit = async (values: LessonFormValues) => {
     try {
+      // Create a new FormData object
+      const formData = new FormData();
+
+      // Add basic fields
+      formData.append('title', values.title);
+      formData.append('type', values.type.toString());
+      formData.append('chapterId', values.chapterId);
+
+      // Handle quiz data
+      if (values.type === 1 && values.quizData) {
+        try {
+          const quizDataObj = JSON.parse(values.quizData);
+          formData.append('quizData', JSON.stringify(quizDataObj));
+        } catch (error) {
+          message.error('Dữ liệu trắc nghiệm không hợp lệ!');
+          console.error('JSON parse error:', error);
+          return;
+        }
+      }
+
+      // Handle content file or text content
+      if (values.contentFile) {
+        formData.append('contentFile', values.contentFile);
+      } else if (values.content) {
+        formData.append('content', values.content);
+      }
+
+      // Handle video file or URL
+      if (values.videoFile) {
+        formData.append('videoFile', values.videoFile);
+      } else if (values.videoUrl) {
+        formData.append('videoUrl', values.videoUrl);
+      }
+
+      // Add other fields if they exist
+      if (values.duration) formData.append('duration', values.duration.toString());
+      if (values.initialCode) formData.append('initialCode', values.initialCode);
+      if (values.language) formData.append('language', values.language);
+
       if (editingLesson) {
-        await updateLesson({ 
+        await updateLesson({
           id: editingLesson.id,
-          body: values
+          body: formData
         }).unwrap();
         message.success('Cập nhật bài học thành công!');
       } else {
-        await createLesson({ 
-          body: values
+        await createLesson({
+          body: formData
         }).unwrap();
         message.success('Tạo bài học thành công!');
       }
@@ -230,14 +273,15 @@ export default function ChapterLessonsPage({ params }: { params: { chapterId: st
     switch (lessonType) {
       case 1: // Quiz
         return (
-          <Form.Item
-            name="quizData"
-            label="Dữ liệu trắc nghiệm (JSON)"
-            rules={[{ required: true, message: 'Vui lòng nhập dữ liệu trắc nghiệm!' }]}
-          >
-            <TextArea
-              rows={10}
-              placeholder={`Nhập dữ liệu JSON, ví dụ:
+          <>
+            <Form.Item
+              name="quizData"
+              label="Dữ liệu trắc nghiệm (JSON)"
+              rules={[{ required: true, message: 'Vui lòng nhập dữ liệu trắc nghiệm!' }]}
+            >
+              <TextArea
+                rows={10}
+                placeholder={`Nhập dữ liệu JSON, ví dụ:
 {
   "questions": [
     {
@@ -247,19 +291,40 @@ export default function ChapterLessonsPage({ params }: { params: { chapterId: st
     }
   ]
 }`}
-            />
-          </Form.Item>
+              />
+            </Form.Item>
+            <Form.Item
+              name="contentFile"
+              label="Tệp dữ liệu trắc nghiệm (Tùy chọn - JSON)"
+              getValueFromEvent={(e) => e.target.files?.[0]}
+            >
+              <Input type="file" accept=".json" />
+            </Form.Item>
+          </>
         );
-        
+      
       case 2: // Video
         return (
           <>
             <Form.Item
               name="videoUrl"
               label="Đường dẫn video"
-              rules={[{ required: true, message: 'Vui lòng nhập đường dẫn video!' }]}
+              rules={[{ required: false }]}
             >
               <Input placeholder="Nhập đường dẫn video (YouTube, Vimeo,...)" />
+            </Form.Item>
+            <Form.Item
+              name="videoFile"
+              label="Tệp video"
+              getValueFromEvent={(e) => e.target.files?.[0]}
+              rules={[
+                {
+                  required: !form.getFieldValue('videoUrl'),
+                  message: 'Vui lòng tải lên video hoặc nhập đường dẫn!',
+                },
+              ]}
+            >
+              <Input type="file" accept="video/*" />
             </Form.Item>
             <Form.Item
               name="duration"
@@ -274,9 +339,16 @@ export default function ChapterLessonsPage({ params }: { params: { chapterId: st
             >
               <TextArea rows={6} placeholder="Nhập nội dung mô tả bằng Markdown (tùy chọn)" />
             </Form.Item>
+            <Form.Item
+              name="contentFile"
+              label="Tệp nội dung mô tả (Markdown)"
+              getValueFromEvent={(e) => e.target.files?.[0]}
+            >
+              <Input type="file" accept=".md" />
+            </Form.Item>
           </>
         );
-        
+      
       case 3: // Programming exercise
         return (
           <>
@@ -286,6 +358,13 @@ export default function ChapterLessonsPage({ params }: { params: { chapterId: st
               rules={[{ required: true, message: 'Vui lòng nhập nội dung bài tập!' }]}
             >
               <TextArea rows={6} placeholder="Nhập nội dung bài tập bằng Markdown" />
+            </Form.Item>
+            <Form.Item
+              name="contentFile"
+              label="Tệp nội dung bài tập (Markdown)"
+              getValueFromEvent={(e) => e.target.files?.[0]}
+            >
+              <Input type="file" accept=".md" />
             </Form.Item>
             <Form.Item
               name="initialCode"
@@ -308,17 +387,26 @@ export default function ChapterLessonsPage({ params }: { params: { chapterId: st
             </Form.Item>
           </>
         );
-        
+      
       case 4: // Reading
       default:
         return (
-          <Form.Item
-            name="content"
-            label="Nội dung bài đọc (Markdown)"
-            rules={[{ required: true, message: 'Vui lòng nhập nội dung bài đọc!' }]}
-          >
-            <TextArea rows={10} placeholder="Nhập nội dung bài đọc bằng Markdown" />
-          </Form.Item>
+          <>
+            <Form.Item
+              name="content"
+              label="Nội dung bài đọc (Markdown)"
+              rules={[{ required: true, message: 'Vui lòng nhập nội dung bài đọc!' }]}
+            >
+              <TextArea rows={10} placeholder="Nhập nội dung bài đọc bằng Markdown" />
+            </Form.Item>
+            <Form.Item
+              name="contentFile"
+              label="Tệp nội dung (Markdown)"
+              getValueFromEvent={(e) => e.target.files?.[0]}
+            >
+              <Input type="file" accept=".md" />
+            </Form.Item>
+          </>
         );
     }
   };

@@ -204,7 +204,7 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
         <div className="flex justify-between items-center mb-6">
           <Button 
             icon={<ArrowLeftOutlined />} 
-            onClick={() => router.push(`/instructor/chapters/${lesson.chapterId}/lessons`)}
+            onClick={() => router.push(`/instructor/chapters/${lesson.chapterId}`)}
             className="mb-4"
           >
             Quay lại danh sách bài học
