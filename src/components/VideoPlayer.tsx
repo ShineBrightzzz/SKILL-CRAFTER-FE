@@ -12,6 +12,7 @@ interface VideoPlayerProps {
 }
 
 export default function VideoPlayer({ src, className, backgroundMode = false }: VideoPlayerProps) {
+  const videoRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player>();
   const [isPiP, setIsPiP] = useState(false);
 
@@ -21,7 +22,7 @@ export default function VideoPlayer({ src, className, backgroundMode = false }: 
     videoElement.classList.add('video-js', 'vjs-big-play-centered', 'vjs-fluid', 'vjs-custom-skin');
     
     // Append video element vào container
-    const container = document.getElementById('video-container');
+    const container = videoRef.current;
     if (container) {
       container.innerHTML = '';
       container.appendChild(videoElement);
@@ -35,9 +36,7 @@ export default function VideoPlayer({ src, className, backgroundMode = false }: 
         playbackRates: [0.5, 0.75, 1, 1.25, 1.5, 2],
         controlBar: {
           children: [
-            {
-              name: 'playToggle'
-            },
+            { name: 'playToggle' },
             'volumePanel',
             'currentTimeDisplay',
             'timeDivider',
@@ -124,26 +123,48 @@ export default function VideoPlayer({ src, className, backgroundMode = false }: 
           z-index: 9999;
         }
       `;
-      document.head.appendChild(style);
-
-      // Xử lý chế độ phát trong nền
+      document.head.appendChild(style);    // Xử lý chế độ phát trong nền
       if (backgroundMode) {
         player.on('pause', () => {
           // Khi video tạm dừng trong chế độ nền, tự động phát lại
-          player.play();
+          try {
+            player.play();
+          } catch (error) {
+            console.warn('Auto-play was prevented:', error);
+          }
         });
         
         player.on('play', () => {
           // Tự động tắt âm thanh trong chế độ nền
           player.muted(true);
         });
-
-        // Tự động phát khi khởi tạo trong chế độ nền
-        player.ready(() => {
-          player.muted(true);
-          player.play();
-        });
       }
+
+      // Handle error events
+      player.on('error', function() {
+        console.error('Video.js error:', player.error());
+      });
+
+      // When the player is ready, explicitly load the source
+      player.ready(function() {
+        // Set the source again to ensure it's loaded properly
+        player.src({
+          src: src,
+          type: 'video/mp4'
+        });
+        
+        // Explicitly load the video
+        player.load();
+        
+        if (backgroundMode) {
+          player.muted(true);
+          try {
+            player.play();
+          } catch (error) {
+            console.warn('Auto-play was prevented:', error);
+          }
+        }
+      });
 
       playerRef.current = player;
     }
@@ -160,7 +181,7 @@ export default function VideoPlayer({ src, className, backgroundMode = false }: 
   return (
     <div className={`${className} ${isPiP ? 'pip-mode' : ''}`}>
       <div 
-        id="video-container"
+        ref={videoRef}
         style={{ 
           width: '100%', 
           height: '0', 

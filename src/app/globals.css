@@ -157,3 +157,42 @@ html {
     background-color: rgba(0, 0, 0, 0.05) !important;
   }
 }
+
+/* Lesson Preview Styles */
+.lesson-preview-content .markdown-body {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.lesson-preview-content pre {
+  background-color: #282c34;
+  border-radius: 6px;
+  padding: 16px;
+  overflow-x: auto;
+}
+
+/* Course card styles */
+.course-card {
+  transition: all 0.3s ease;
+}
+
+.course-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.course-card .ant-card-cover img {
+  transition: transform 0.5s ease;
+}
+
+.course-card:hover .ant-card-cover img {
+  transform: scale(1.05);
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
