@@ -57,14 +57,14 @@ export const useGetCourse = (courseId: string) => {
   }, [apiError, dispatch]);
 
   useEffect(() => {
-    if (courseResponse?.data?.result && !course) {
-      dispatch(setCourse(courseResponse.data.result));
+    if (courseResponse?.data && !course) {
+      dispatch(setCourse(courseResponse.data));
       dispatch(setCourseLoading(false));
     }
   }, [courseResponse, course, dispatch]);
 
   return { 
-    course: course || (courseResponse?.data?.result ? courseResponse.data.result[0] : null), 
+    course: course || (courseResponse?.data), 
     isLoading: isLoading || apiLoading,
     error: error || (apiError ? (apiError as any)?.data?.message || 'Có lỗi xảy ra' : null) 
   };

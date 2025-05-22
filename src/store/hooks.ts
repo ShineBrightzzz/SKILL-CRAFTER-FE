@@ -77,16 +77,22 @@ export const useCheckEnrollment = (courseId: string, userId?: string) => {
       refetchOnMountOrArgChange: true
     }
   );
-
   // Update enrollments in Redux when the response changes
   useEffect(() => {
-    if (enrollmentsResponse?.data && Array.isArray(enrollmentsResponse.data) && enrollmentsResponse.data.length > 0) {
+    // Check if the response has the result property (new API format)
+    if (enrollmentsResponse?.data?.result && Array.isArray(enrollmentsResponse.data.result) && enrollmentsResponse.data.result.length > 0) {
+      dispatch(addEnrollment(enrollmentsResponse.data.result));
+    }
+    // Handle legacy format for backwards compatibility
+    else if (enrollmentsResponse?.data && Array.isArray(enrollmentsResponse.data) && enrollmentsResponse.data.length > 0) {
       dispatch(addEnrollment(enrollmentsResponse.data));
     }
   }, [enrollmentsResponse, dispatch]);
 
   // Check directly from API response if not found in Redux state
-  const isEnrolledFromApi = enrollmentsResponse?.data?.some(
+  // Handle both potential response formats
+  const enrollmentsArray = enrollmentsResponse?.data?.result || enrollmentsResponse?.data;
+  const isEnrolledFromApi = Array.isArray(enrollmentsArray) && enrollmentsArray.some(
     (enrollment: any) => enrollment.courseId === courseId
   ) || false;
   
