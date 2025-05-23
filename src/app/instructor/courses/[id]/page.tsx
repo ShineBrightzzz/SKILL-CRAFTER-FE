@@ -85,14 +85,14 @@ export default function CourseDetailPage({ params }: CourseDetailProps) {
   };
   
   const handleManageLessons = (chapterId: string) => {
-    router.push(`/instructor/chapters/${chapterId}/lessons`);
+    router.push(`/instructor/chapters/${chapterId}`);
   };
   
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <Button onClick={() => router.back()} className="mb-4">
+          <Button onClick={() => router.push(`/instructor`)} className="mb-4">
             ← Quay lại
           </Button>
           <Button 

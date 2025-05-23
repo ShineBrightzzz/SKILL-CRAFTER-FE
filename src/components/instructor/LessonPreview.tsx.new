@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import React from 'react';
 import { Card, Empty, Tabs } from 'antd';
@@ -7,7 +7,6 @@ import VideoPlayer from '@/components/VideoPlayer';
 import Quiz from '@/components/Quiz';
 import CodeEditor from '@/components/CodeEditor';
 import { QuizData } from '@/types/quiz';
-import { validateAndProcessQuizData } from '@/utils/quiz';
 
 const { TabPane } = Tabs;
 
@@ -30,16 +29,49 @@ interface LessonPreviewProps {
 export default function LessonPreview({ lesson }: LessonPreviewProps) {
   // Function to validate quiz data
   const validateQuizData = (data: any): QuizData | null => {
-    const result = validateAndProcessQuizData(data);
-    if (!result.isValid) {
-      console.error('Quiz validation error:', result.error);
+    if (!data) return null;
+    try {
+      // Parse string data if needed
+      const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+      
+      // Validate the quiz data structure
+      if (!parsed || !Array.isArray(parsed.questions)) {
+        console.error('Invalid quiz data structure - missing questions array');
+        return null;
+      }
+
+      // Validate each question
+      const isValid = parsed.questions.every((q: any) => 
+        typeof q.question === 'string' && 
+        Array.isArray(q.options) &&
+        q.options.every((o: any) => typeof o === 'string') &&
+        typeof q.correctAnswer === 'number' &&
+        q.correctAnswer >= 0 && 
+        q.correctAnswer < q.options.length &&
+        (!q.explanation || typeof q.explanation === 'string')
+      );
+
+      if (!isValid) {
+        console.error('Invalid question format in quiz data');
+        return null;
+      }
+
+      // Add default explanations if missing
+      const questions = parsed.questions.map((q: any) => ({
+        ...q,
+        explanation: q.explanation || 'No explanation provided'
+      }));
+
+      return { questions };
+    } catch (e) {
+      console.error('Error validating quiz data:', e);
       return null;
     }
-    return result.data;
   };
 
   const renderLessonContent = () => {
-    switch (lesson.type) {      case 1: // Quiz
+    switch (lesson.type) {
+      case 1: // Quiz
         const quizData = validateQuizData(lesson.quizData);
         if (!quizData || !quizData.questions || !quizData.questions.length) {
           return (

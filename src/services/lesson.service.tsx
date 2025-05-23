@@ -14,7 +14,8 @@ export const lessonApiSlice = apiSlice.injectEndpoints({
         url: `/api/chapters/${chapterId}/lessons`,
         method: 'GET',
       }),
-    }),      createLesson: builder.mutation<any, { body: FormData }>({
+    }),      
+    createLesson: builder.mutation<any, { body: FormData }>({
             query: ({ body }) => {
                 // Check if chapterId exists and is valid UUID
                 const chapterId = body.get('chapterId');
@@ -36,34 +37,20 @@ export const lessonApiSlice = apiSlice.injectEndpoints({
                     }
                 };
             },
-            invalidatesTags: (result, error, { body }) => {
-                const chapterId = body.get('chapterId');
-                return chapterId ? [{ type: 'Lessons', id: chapterId.toString() }] : [];
+        }),
+      updateLesson: builder.mutation<any, { id: string, body: FormData }>({
+            query: ({ id, body }) => {
+                return {
+                    url: `/api/lessons/${id}`,
+                    method: 'PUT',
+                    body,
+                    formData: true,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                };
             }
         }),
-    
-    updateLesson: builder.mutation({
-      query: ({ id, body }) => {
-        const formData = new FormData();
-        for (const key in body) {
-          if (body[key] instanceof File) {
-            formData.append(key, body[key]);
-          } else if (typeof body[key] === 'object') {
-            formData.append(key, JSON.stringify(body[key]));
-          } else if (body[key] !== null && body[key] !== undefined) {
-            formData.append(key, body[key].toString());
-          }
-        }        
-        return {
-          url: `/api/lessons/${id}`,
-          method: 'PUT',
-          body: formData,
-          headers: {
-            'Accept': 'application/json',
-          },
-        };
-      },
-    }),
     deleteLesson: builder.mutation({
       query: ({ id }) => ({
         url: `/api/lessons/${id}`,

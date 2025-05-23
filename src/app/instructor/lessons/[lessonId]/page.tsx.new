@@ -8,7 +8,6 @@ import {
 } from 'antd';
 import { ArrowLeftOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useGetLessonByIdQuery, useUpdateLessonMutation } from '@/services/lesson.service';
-import { QuizQuestion, LessonUpdateDTO } from '@/types/quiz';
 import { useAuth } from '@/store/hooks';
 import LessonPreview from '@/components/instructor/LessonPreview';
 import { validateAndProcessQuizData } from '@/utils/quiz';
@@ -17,6 +16,31 @@ const { TextArea } = Input;
 const { Option } = Select;
 const { TabPane } = Tabs;
 const { Title, Text } = Typography;
+
+interface QuizQuestion {
+  question: string;
+  options: string[];  // Must contain exactly 4 options
+  correctAnswer: number;  // Index of the correct answer (0-3)
+  explanation?: string;  // Optional explanation for the correct answer
+}
+
+interface LessonUpdateDTO {
+  title: string;
+  type: number;
+  content: string | null;
+  quizData: {
+    questions: {
+      question: string;
+      options: string[];
+      correctAnswer: number;
+    }[];
+  } | null;
+  videoUrl: string | null;
+  initialCode: string | null;
+  solutionCode: string | null;
+  testCases: string | null;
+  duration: number | null;
+}
 
 const lessonTypes = [
   { value: 1, label: 'Trắc nghiệm' },
@@ -52,7 +76,8 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
         videoUrl: lesson.videoUrl,
         duration: lesson.duration,
         initialCode: lesson.initialCode,
-        language: lesson.language
+        language: lesson.language,
+        quizData: lesson.quizData
       });
     }
   }, [lesson, form]);
@@ -73,43 +98,26 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
     }
   }, [lesson]);
 
-  // Validate questions whenever they change
+  // Update form's quizData when questions change
   useEffect(() => {
-    const validateQuestions = () => {
-      questions.forEach((q, index) => {
-        // Ensure all questions have 4 options
-        if (q.options.length !== 4) {
-          message.error(`Question ${index + 1} must have exactly 4 options`);
-          return;
-        }
-        
-        // Validate correct answer
-        if (q.correctAnswer < 0 || q.correctAnswer > 3) {
-          message.error(`Question ${index + 1} has an invalid correct answer`);
-          return;
-        }
+    if (lessonType === 1) {
+      form.setFieldsValue({
+        quizData: JSON.stringify({ questions })
       });
-    };
-    
-    validateQuestions();
-  }, [questions]);
+    }
+  }, [questions, lessonType, form]);
+  
   // Handle form submission
   const handleSubmit = async (values: any) => {
     try {
-      const formData = new FormData();
-
-      // Add basic fields
-      formData.append('title', values.title?.trim());
-      formData.append('type', values.type.toString());
-
-      // Process quiz data if it's a quiz lesson
+      // Validate quiz data if it's a quiz lesson
       if (values.type === 1) {
         const quizValidation = validateAndProcessQuizData({
           questions: questions.map(q => ({
-            ...q,
             question: q.question.trim(),
             options: q.options.map(opt => opt.trim()),
-            explanation: q.explanation?.trim()
+            correctAnswer: q.correctAnswer,
+            ...(q.explanation ? { explanation: q.explanation.trim() } : {})
           }))
         });
 
@@ -117,50 +125,47 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
           message.error(quizValidation.error || 'Dữ liệu trắc nghiệm không hợp lệ');
           return;
         }
-
-        formData.append('quizData', JSON.stringify(quizValidation.data));
-        // Clear other type-specific fields
-        formData.append('content', '');
-        formData.append('videoUrl', '');
-        formData.append('initialCode', '');
-        formData.append('duration', '0');
       }
 
-      // Handle other lesson types
-      switch (values.type) {
-        case 2: // Video
-          formData.append('quizData', '');
-          if (values.videoUrl) formData.append('videoUrl', values.videoUrl.trim());
-          if (values.duration) formData.append('duration', values.duration.toString());
-          if (values.content) formData.append('content', values.content.trim());
-          break;
+      // Prepare update data in the exact format expected by backend
+      const updateData: LessonUpdateDTO = {
+        title: values.title?.trim(),
+        type: Number(values.type),
+        content: null,
+        quizData: values.type === 1 ? {
+          questions: questions.map(q => ({
+            question: q.question.trim(),
+            options: q.options.map(opt => opt.trim()),
+            correctAnswer: q.correctAnswer
+          }))
+        } : null,
+        videoUrl: values.type === 2 ? values.videoUrl?.trim() : null,
+        initialCode: values.type === 3 ? values.initialCode?.trim() : null,
+        solutionCode: values.type === 3 ? values.solutionCode?.trim() : null,
+        testCases: values.type === 3 ? values.testCases?.trim() : null,
+        duration: values.duration ? Number(values.duration) : null
+      };
 
-        case 3: // Programming
-          formData.append('quizData', '');
-          if (values.content) formData.append('content', values.content.trim());
-          if (values.initialCode) formData.append('initialCode', values.initialCode.trim());
-          if (values.solutionCode) formData.append('solutionCode', values.solutionCode.trim());
-          if (values.testCases) formData.append('testCases', values.testCases.trim());
-          if (values.language) formData.append('language', values.language);
-          break;
-
-        case 4: // Reading
-          formData.append('quizData', '');
-          if (values.content) formData.append('content', values.content.trim());
-          break;
+      // If it's not a quiz, add content
+      if (values.type !== 1 && values.content) {
+        updateData.content = values.content.trim();
       }
 
-      // Send the update
-      await updateLesson({
-        id: lessonId,
-        body: formData
-      }).unwrap();
+      try {
+        await updateLesson({
+          id: lessonId,
+          body: updateData
+        }).unwrap();
 
-      message.success('Cập nhật bài học thành công!');
-      router.push(`/instructor/chapters/${lesson?.chapterId}`);
+        message.success('Cập nhật bài học thành công!');
+        router.push(`/instructor/chapters/${lesson?.chapterId}`);
+      } catch (error) {
+        console.error('Failed to update lesson:', error);
+        message.error('Có lỗi xảy ra khi cập nhật bài học');
+      }
     } catch (error) {
-      console.error('Failed to update lesson:', error);
-      message.error('Có lỗi xảy ra khi cập nhật bài học');
+      console.error('Form submission error:', error);
+      message.error('Có lỗi xảy ra khi xử lý dữ liệu');
     }
   };
   
@@ -170,13 +175,12 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
   };
 
   const addQuestion = () => {
-    const newQuestion: QuizQuestion = {
+    setQuestions([...questions, {
       question: '',
-      options: new Array(4).fill(''),  // Always initialize with 4 empty options
+      options: ['', '', '', ''],  // Always 4 options as required by backend
       correctAnswer: 0,
-      explanation: ''  // Initialize empty explanation
-    };
-    setQuestions(prevQuestions => [...prevQuestions, newQuestion]);
+      explanation: ''  // Optional explanation field
+    }]);
   };
 
   const removeQuestion = (index: number) => {
@@ -184,51 +188,27 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
   };
 
   const updateQuestion = (index: number, field: keyof QuizQuestion, value: any) => {
-    const updatedQuestions = questions.map((q, i) => {
+    const newQuestions = questions.map((q, i) => {
       if (i !== index) return q;
-      
       if (field === 'options') {
         const [optionIndex, optionValue] = value;
-        // Ensure optionIndex is valid
-        if (optionIndex < 0 || optionIndex > 3) {
-          message.error('Invalid option index');
-          return q;
-        }
-        // Create new options array with updated value at index
-        const newOptions = [...q.options];
-        newOptions[optionIndex] = optionValue;
         return {
           ...q,
-          options: newOptions
+          options: q.options.map((opt, j) => j === optionIndex ? optionValue : opt)
         };
       }
-      
-      if (field === 'correctAnswer') {
-        // Validate correct answer is between 0-3
-        const answer = Number(value);
-        if (isNaN(answer) || answer < 0 || answer > 3) {
-          message.error('Correct answer must be between 0 and 3');
-          return q;
-        }
-        return {
-          ...q,
-          correctAnswer: answer
-        };
-      }
-      
-      // Handle other fields
       return {
         ...q,
         [field]: value
       };
     });
-    
-    setQuestions(updatedQuestions);
+    setQuestions(newQuestions);
   };
   
   // Render different form fields based on lesson type
   const renderLessonTypeFields = () => {
-    switch (lessonType) {      case 1: // Quiz
+    switch (lessonType) {
+      case 1: // Quiz
         return (
           <>
             <div className="space-y-6">
@@ -255,7 +235,9 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
                       onChange={(e) => updateQuestion(questionIndex, 'question', e.target.value)}
                       placeholder="Nhập câu hỏi"
                     />
-                  </Form.Item>                  <div className="space-y-4">
+                  </Form.Item>
+                  
+                  <div className="space-y-4">
                     {question.options.map((option, optionIndex) => (
                       <div key={optionIndex} className="flex items-center space-x-2">
                         <Form.Item
@@ -280,9 +262,7 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
                       </div>
                     ))}
 
-                    <Form.Item
-                      label="Giải thích đáp án (tùy chọn)"
-                    >
+                    <Form.Item label="Giải thích đáp án (tùy chọn)">
                       <Input.TextArea
                         value={question.explanation}
                         onChange={(e) => updateQuestion(questionIndex, 'explanation', e.target.value)}
@@ -444,7 +424,8 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
                   videoUrl: lesson.videoUrl,
                   duration: lesson.duration,
                   initialCode: lesson.initialCode,
-                  language: lesson.language
+                  language: lesson.language,
+                  quizData: lesson.quizData
                 }}
               >
                 <Form.Item
@@ -485,7 +466,7 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
                 </Form.Item>
               </Form>
             </TabPane>
-              <TabPane tab="Xem trước" key="preview">
+            <TabPane tab="Xem trước" key="preview">
               <div className="bg-white p-4 rounded-md">
                 {lesson ? (
                   <LessonPreview lesson={lesson} />

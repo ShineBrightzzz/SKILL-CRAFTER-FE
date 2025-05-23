@@ -2,16 +2,7 @@
 
 import { useState } from 'react';
 
-interface QuizQuestion {
-  question: string;
-  options: string[];
-  correctAnswer: number;
-  explanation: string;
-}
-
-interface QuizData {
-  questions: QuizQuestion[];
-}
+import { QuizData } from '@/types/quiz';
 
 interface QuizProps {
   data: QuizData;
@@ -87,8 +78,8 @@ export default function Quiz({ data }: QuizProps) {
                   {option}
                 </div>
               ))}
-            </div>
-            {selectedAnswers[index] !== question.correctAnswer && (
+            </div>            
+            {selectedAnswers[index] !== question.correctAnswer && question.explanation && (
               <div className="mt-2 text-sm text-gray-600">
                 <span className="font-medium">Giải thích:</span> {question.explanation}
               </div>

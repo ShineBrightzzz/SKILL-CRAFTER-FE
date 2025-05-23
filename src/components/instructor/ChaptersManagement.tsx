@@ -135,7 +135,7 @@ const ChaptersManagement = () => {
   };
 
   const handleManageLessons = (chapterId: string, chapterName: string) => {
-    router.push(`/instructor/chapters/${chapterId}/lessons`);
+    router.push(`/instructor/chapters/${chapterId}`);
     // Hoặc có thể lưu thông tin vào state để hiển thị trong tab bài học
   };
 

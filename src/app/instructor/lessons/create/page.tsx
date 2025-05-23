@@ -6,8 +6,9 @@ import {
   Form, Input, Select, Button, message, Card, 
   InputNumber, Upload
 } from 'antd';
-import { ArrowLeftOutlined, UploadOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, UploadOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useCreateLessonMutation } from '@/services/lesson.service';
+import { validateAndProcessQuizData } from '@/utils/quiz';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -18,14 +19,18 @@ interface LessonFormValues {
   type: number;
   content?: string;
   quizData?: any;
-  quizDataStr?: string;
-  videoUrl?: string;
-  initialCode?: string;
+  quizDataStr?: string;  initialCode?: string;
   solutionCode?: string;
   testCases?: string;
   duration?: number;
   contentFile?: File;
-  videoFile?: File;
+  video?: File;
+}
+
+interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctAnswer: number;
 }
 
 const lessonTypes = [
@@ -42,56 +47,52 @@ export default function CreateLessonPage() {
   const [form] = Form.useForm<LessonFormValues>();
   const [createLesson] = useCreateLessonMutation();
   const [lessonType, setLessonType] = useState<number>(4);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
 
   const handleLessonTypeChange = (value: number) => {
     setLessonType(value);
-    form.resetFields(['content', 'quizData', 'videoUrl', 'initialCode', 'solutionCode', 'testCases', 'duration']);
+    setVideoFile(null);
+    form.resetFields(['content', 'quizData', 'video', 'initialCode', 'solutionCode', 'testCases', 'duration']);
   };
 
   const handleSubmit = async (values: LessonFormValues) => {
     try {
       if (!chapterId) {
-        message.error('Thiếu thông tin chương học!');
+        message.error('Thiếu thông tin chương học');
         return;
       }
 
-      // Đảm bảo chapterId là UUID hợp lệ
       const formData = new FormData();
-      try {
-        // Thử parse chapterId thành UUID
-        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(chapterId)) {
-          message.error('ID chương không hợp lệ!');
-          return;
-        }
-        formData.append('chapterId', chapterId);
-      } catch (error) {
-        message.error('ID chương không hợp lệ!');
-        return;
-      }
-
       formData.append('title', values.title);
       formData.append('type', values.type.toString());
+      formData.append('chapterId', chapterId);
 
-      // Xử lý dữ liệu dựa trên loại bài học
+      // Process quiz data if it's a quiz lesson
+      if (values.type === 1) {
+        const quizValidation = validateAndProcessQuizData({
+          questions: questions.map(q => ({
+            ...q,
+            question: q.question.trim(),
+            options: q.options.map(opt => opt.trim())
+          }))
+        });
+
+        if (!quizValidation.isValid) {
+          message.error(quizValidation.error || 'Dữ liệu trắc nghiệm không hợp lệ');
+          return;
+        }
+
+        formData.append('quizData', JSON.stringify(quizValidation.data));
+      }
+
+      // Handle other lesson types
       switch (values.type) {
-        case 1: // Quiz
-          if (values.quizData) {
-            try {
-              // Đảm bảo dữ liệu quiz là JSON hợp lệ
-              const quizDataObj = typeof values.quizData === 'string' 
-                ? JSON.parse(values.quizData) 
-                : values.quizData;
-              formData.append('quizDataStr', JSON.stringify(quizDataObj));
-            } catch (error) {
-              message.error('Dữ liệu trắc nghiệm không hợp lệ!');
-              return;
-            }
-          }
-          break;
-
         case 2: // Video
-          if (values.videoUrl) {
-            formData.append('videoUrl', values.videoUrl);
+          if (videoFile) {
+            formData.append('video', videoFile);
           }
           if (values.duration) {
             formData.append('duration', values.duration.toString());
@@ -121,23 +122,33 @@ export default function CreateLessonPage() {
             formData.append('content', values.content);
           }
           break;
-      }
-
-      // Handle file uploads
+      }      // Handle file uploads
       if (values.contentFile) {
         formData.append('contentFile', values.contentFile);
       }
-      if (values.videoFile) {
-        formData.append('videoFile', values.videoFile);
+
+      // Add progress tracking for video upload
+      if (values.type === 2 && values.video instanceof File) {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress(progress);
+          }
+        };
       }
 
       await createLesson({
         body: formData
       }).unwrap();
 
+      setIsUploading(false);
+      setUploadProgress(0);
       message.success('Tạo bài học thành công!');
       router.back();
     } catch (error: any) {
+      setIsUploading(false);
+      setUploadProgress(0);
       console.error('Failed to create lesson:', error);
       if (error.data?.message) {
         message.error(error.data.message);
@@ -152,79 +163,147 @@ export default function CreateLessonPage() {
       case 1: // Quiz
         return (
           <>
-            <Form.Item
-              name="quizData"
-              label="Dữ liệu trắc nghiệm (JSON)"
-              rules={[
-                { 
-                  required: true,
-                  message: 'Vui lòng nhập dữ liệu trắc nghiệm!',
-                  validator: async (_, value) => {
-                    if (value) {
-                      try {
-                        JSON.parse(typeof value === 'string' ? value : JSON.stringify(value));
-                      } catch (error) {
-                        throw new Error('Dữ liệu JSON không hợp lệ!');
-                      }
-                    }
+            <div className="space-y-6">
+              {questions.map((question, questionIndex) => (
+                <Card 
+                  key={questionIndex} 
+                  className="bg-gray-50"
+                  extra={
+                    <Button 
+                      danger 
+                      icon={<DeleteOutlined />} 
+                      onClick={() => removeQuestion(questionIndex)}
+                    >
+                      Xóa câu hỏi
+                    </Button>
                   }
-                }
-              ]}
-            >
-              <TextArea
-                rows={10}
-                placeholder={`Nhập dữ liệu JSON, ví dụ:
-{
-  "questions": [
-    {
-      "question": "Câu hỏi của bạn ở đây?",
-      "options": ["Lựa chọn A", "Lựa chọn B", "Lựa chọn C", "Lựa chọn D"],
-      "correctAnswer": 0
-    }
-  ]
-}`}
-              />
-            </Form.Item>
-          </>
-        );
+                >
+                  <Form.Item
+                    label={`Câu hỏi ${questionIndex + 1}`}
+                    required
+                  >
+                    <Input
+                      value={question.question}
+                      onChange={(e) => updateQuestion(questionIndex, 'question', e.target.value)}
+                      placeholder="Nhập câu hỏi"
+                    />
+                  </Form.Item>
 
-      case 2: // Video
+                  <div className="space-y-4">
+                    {question.options.map((option, optionIndex) => (
+                      <div key={optionIndex} className="flex items-center space-x-2">
+                        <Form.Item
+                          className="flex-1 mb-0"
+                          required
+                        >
+                          <Input
+                            value={option}
+                            onChange={(e) => updateQuestion(questionIndex, 'options', [optionIndex, e.target.value])}
+                            placeholder={`Đáp án ${optionIndex + 1}`}
+                            className={question.correctAnswer === optionIndex ? 'border-green-500' : ''}
+                          />
+                        </Form.Item>
+                        <Form.Item className="mb-0">
+                          <Button
+                            type={question.correctAnswer === optionIndex ? 'primary' : 'default'}
+                            onClick={() => updateQuestion(questionIndex, 'correctAnswer', optionIndex)}
+                          >
+                            Đáp án đúng
+                          </Button>
+                        </Form.Item>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              ))}
+              
+              <Button 
+                type="dashed" 
+                onClick={addQuestion} 
+                block
+                icon={<PlusOutlined />}
+              >
+                Thêm câu hỏi
+              </Button>
+
+              {questions.length === 0 && (
+                <div className="text-center text-gray-500 my-4">
+                  Chưa có câu hỏi nào. Nhấn nút "Thêm câu hỏi" để bắt đầu.
+                </div>
+              )}
+            </div>
+          </>
+        );      case 2: // Video
         return (
           <>
             <Form.Item
-              name="videoUrl"
-              label="Đường dẫn video"
-              rules={[
-                { 
-                  required: !form.getFieldValue('videoFile'),
-                  message: 'Vui lòng nhập đường dẫn video hoặc tải lên tệp!' 
-                }
-              ]}
+              label="Tải lên video"
+              required
+              help={videoFile ? `File đã chọn: ${videoFile.name}` : undefined}
             >
-              <Input placeholder="Nhập đường dẫn video (YouTube, Vimeo,...)" />
-            </Form.Item>
-
-            <Form.Item
-              name="videoFile"
-              label="Tệp video"
-              rules={[
-                { 
-                  required: !form.getFieldValue('videoUrl'),
-                  message: 'Vui lòng tải lên video hoặc nhập đường dẫn!' 
-                }
-              ]}
-            >
-              <Input 
-                type="file" 
-                accept="video/*" 
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    form.setFieldsValue({ videoFile: file });
+              <Upload.Dragger
+                multiple={false}
+                maxCount={1}
+                showUploadList={false}
+                beforeUpload={(file) => {
+                  const isVideo = file.type.startsWith('video/');
+                  if (!isVideo) {
+                    message.error('Chỉ chấp nhận file video!');
+                    return Upload.LIST_IGNORE;
                   }
+                  const isLt200M = file.size / 1024 / 1024 < 200;
+                  if (!isLt200M) {
+                    message.error('Video phải nhỏ hơn 200MB!');
+                    return Upload.LIST_IGNORE;
+                  }
+                  setVideoFile(file);
+                  return false;
                 }}
-              />
+                onRemove={() => {
+                  setVideoFile(null);
+                  setUploadProgress(0);
+                }}
+              >
+                <p className="ant-upload-drag-icon">
+                  <UploadOutlined />
+                </p>
+                <p className="ant-upload-text">Kéo thả hoặc click để tải lên video</p>
+                <p className="ant-upload-hint">
+                  Hỗ trợ các định dạng: MP4, WebM, Ogg. Kích thước tối đa: 200MB
+                </p>
+              </Upload.Dragger>
             </Form.Item>
+            
+            {videoFile && (
+              <>
+                <div className="flex justify-between items-center mb-4">
+                  <span>{videoFile.name}</span>
+                  <Button 
+                    danger 
+                    icon={<DeleteOutlined />}
+                    onClick={() => {
+                      setVideoFile(null);
+                      setUploadProgress(0);
+                    }}
+                  >
+                    Xóa video
+                  </Button>
+                </div>
+                {uploadProgress > 0 && (
+                  <div className="mb-4">
+                    <div className="text-sm text-gray-500 mb-1">
+                      Uploading: {uploadProgress}%
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div 
+                        className="bg-blue-600 h-2.5 rounded-full" 
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
             <Form.Item
               name="duration"
@@ -315,6 +394,29 @@ export default function CreateLessonPage() {
           </Form.Item>
         );
     }
+  };
+
+  const addQuestion = () => {
+    setQuestions([...questions, {
+      question: '',
+      options: ['', '', '', ''],
+      correctAnswer: 0
+    }]);
+  };
+
+  const removeQuestion = (index: number) => {
+    setQuestions(questions.filter((_, i) => i !== index));
+  };
+
+  const updateQuestion = (index: number, field: keyof QuizQuestion, value: any) => {
+    const newQuestions = [...questions];
+    if (field === 'options') {
+      const [optionIndex, optionValue] = value;
+      newQuestions[index].options[optionIndex] = optionValue;
+    } else {
+      newQuestions[index][field] = value;
+    }
+    setQuestions(newQuestions);
   };
 
   if (!chapterId) {
