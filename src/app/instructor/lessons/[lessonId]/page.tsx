@@ -108,8 +108,7 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
           questions: questions.map(q => ({
             ...q,
             question: q.question.trim(),
-            options: q.options.map(opt => opt.trim()),
-            explanation: q.explanation?.trim()
+            options: q.options.map(opt => opt.trim())
           }))
         });
 
