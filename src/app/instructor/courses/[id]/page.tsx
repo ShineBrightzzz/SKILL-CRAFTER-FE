@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, Tabs, Button, List, Typography, Space, Modal, message, Spin } from 'antd';
+import { Card, Tabs, Button, List, Typography, Space, Modal, message, Spin, Table } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
-import { useGetCourseByIdQuery } from '@/services/course.service';
+import { useGetCourseByIdQuery, useGetEnrollmentsByCourseIdQuery } from '@/services/course.service';
 import { useGetChaptersByCourseIdQuery } from '@/services/chapter.service';
 import { useAuth } from '@/store/hooks';
 
@@ -22,6 +22,8 @@ export default function CourseDetailPage({ params }: CourseDetailProps) {
   const courseId = params.id;
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   
   // Fetch course details
   const { data: courseResponse, isLoading: courseLoading } = useGetCourseByIdQuery(courseId);
@@ -34,7 +36,64 @@ export default function CourseDetailPage({ params }: CourseDetailProps) {
   const chapters = chaptersResponse?.data?.result || [];
   console.log(chaptersResponse)
   
-  // Note: Instructor role check removed for testing purposes
+  // Fetch enrollments
+  const { data: enrollmentsResponse, isLoading: enrollmentsLoading } = useGetEnrollmentsByCourseIdQuery({
+    courseId,
+    page: currentPage,
+    pageSize: pageSize
+  });
+  
+  const enrollments = enrollmentsResponse?.data?.result || [];
+  const enrollmentMeta = enrollmentsResponse?.data?.meta || {
+    page: 1,
+    pageSize: 10,
+    pages: 1,
+    total: 0
+  };
+
+  const columns = [
+    {
+      title: 'ID',
+      dataIndex: 'id',
+      key: 'id',
+      width: 300,
+    },
+    {
+      title: 'User ID',
+      dataIndex: 'userId',
+      key: 'userId',
+      width: 300,
+    },
+    {
+      title: 'Khóa học',
+      dataIndex: 'courseName',
+      key: 'courseName',
+    },
+    {
+      title: 'Ngày đăng ký',
+      dataIndex: 'enrolledAt',
+      key: 'enrolledAt',
+      render: (date: string) => new Date(date).toLocaleDateString('vi-VN'),
+    },
+    {
+      title: 'Lần truy cập cuối',
+      dataIndex: 'lastAccessedAt',
+      key: 'lastAccessedAt',
+      render: (date: string | null) => date ? new Date(date).toLocaleDateString('vi-VN') : 'Chưa truy cập',
+    },
+    {
+      title: 'Ngày hoàn thành',
+      dataIndex: 'completedAt',
+      key: 'completedAt',
+      render: (date: string | null) => date ? new Date(date).toLocaleDateString('vi-VN') : 'Chưa hoàn thành',
+    },
+    {
+      title: 'Tiến độ',
+      dataIndex: 'progressPercentage',
+      key: 'progressPercentage',
+      render: (progress: number) => `${Math.round(progress)}%`,
+    },
+  ];
   
   if (courseLoading) {
     return (
@@ -203,7 +262,31 @@ export default function CourseDetailPage({ params }: CourseDetailProps) {
               </div>
             </TabPane>
             <TabPane tab="Học viên đã đăng ký" key="enrollments">
-              <p>Chức năng xem danh sách học viên đã đăng ký sẽ được phát triển sau.</p>
+              {enrollmentsLoading ? (
+                <div className="flex justify-center py-8">
+                  <Spin />
+                  <Text className="ml-2">Đang tải dữ liệu...</Text>
+                </div>
+              ) : enrollments.length === 0 ? (
+                <div className="text-center py-8 bg-gray-50 rounded-lg">
+                  <Text type="secondary">Chưa có học viên nào đăng ký khóa học này.</Text>
+                </div>
+              ) : (
+                <Table 
+                  dataSource={enrollments}
+                  columns={columns}
+                  rowKey="id"
+                  pagination={{
+                    current: enrollmentMeta.page,
+                    pageSize: enrollmentMeta.pageSize,
+                    total: enrollmentMeta.total,
+                    onChange: (page, pageSize) => {
+                      setCurrentPage(page);
+                      setPageSize(pageSize);
+                    }
+                  }}
+                />
+              )}
             </TabPane>
             <TabPane tab="Thống kê" key="statistics">
               <p>Chức năng thống kê sẽ được phát triển sau.</p>
