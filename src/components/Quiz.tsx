@@ -6,9 +6,10 @@ import { QuizData } from '@/types/quiz';
 
 interface QuizProps {
   data: QuizData;
+  onComplete?: (success: boolean) => void;
 }
 
-export default function Quiz({ data }: QuizProps) {
+export default function Quiz({ data, onComplete }: QuizProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>(new Array(data.questions.length).fill(-1));
   const [showResults, setShowResults] = useState(false);
@@ -18,12 +19,17 @@ export default function Quiz({ data }: QuizProps) {
     newAnswers[currentQuestion] = optionIndex;
     setSelectedAnswers(newAnswers);
   };
-
   const handleNext = () => {
     if (currentQuestion < data.questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
+      const score = calculateScore();
       setShowResults(true);
+      
+      // Check if all answers are correct and call onComplete if provided
+      if (onComplete && score === 100) {
+        onComplete(true);
+      }
     }
   };
 
@@ -48,17 +54,23 @@ export default function Quiz({ data }: QuizProps) {
     });
     return Math.round((correct / data.questions.length) * 100);
   };
-
   if (showResults) {
     const score = calculateScore();
+    const allCorrect = score === 100;
+
     return (
       <div className="bg-white rounded-lg p-6 shadow-lg">
         <h3 className="text-2xl font-bold mb-4">Kết quả</h3>
         <div className="text-center mb-6">
-          <div className="text-4xl font-bold text-blue-600 mb-2">{score}%</div>
+          <div className={`text-4xl font-bold ${allCorrect ? 'text-green-600' : 'text-blue-600'} mb-2`}>{score}%</div>
           <p className="text-gray-600">
             Bạn trả lời đúng {selectedAnswers.filter((answer, index) => answer === data.questions[index].correctAnswer).length}/{data.questions.length} câu hỏi
           </p>
+          {allCorrect && (
+            <p className="mt-2 text-green-600 font-medium">
+              Chúc mừng! Bạn đã hoàn thành xuất sắc bài trắc nghiệm này.
+            </p>
+          )}
         </div>
         {data.questions.map((question, index) => (
           <div key={index} className="mb-6 p-4 rounded-lg bg-gray-50">

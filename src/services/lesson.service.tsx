@@ -73,10 +73,10 @@ export const lessonApiSlice = apiSlice.injectEndpoints({
       }),
     }),
     completeLesson: builder.mutation({
-      query: ({ userId, lessonId, progressData }) => ({
-        url: `/api/progress/user/${userId}/lesson/${lessonId}/complete`,
+      query: ({ userId, lessonId }) => ({
+        url: `/api/progress/mark-complete`,
         method: 'POST',
-        body: progressData,
+        body: { userId, lessonId },
       }),
     }),
   }),
