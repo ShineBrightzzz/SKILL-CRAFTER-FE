@@ -45,25 +45,16 @@ export const courseApiSlice = apiSlice.injectEndpoints({
     getCourseById: builder.query({
         query: (courseId) => `/api/courses/${courseId}`,
     }),
-    addCourse: builder.mutation({
-      query: (body) => ({
-        url: '/api/courses',
-        method: 'POST',
-        body,
-      }),
-    }),
     createCourse: builder.mutation({
-      query: ({body}) => ({
+      query: (formData) => ({
         url: '/api/courses',
         method: 'POST',
-        body,
-      }),
-    }),
-    editCourse: builder.mutation({
-      query: ({ courseId, body }) => ({
-        url: `/api/courses/${courseId}`,
-        method: 'PUT',
-        body,
+        body: formData,
+        formData: true, // Enable multipart/form-data
+        headers: {
+          // Don't set Content-Type, it will be set automatically with boundary
+          Accept: 'application/json',
+        },
       }),
     }),
     updateCourse: builder.mutation({
@@ -71,6 +62,10 @@ export const courseApiSlice = apiSlice.injectEndpoints({
         url: `/api/courses/${id}`,
         method: 'PUT',
         body,
+        formData: true,
+        headers: {
+          Accept: 'application/json',
+        },
       }),
     }),
     deleteCourse: builder.mutation({
@@ -190,9 +185,7 @@ export const courseApiSlice = apiSlice.injectEndpoints({
 export const {
     useGetAllCoursesQuery,
     useGetCourseByIdQuery,
-    useAddCourseMutation,
     useCreateCourseMutation,
-    useEditCourseMutation,
     useUpdateCourseMutation,
     useDeleteCourseMutation,
     useDeleteCourseByIdMutation,

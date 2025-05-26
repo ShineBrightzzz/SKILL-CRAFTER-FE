@@ -2,14 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Form, Input, Select, InputNumber, Button, Upload, message, Card, Spin } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
+import { Form, Input, Select, InputNumber, Button, Upload, message, Card, Spin, Typography } from 'antd';
+import { UploadOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useGetCourseByIdQuery, useUpdateCourseMutation } from '@/services/course.service';
+import { useGetAllCategoriesQuery } from '@/services/category.service';
 import { useAuth } from '@/store/hooks';
-import type { UploadProps } from 'antd';
+import type { UploadFile } from 'antd/es/upload/interface';
 
 const { TextArea } = Input;
 const { Option } = Select;
+const { Title, Text } = Typography;
 
 interface CourseEditProps {
   params: {
@@ -17,23 +19,44 @@ interface CourseEditProps {
   }
 }
 
+interface CourseFormValues {
+  title: string;
+  description: string;
+  categoryId: string;
+  price: number;
+  duration: number;
+  level: number;
+}
+
+interface Category {
+  id: string;
+  name: string;
+}
+
 export default function CourseEditPage({ params }: CourseEditProps) {
   const router = useRouter();
   const courseId = params.id;
   const { user } = useAuth();
   const [form] = Form.useForm();
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-    // Fetch course details
+  
+  // State for file uploads
+  const [imageFileList, setImageFileList] = useState<UploadFile[]>([]);
+  const [qrFileList, setQrFileList] = useState<UploadFile[]>([]);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [paymentQrFile, setPaymentQrFile] = useState<File | null>(null);
+  
+  // Fetch course details
   const { data: courseResponse, isLoading: courseLoading } = useGetCourseByIdQuery(courseId);
   const course = courseResponse?.data;
+  
+  // Fetch categories
+  const { data: categoriesResponse, isLoading: categoriesLoading } = useGetAllCategoriesQuery({});
+  const categories = categoriesResponse?.data || [];
   
   // Update course mutation
   const [updateCourse, { isLoading: isUpdating }] = useUpdateCourseMutation();
   
-  // Note: Instructor role check removed for testing purposes
-  
   useEffect(() => {
-    // Redirect if not authenticated (instructor role check removed)
     if (!user && !courseLoading) {
       router.push('/login');
     }
@@ -49,27 +72,51 @@ export default function CourseEditPage({ params }: CourseEditProps) {
         price: course.price,
         level: course.level,
         duration: course.duration,
-        tags: course.tags?.join(', ') || '',
       });
-      setImageUrl(course.imageUrl || null);
+      
+      // Set existing images if available
+      if (course.imageUrl) {
+        setImageFileList([
+          {
+            uid: '-1',
+            name: 'Current Image',
+            status: 'done',
+            url: course.imageUrl,
+          } as UploadFile
+        ]);
+      }
+      if (course.paymentQrUrl) {
+        setQrFileList([
+          {
+            uid: '-1',
+            name: 'Current QR',
+            status: 'done',
+            url: course.paymentQrUrl,
+          } as UploadFile
+        ]);
+      }
     }
   }, [course, form]);
   
-  // Handle form submission
   const handleSubmit = async (values: any) => {
     try {
-      // Process tags to array
-      const tagsArray = values.tags ? values.tags.split(',').map((tag: string) => tag.trim()) : [];
+      const formData = new FormData();
+      formData.append('title', values.title);
+      formData.append('description', values.description);
+      formData.append('instructorId', user?.id || '');
+      formData.append('categoryId', values.categoryId);
+      formData.append('price', values.price?.toString() || '0');
+      formData.append('duration', values.duration?.toString() || '0');
+      formData.append('level', values.level?.toString() || '1');
       
-      // Prepare submission data
-      const courseData = {
-        ...values,
-        instructorId: user?.id,
-        tags: tagsArray,
-        imageUrl // Include the current image URL
-      };
+      if (imageFile) {
+        formData.append('imageFile', imageFile);
+      }
+      if (paymentQrFile) {
+        formData.append('paymentQrFile', paymentQrFile);
+      }
       
-      await updateCourse({ id: courseId, body: courseData }).unwrap();
+      await updateCourse({ id: courseId, body: formData }).unwrap();
       message.success('Cập nhật khóa học thành công!');
       router.push(`/instructor/courses/${courseId}`);
     } catch (error) {
@@ -78,31 +125,40 @@ export default function CourseEditPage({ params }: CourseEditProps) {
     }
   };
   
-  // Handle image upload
-  const uploadProps: UploadProps = {
-    name: 'file',
-    action: '/api/upload', // Replace with your API endpoint
-    headers: {
-      authorization: 'Bearer ' + user?.accessToken,
-    },
-    onChange(info) {
-      if (info.file.status === 'uploading') {
-        return;
-      }
-      if (info.file.status === 'done') {
-        // Get the image URL from the server response
-        const imageUrl = info.file.response?.url;
-        if (imageUrl) {
-          setImageUrl(imageUrl);
-          message.success('Tải ảnh lên thành công!');
-        }
-      } else if (info.file.status === 'error') {
-        message.error('Lỗi khi tải ảnh lên');
-      }
-    },
+  const handleImageUpload = (info: any) => {
+    let newFileList = [...info.fileList];
+    newFileList = newFileList.slice(-1);
+    setImageFileList(newFileList);
+
+    if (info.file.status === 'done') {
+      setImageFile(info.file.originFileObj);
+      message.success(`${info.file.name} tải lên thành công`);
+    } else if (info.file.status === 'error') {
+      message.error(`${info.file.name} tải lên thất bại.`);
+    }
   };
   
-  if (courseLoading) {
+  const handleQrUpload = (info: any) => {
+    let newFileList = [...info.fileList];
+    newFileList = newFileList.slice(-1);
+    setQrFileList(newFileList);
+
+    if (info.file.status === 'done') {
+      setPaymentQrFile(info.file.originFileObj);
+      message.success(`${info.file.name} tải lên thành công`);
+    } else if (info.file.status === 'error') {
+      message.error(`${info.file.name} tải lên thất bại.`);
+    }
+  };
+  
+  // Prevent actual upload in Upload component
+  const customUploadRequest = ({ onSuccess }: any) => {
+    setTimeout(() => {
+      onSuccess();
+    }, 0);
+  };
+  
+  if (courseLoading || categoriesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Spin size="large" />
@@ -131,15 +187,6 @@ export default function CourseEditPage({ params }: CourseEditProps) {
             form={form} 
             layout="vertical" 
             onFinish={handleSubmit}
-            initialValues={{
-              title: course.title,
-              description: course.description,
-              categoryId: course.categoryId,
-              price: course.price,
-              level: course.level,
-              duration: course.duration,
-              tags: course.tags?.join(', ') || '',
-            }}
           >
             <Form.Item
               name="title"
@@ -163,12 +210,12 @@ export default function CourseEditPage({ params }: CourseEditProps) {
                 label="Danh mục"
                 rules={[{ required: true, message: 'Vui lòng chọn danh mục!' }]}
               >
-                <Select placeholder="Chọn danh mục">
-                  <Option value="1">Lập trình web</Option>
-                  <Option value="2">Lập trình di động</Option>
-                  <Option value="3">Khoa học dữ liệu</Option>
-                  <Option value="4">DevOps</Option>
-                  <Option value="5">Trí tuệ nhân tạo</Option>
+                <Select placeholder="Chọn danh mục" loading={categoriesLoading}>
+                  {categories.map((category: any) => (
+                    <Option key={category.id} value={category.id}>
+                      {category.name}
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
               
@@ -177,7 +224,13 @@ export default function CourseEditPage({ params }: CourseEditProps) {
                 label="Giá (VNĐ)"
                 rules={[{ required: true, message: 'Vui lòng nhập giá khóa học!' }]}
               >
-                <InputNumber className="w-full" placeholder="Nhập giá khóa học" />
+                <InputNumber
+                  className="w-full"
+                  placeholder="Nhập giá khóa học"
+                  min={0}
+                  formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  parser={value => value!.replace(/\$\s?|(,*)/g, '')}
+                />
               </Form.Item>
             </div>
             
@@ -198,30 +251,71 @@ export default function CourseEditPage({ params }: CourseEditProps) {
                 name="duration"
                 label="Thời lượng (giờ)"
               >
-                <InputNumber className="w-full" placeholder="Nhập thời lượng" />
+                <InputNumber className="w-full" placeholder="Nhập thời lượng" min={0} />
               </Form.Item>
             </div>
             
-            <Form.Item
-              name="tags"
-              label="Thẻ (phân tách bằng dấu phẩy)"
-            >
-              <Input placeholder="Ví dụ: javascript, react, web" />
-            </Form.Item>
-            
-            <Form.Item
-              label="Hình ảnh khóa học"
-              extra="Tải lên hình ảnh đại diện cho khóa học"
-            >
-              <Upload {...uploadProps}>
-                <Button icon={<UploadOutlined />}>Tải ảnh lên</Button>
-              </Upload>
-              {imageUrl && (
-                <div className="mt-2">
-                  <img src={imageUrl} alt="Course thumbnail" className="h-20 object-cover rounded" />
-                </div>
-              )}
-            </Form.Item>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Form.Item
+                label="Ảnh bìa khóa học"
+              >
+                <Upload
+                  name="imageFile"
+                  accept="image/*"
+                  listType="picture"
+                  fileList={imageFileList}
+                  maxCount={1}
+                  customRequest={customUploadRequest}
+                  onChange={handleImageUpload}
+                  beforeUpload={(file) => {
+                    const isImage = file.type.startsWith('image/');
+                    if (!isImage) {
+                      message.error('Bạn chỉ có thể tải lên file ảnh!');
+                    }
+                    const isLt2M = file.size / 1024 / 1024 < 2;
+                    if (!isLt2M) {
+                      message.error('Ảnh phải nhỏ hơn 2MB!');
+                    }
+                    return isImage && isLt2M;
+                  }}
+                >
+                  <Button icon={<UploadOutlined />}>Tải lên ảnh bìa</Button>
+                </Upload>
+                <Text type="secondary" className="block mt-2">
+                  Kích thước khuyến nghị: 1280x720 pixels, tối đa 2MB
+                </Text>
+              </Form.Item>
+              
+              <Form.Item
+                label="Ảnh mã QR thanh toán"
+              >
+                <Upload
+                  name="paymentQrFile"
+                  accept="image/*"
+                  listType="picture"
+                  fileList={qrFileList}
+                  maxCount={1}
+                  customRequest={customUploadRequest}
+                  onChange={handleQrUpload}
+                  beforeUpload={(file) => {
+                    const isImage = file.type.startsWith('image/');
+                    if (!isImage) {
+                      message.error('Bạn chỉ có thể tải lên file ảnh!');
+                    }
+                    const isLt2M = file.size / 1024 / 1024 < 2;
+                    if (!isLt2M) {
+                      message.error('Ảnh phải nhỏ hơn 2MB!');
+                    }
+                    return isImage && isLt2M;
+                  }}
+                >
+                  <Button icon={<UploadOutlined />}>Tải lên mã QR</Button>
+                </Upload>
+                <Text type="secondary" className="block mt-2">
+                  Kích thước tối đa: 2MB
+                </Text>
+              </Form.Item>
+            </div>
             
             <Form.Item className="mt-6">
               <div className="flex justify-end space-x-2">
