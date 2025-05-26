@@ -23,6 +23,7 @@ interface CodeEditorProps {
   lessonId?: string;
   userId?: string;
   onCodeChange?: (code: string) => void;
+  onComplete?: () => void | Promise<void>;
   useReduxStore?: boolean;
 }
 
@@ -33,6 +34,7 @@ export default function CodeEditor({
   lessonId = '',
   userId = '',
   onCodeChange,
+  onComplete,
   useReduxStore = false
 }: CodeEditorProps) {
   // If useReduxStore is true, use Redux hook for code state
@@ -146,12 +148,15 @@ export default function CodeEditor({
       console.log('Code:', code);
       console.log('Lesson ID:', lessonId);
       console.log('User ID:', userId);
-        const response = await submitCode({
+
+      const response = await submitCode({
         language_id: languageId,
         source_code: code,
         lessonId: lessonId,
         userId: userId
-      }).unwrap();console.log('Submit Response:', response);
+      }).unwrap();
+
+      console.log('Submit Response:', response);
       console.log('Response success:', response.success);
       console.log('Response data success:', response.data.success);
       console.log('Response data error:', response.data.error);
@@ -168,7 +173,7 @@ export default function CodeEditor({
         const resultObject = {
           // We consider it a success if there's no error and all tests pass (if tests exist)
           // If tests don't exist, just check for errors
-          success: !hasError && (response.data.testCasesPassed === null || allTestsPassed),
+          success: !hasError && (response.data.testCasesPassed === null || allTestsPassed), 
           output: response.data.output,
           error: hasError ? response.data.error : null,
           executionTime: response.data.executionTime,
@@ -176,8 +181,14 @@ export default function CodeEditor({
           testCasesPassed: response.data.testCasesPassed,
           totalTestCases: response.data.totalTestCases
         };
-          console.log('Setting result to:', resultObject);
+
+        console.log('Setting result to:', resultObject);
         setResult(resultObject);
+
+        // If all test cases pass, trigger onComplete callback
+        if (!hasError && response.data.testCasesPassed === response.data.totalTestCases) {
+          onComplete?.();
+        }
       } else {
         setResult({
           success: false,
