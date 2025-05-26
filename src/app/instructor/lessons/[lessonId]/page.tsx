@@ -4,12 +4,18 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Card, Form, Input, Select, InputNumber, Button, 
-  message, Tabs, Spin, Typography 
+  message, Tabs, Spin, Typography, Modal
 } from 'antd';
-import { ArrowLeftOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, DeleteOutlined, PlusOutlined, DragOutlined } from '@ant-design/icons';
 import { useGetLessonByIdQuery, useUpdateLessonMutation } from '@/services/lesson.service';
-import { QuizQuestion, LessonUpdateDTO } from '@/types/quiz';
+import { QuizQuestion, LessonUpdateDTO, TestCaseDTO } from '@/types/quiz';
 import { useAuth } from '@/store/hooks';
+import { 
+  useGetTestCasesByLessonIdQuery, 
+  useCreateTestCaseMutation, 
+  useUpdateTestCaseMutation,
+  useDeleteTestCaseMutation 
+} from '@/services/testcase.service';
 import LessonPreview from '@/components/instructor/LessonPreview';
 import { validateAndProcessQuizData } from '@/utils/quiz';
 
@@ -29,17 +35,28 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
   const router = useRouter();
   const lessonId = params.lessonId;
   const [form] = Form.useForm();
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('edit');
+  const { user } = useAuth();  const [activeTab, setActiveTab] = useState('edit');
   const [lessonType, setLessonType] = useState<number>(4);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  
-  // Fetch lesson details
+  const [testCases, setTestCases] = useState<TestCaseDTO[]>([]);
+  const [activeTestCase, setActiveTestCase] = useState<number | null>(null);
+  const [modifiedTestCases, setModifiedTestCases] = useState<Set<number>>(new Set());
+    // Fetch lesson details
   const { data: lessonResponse, isLoading: lessonLoading } = useGetLessonByIdQuery(lessonId);
   const lesson = lessonResponse?.data;
   
+  // Fetch test cases for programming lessons
+  const { data: testCasesResponse, isLoading: testCasesLoading } = useGetTestCasesByLessonIdQuery(
+    lessonId, 
+    { skip: lessonType !== 3 }
+  );
+  
   // Update lesson mutation
   const [updateLesson, { isLoading: isUpdating }] = useUpdateLessonMutation();
+    // Test case mutations
+  const [createTestCase] = useCreateTestCaseMutation();
+  const [updateTestCase] = useUpdateTestCaseMutation();
+  const [deleteTestCase] = useDeleteTestCaseMutation();
   
   // Initialize form with lesson data
   useEffect(() => {
@@ -56,8 +73,7 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
       });
     }
   }, [lesson, form]);
-  
-  // Initialize questions when lesson data is loaded
+    // Initialize questions when lesson data is loaded
   useEffect(() => {
     if (lesson?.quizData) {
       try {
@@ -71,7 +87,33 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
         console.error('Error parsing quiz data:', error);
       }
     }
-  }, [lesson]);
+  }, [lesson]);  // Initialize test cases when data is loaded
+  useEffect(() => {
+    if (testCasesResponse) {
+      console.log('Test Cases Response:', testCasesResponse);
+      // Ensure testCasesResponse is an array
+      const testCasesArray = Array.isArray(testCasesResponse) 
+        ? testCasesResponse 
+        : (testCasesResponse as any).data || [];
+      setTestCases(testCasesArray);
+    }
+  }, [testCasesResponse]);
+
+  // Add a confirmation before navigating away if there are unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (modifiedTestCases.size > 0) {
+        const message = 'Bạn có test cases chưa lưu. Bạn có chắc chắn muốn rời khỏi trang này?';
+        e.returnValue = message;
+        return message;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [modifiedTestCases]);
 
   // Validate questions whenever they change
   useEffect(() => {
@@ -162,10 +204,20 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
       message.error('Có lỗi xảy ra khi cập nhật bài học');
     }
   };
-  
-  // Handle lesson type change
+    // Handle lesson type change
   const handleLessonTypeChange = (value: number) => {
     setLessonType(value);
+    
+    // If changing to programming exercise, switch to testcases tab
+    if (value === 3 && activeTab !== 'testcases') {
+      // We don't want to switch tabs immediately as it might confuse the user
+      // Just keep the current tab active
+    }
+    
+    // If changing from programming exercise, switch back to edit tab if on testcases
+    if (value !== 3 && activeTab === 'testcases') {
+      setActiveTab('edit');
+    }
   };
 
   const addQuestion = () => {
@@ -221,9 +273,267 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
         [field]: value
       };
     });
-    
-    setQuestions(updatedQuestions);
+      setQuestions(updatedQuestions);
   };
+
+  // Test case management functions
+  const addTestCase = () => {
+    const newTestCase: TestCaseDTO = {
+      lessonId: lessonId,
+      input: '',
+      expectedOutput: '',
+      isSample: false
+    };
+    
+    // Add to test cases
+    const currentTestCases = Array.isArray(testCases) ? testCases : [];
+    const newTestCases = [...currentTestCases, newTestCase];
+    setTestCases(newTestCases);
+    
+    // Mark as modified
+    setModifiedTestCases(prev => {
+      const newSet = new Set(prev);
+      newSet.add(newTestCases.length - 1); // Index of the newly added test case
+      return newSet;
+    });
+    
+    // Auto scroll to the new test case after a short delay
+    setTimeout(() => {
+      const testCaseElements = document.querySelectorAll('.test-case-card');
+      if (testCaseElements.length > 0) {
+        const lastElement = testCaseElements[testCaseElements.length - 1];
+        lastElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
+  const removeTestCase = async (index: number) => {
+    if (!Array.isArray(testCases) || index < 0 || index >= testCases.length) return;
+    
+    const testCase = testCases[index];
+    
+    // Show confirmation modal
+    Modal.confirm({
+      title: 'Xóa Test Case',
+      content: 'Bạn có chắc chắn muốn xóa test case này?',
+      okText: 'Xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        // If test case has an ID, it's saved in the database and needs to be deleted
+        if (testCase.id) {
+          try {
+            setActiveTestCase(index); // Set loading state
+            await deleteTestCase(testCase.id).unwrap();
+            message.success('Đã xóa test case thành công');
+          } catch (error) {
+            console.error('Error deleting test case:', error);
+            message.error('Có lỗi xảy ra khi xóa test case');
+            setActiveTestCase(null); // Clear loading state on error
+            return; // Don't proceed with removing from UI if server delete failed
+          }
+        }
+        
+        // Remove from UI
+        setTestCases(prev => prev.filter((_, i) => i !== index));
+        setActiveTestCase(null); // Clear loading state
+      }
+    });
+  };
+
+  const updateTestCaseField = (index: number, field: keyof TestCaseDTO, value: any) => {
+    if (!Array.isArray(testCases) || index < 0 || index >= testCases.length) return;
+    
+    setTestCases(prev => prev.map((tc, i) => 
+      i === index ? { ...tc, [field]: value } : tc
+    ));
+    
+    // Mark this test case as modified
+    setModifiedTestCases(prev => {
+      const newSet = new Set(prev);
+      newSet.add(index);
+      return newSet;
+    });
+  };
+
+  const saveTestCase = async (index: number) => {
+    if (!Array.isArray(testCases) || index < 0 || index >= testCases.length) return;
+    
+    try {
+      const testCase = testCases[index];
+      if (!testCase.input.trim() || !testCase.expectedOutput.trim()) {
+        message.error('Vui lòng nhập đầy đủ input và expected output');
+        return;
+      }
+
+      setActiveTestCase(index); // Set loading state
+
+      if (testCase.id) {
+        // Update existing test case
+        await updateTestCase(testCase).unwrap();
+        message.success('Cập nhật test case thành công!');
+      } else {
+        // Create new test case
+        const result = await createTestCase(testCase).unwrap();
+        // Update the test case with the returned ID
+        setTestCases(prev => prev.map((tc, i) => 
+          i === index ? { ...tc, id: result.id } : tc
+        ));
+        message.success('Tạo test case thành công!');
+      }
+      
+      // Remove from modified set after successful save
+      setModifiedTestCases(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(index);
+        return newSet;
+      });
+    } catch (error) {
+      console.error('Error saving test case:', error);
+      message.error('Có lỗi xảy ra khi lưu test case');
+    } finally {
+      setActiveTestCase(null); // Clear loading state
+    }
+  };
+
+  const moveTestCaseUp = (index: number) => {
+    if (!Array.isArray(testCases) || index <= 0) return; // Can't move up the first item
+    
+    // Create a copy of the array
+    const newTestCases = [...testCases];
+    // Swap the item with the one above it
+    [newTestCases[index - 1], newTestCases[index]] = [newTestCases[index], newTestCases[index - 1]];
+    
+    // Update state
+    setTestCases(newTestCases);
+    
+    // Mark both affected test cases as modified if they have IDs
+    const updatedSet = new Set(modifiedTestCases);
+    if (newTestCases[index - 1].id) updatedSet.add(index - 1);
+    if (newTestCases[index].id) updatedSet.add(index);
+    setModifiedTestCases(updatedSet);
+  };
+  const moveTestCaseDown = (index: number) => {
+    if (!Array.isArray(testCases) || index >= testCases.length - 1) return; // Can't move down the last item
+    
+    // Create a copy of the array
+    const newTestCases = [...testCases];
+    // Swap the item with the one below it
+    [newTestCases[index], newTestCases[index + 1]] = [newTestCases[index + 1], newTestCases[index]];
+    
+    // Update state
+    setTestCases(newTestCases);
+    
+    // Mark both affected test cases as modified if they have IDs
+    const updatedSet = new Set(modifiedTestCases);
+    if (newTestCases[index].id) updatedSet.add(index);
+    if (newTestCases[index + 1].id) updatedSet.add(index + 1);
+    setModifiedTestCases(updatedSet);
+  };
+
+  const duplicateTestCase = (index: number) => {
+    if (!Array.isArray(testCases) || index < 0 || index >= testCases.length) return;
+    
+    const testCase = testCases[index];
+    
+    // Create a duplicate without the ID
+    const duplicatedTestCase: TestCaseDTO = {
+      lessonId: testCase.lessonId,
+      input: testCase.input,
+      expectedOutput: testCase.expectedOutput,
+      isSample: testCase.isSample
+      // Note: We don't copy ID, so it will be treated as a new test case
+    };
+    
+    // Insert after the current position
+    const newTestCases = [
+      ...testCases.slice(0, index + 1),
+      duplicatedTestCase,
+      ...testCases.slice(index + 1)
+    ];
+    
+    // Update state
+    setTestCases(newTestCases);
+    
+    // Mark the new test case as modified
+    setModifiedTestCases(prev => {
+      const newSet = new Set(prev);
+      newSet.add(index + 1); // Index of the newly added duplicate
+      return newSet;
+    });
+    
+    // Show success message
+    message.success('Đã sao chép test case thành công');
+  };
+  
+  const saveAllTestCases = async () => {
+    if (!Array.isArray(testCases) || modifiedTestCases.size === 0) {
+      message.info('Không có test case nào cần lưu');
+      return;
+    }
+
+    const hasEmptyFields = testCases.some(tc => 
+      modifiedTestCases.has(testCases.indexOf(tc)) && 
+      (!tc.input.trim() || !tc.expectedOutput.trim())
+    );
+
+    if (hasEmptyFields) {
+      message.error('Vui lòng nhập đầy đủ input và expected output cho tất cả test cases');
+      return;
+    }
+
+    try {
+      // Convert Set to Array for easier iteration
+      const modifiedIndices = Array.from(modifiedTestCases);
+      
+      // Show loading
+      message.loading('Đang lưu test cases...', 0);
+      
+      // Process each modified test case sequentially
+      for (const index of modifiedIndices) {
+        const testCase = testCases[index];
+        
+        if (testCase.id) {
+          // Update existing test case
+          await updateTestCase(testCase).unwrap();
+        } else {
+          // Create new test case
+          const result = await createTestCase(testCase).unwrap();
+          // Update the test case with the returned ID
+          setTestCases(prev => prev.map((tc, i) => 
+            i === index ? { ...tc, id: result.id } : tc
+          ));
+        }
+      }
+      
+      // Clear all modified flags
+      setModifiedTestCases(new Set());
+      
+      // Hide loading and show success
+      message.destroy();
+      message.success(`Đã lưu thành công ${modifiedIndices.length} test case`);
+    } catch (error) {
+      console.error('Error saving test cases:', error);
+      message.destroy();
+      message.error('Có lỗi xảy ra khi lưu test cases');
+    }
+  };
+  
+  // Add a confirmation before navigating away if there are unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (modifiedTestCases.size > 0) {
+        const message = 'Bạn có test cases chưa lưu. Bạn có chắc chắn muốn rời khỏi trang này?';
+        e.returnValue = message;
+        return message;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [modifiedTestCases]);
   
   // Render different form fields based on lesson type
   const renderLessonTypeFields = () => {
@@ -339,9 +649,7 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
               <TextArea rows={6} placeholder="Nhập nội dung mô tả bằng Markdown (tùy chọn)" />
             </Form.Item>
           </>
-        );
-        
-      case 3: // Programming exercise
+        );      case 3: // Programming exercise
         return (
           <>
             <Form.Item
@@ -370,6 +678,13 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
                 <Option value="csharp">C#</Option>
               </Select>
             </Form.Item>
+            
+            <div className="bg-blue-50 p-4 rounded-lg mt-4">
+              <p className="text-blue-800 text-sm">
+                💡 <strong>Lưu ý:</strong> Để quản lý test cases cho bài tập lập trình, 
+                vui lòng chuyển sang tab "Test Cases" ở trên.
+              </p>
+            </div>
           </>
         );
         
@@ -386,8 +701,7 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
         );
     }
   };
-  
-  if (lessonLoading) {
+    if (lessonLoading || testCasesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Spin size="large" />
@@ -429,8 +743,7 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
             <Text type="secondary">Loại: {getLessonTypeName(lesson.type)}</Text>
             {lesson.duration && <Text type="secondary">Thời lượng: {lesson.duration} phút</Text>}
           </div>
-          
-          <Tabs activeKey={activeTab} onChange={setActiveTab}>
+            <Tabs activeKey={activeTab} onChange={setActiveTab}>
             <TabPane tab="Chỉnh sửa bài học" key="edit">
               <Form 
                 form={form} 
@@ -483,7 +796,177 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
                   </div>
                 </Form.Item>
               </Form>
-            </TabPane>
+            </TabPane>            {/* Test Cases Tab - Only show for programming lessons */}
+            {lessonType === 3 && (
+              <TabPane tab={`Test Cases (${Array.isArray(testCases) ? testCases.length : 0})`} key="testcases">
+                <div className="bg-white"><div className="flex justify-between items-center mb-6">                    <div>                      <Title level={4}>Quản lý Test Cases</Title>
+                      <p className="text-gray-500">
+                        Tổng số: {Array.isArray(testCases) ? testCases.length : 0} test case{Array.isArray(testCases) && testCases.length !== 1 ? 's' : ''}, 
+                        {Array.isArray(testCases) ? testCases.filter(tc => tc.isSample).length : 0} mẫu
+                      </p>
+                      {modifiedTestCases.size > 0 && (
+                        <p className="text-orange-500 mt-1">
+                          Bạn có {modifiedTestCases.size} test case chưa lưu hoặc đã sửa đổi
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-x-2">
+                      {modifiedTestCases.size > 0 && (
+                        <Button 
+                          type="primary" 
+                          onClick={saveAllTestCases}
+                        >
+                          Lưu tất cả ({modifiedTestCases.size})
+                        </Button>
+                      )}
+                      <Button 
+                        type="primary" 
+                        icon={<PlusOutlined />} 
+                        onClick={addTestCase}
+                      >
+                        Thêm Test Case
+                      </Button>
+                    </div>
+                  </div>                  {(!Array.isArray(testCases) || testCases.length === 0) && (
+                    <div className="text-center text-gray-500 p-8 border-2 border-dashed border-gray-300 rounded-lg">
+                      <p className="text-lg mb-2">Chưa có test case nào</p>
+                      <p className="text-sm">Test cases giúp kiểm tra và chấm điểm tự động cho bài tập lập trình</p>
+                    </div>
+                  )}                  <div className="space-y-6">
+                    {Array.isArray(testCases) && testCases.map((testCase, index) => (                      <Card 
+                        key={index}
+                        className="shadow-sm test-case-card"
+                        title={
+                          <div className="flex items-center justify-between">
+                            <span>Test Case #{index + 1}</span>                            <div className="flex items-center space-x-2">
+                              {testCase.isSample && (
+                                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                  Sample
+                                </span>
+                              )}
+                              {modifiedTestCases.has(index) && !testCase.id && (
+                                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                                  Chưa lưu
+                                </span>
+                              )}
+                              {modifiedTestCases.has(index) && testCase.id && (
+                                <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">
+                                  Đã chỉnh sửa
+                                </span>
+                              )}
+                              <Button 
+                                type="primary"
+                                size="small"
+                                onClick={() => saveTestCase(index)}
+                                loading={activeTestCase === index}
+                                disabled={(!modifiedTestCases.has(index) && testCase.id) ? true : false}
+                              >
+                                {testCase.id ? 'Cập nhật' : 'Lưu'}
+                              </Button>
+                              <Button 
+                                danger 
+                                size="small"
+                                icon={<DeleteOutlined />} 
+                                onClick={() => removeTestCase(index)}
+                                disabled={activeTestCase === index}
+                              >
+                                Xóa
+                              </Button>
+                            </div>
+                          </div>
+                        }
+                      >
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Input <span className="text-red-500">*</span>
+                            </label>
+                            <TextArea
+                              rows={6}
+                              value={testCase.input}
+                              onChange={(e) => updateTestCaseField(index, 'input', e.target.value)}
+                              placeholder="Nhập dữ liệu đầu vào cho test case..."
+                              className="font-mono"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Dữ liệu đầu vào sẽ được truyền vào chương trình
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Expected Output <span className="text-red-500">*</span>
+                            </label>
+                            <TextArea
+                              rows={6}
+                              value={testCase.expectedOutput}
+                              onChange={(e) => updateTestCaseField(index, 'expectedOutput', e.target.value)}
+                              placeholder="Nhập kết quả mong đợi..."
+                              className="font-mono"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Kết quả mong đợi khi chạy chương trình với input trên
+                            </p>
+                          </div>
+                        </div>
+                          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <input
+                                type="checkbox"
+                                id={`sample-${index}`}
+                                checked={testCase.isSample}
+                                onChange={(e) => updateTestCaseField(index, 'isSample', e.target.checked)}
+                                className="mr-3"
+                              />
+                              <div>
+                                <label htmlFor={`sample-${index}`} className="text-sm font-medium text-gray-700">
+                                  Sample Test Case
+                                </label>
+                                <p className="text-xs text-gray-500">
+                                  Nếu được chọn, test case này sẽ hiển thị cho học viên để tham khảo
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex space-x-2">
+                              {index > 0 && (
+                                <Button 
+                                  size="small" 
+                                  onClick={() => moveTestCaseUp(index)}
+                                  icon={<span>↑</span>}
+                                  title="Di chuyển lên"
+                                />
+                              )}                              {index < (Array.isArray(testCases) ? testCases.length - 1 : 0) && (
+                                <Button 
+                                  size="small" 
+                                  onClick={() => moveTestCaseDown(index)}
+                                  icon={<span>↓</span>}
+                                  title="Di chuyển xuống"
+                                />
+                              )}
+                              <Button 
+                                size="small" 
+                                onClick={() => duplicateTestCase(index)}
+                                title="Sao chép test case"
+                              >
+                                Sao chép
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {testCase.id && (
+                          <div className="mt-2 text-xs text-gray-500">
+                            ID: {testCase.id}
+                          </div>
+                        )}
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              </TabPane>
+            )}
               <TabPane tab="Xem trước" key="preview">
               <div className="bg-white p-4 rounded-md">
                 {lesson ? (

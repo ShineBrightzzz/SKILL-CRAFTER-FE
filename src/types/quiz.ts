@@ -11,6 +11,17 @@ export interface QuizData {
   questions: QuizQuestion[];
 }
 
+// Test case interface for programming lessons
+export interface TestCaseDTO {
+  id?: string;  // UUID
+  lessonId: string;  // UUID
+  input: string;
+  expectedOutput: string;
+  isSample: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // Matches backend LessonUpdateDTO
 export interface LessonUpdateDTO {
   title?: string;
