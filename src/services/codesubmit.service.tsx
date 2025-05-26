@@ -17,12 +17,14 @@ interface SubmitCodeRequest {
   source_code: string;
   stdin?: string;
   expected_output?: string;
+  lessonId?: string;
+  userId?: string;
 }
 
 interface SubmitCodeResponse {
-  statusCode: number;
-  error: string | null;
+  success: boolean;
   message: string;
+  error?: string | null;
   data: {
     success: boolean;
     output: string | null;
@@ -32,6 +34,7 @@ interface SubmitCodeResponse {
     testCasesPassed: number | null;
     totalTestCases: number | null;
   };
+  timestamp?: string;
 }
 
 export const codeSubmitApiSlice = apiSlice.injectEndpoints({
@@ -46,11 +49,23 @@ export const codeSubmitApiSlice = apiSlice.injectEndpoints({
         };
       },
     }),
+
+    runCode : builder.mutation<SubmitCodeResponse, SubmitCodeRequest>({
+      query: (payload) => {
+        console.log('Run Code Request Payload:', JSON.stringify(payload, null, 2));
+        return {
+          url: '/api/code/run',
+          method: 'POST',
+          body: payload
+        };
+      }
+    }),
   }),
   overrideExisting: true,
 });
 
 
 export const {
-  useSubmitCodeMutation
+  useSubmitCodeMutation,
+  useRunCodeMutation,
 } = codeSubmitApiSlice;

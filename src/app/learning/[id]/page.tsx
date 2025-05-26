@@ -528,15 +528,11 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
               initialCode={lesson.initialCode || '// Write your code here\n// Viết code của bạn ở đây'}
               language={lesson.language || 'javascript'}
               lessonId={lesson.id}
-              useReduxStore={true}
-            />
+              useReduxStore={true}            />
           </div>
           <div className="h-[300px] border-t border-gray-700 text-white overflow-y-auto">
             <div className="p-4">
-              <h3 className="text-sm font-medium mb-2">KIỂM THỬ</h3>
-              <div className="text-sm text-gray-400">
-                Vui lòng chạy thử code của bạn trước!
-              </div>
+              {/* Code testing area */}
             </div>
           </div>
         </div>
