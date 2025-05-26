@@ -15,7 +15,6 @@ import {
   useGetLessonsByChapterIdQuery, 
   useCompleteLessonMutation, 
   useGetLessonProgressByLessonIdQuery,
-  useGetLessonProgressByUserIdQuery,
   useGetLessonByIdQuery 
 } from '@/services/lesson.service';
 import { useGetChaptersByCourseIdQuery, useGetChapterByIdQuery } from '@/services/chapter.service';
@@ -170,14 +169,10 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   // Use RTK Query to fetch data
   const { data: courseData, isLoading: courseLoading } = useGetCourseByIdQuery(params.id);
   const course = courseData?.data;
-    // Check enrollment
+  
+  // Check enrollment
   const { data: enrollmentsData, isLoading: enrollmentsLoading } = useGetEnrollmentsByUserIdQuery(
     currentUser?.id ? { userId: currentUser.id } : skipToken
-  );
-  
-  // Fetch all lesson progress data for the current user
-  const { data: allLessonProgressData } = useGetLessonProgressByUserIdQuery(
-    currentUser?.id ? currentUser.id : skipToken
   );
   
   // Check if user is enrolled in this course
@@ -212,7 +207,9 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   const [isLocalEnrolled, setIsLocalEnrolled] = useState(false);
   
   // Combined enrollment status
-  const effectivelyEnrolled = isEnrolled || (isLocalEnrolled && !enrollmentsLoading);  // Function to change current lesson
+  const effectivelyEnrolled = isEnrolled || (isLocalEnrolled && !enrollmentsLoading);
+  
+  // Function to change current lesson
   const changeLesson = useCallback((lesson: Lesson) => {
     if (!lesson || !lesson.id) {
       console.warn('Attempted to set an invalid lesson:', lesson);
@@ -275,6 +272,7 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
       }
     });
   };
+
   // Effect to handle first load and pre-load first chapter's lessons
   useEffect(() => {
     if (!chaptersLoading && chapters.length > 0 && !activeChapterId && !searchParams.activityId) {
@@ -326,7 +324,8 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   const { data: lessonsResponse } = useGetLessonsByChapterIdQuery(
     activeChapterId ?? skipToken
   );  
-    // Effect to process lessons data when it arrives
+  
+  // Effect to process lessons data when it arrives
   useEffect(() => {
     if (activeChapterId && lessonsResponse?.data?.result) {
       const lessons = lessonsResponse.data.result;
@@ -334,22 +333,12 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
         (a.order ?? 0) - (b.order ?? 0)
       );
       
-      // Process lesson progress data
+      // If the user is logged in, fetch their progress for each lesson
       const enhancedLessons = sortedLessons.map(lesson => {
-        // Check if we have progress data for this lesson
-        let isCompleted = false;
-        
-        // If we have progress data from the user query, use it
-        if (allLessonProgressData?.data?.result) {
-          const progressItem = allLessonProgressData.data.result.find(
-            (progress: any) => progress.lessonId === lesson.id && progress.status === "1"
-          );
-          isCompleted = !!progressItem;
-        }
-        
+        // Default isCompleted to false, will be updated with actual data
         return {
           ...lesson,
-          isCompleted
+          isCompleted: false
         };
       });
       
@@ -370,12 +359,14 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
       setLoadingStates(prev => ({ ...prev, [activeChapterId]: false }));
       setActiveChapterId(null);
     }  
-  }, [lessonsResponse, activeChapterId, searchParams.activityId, currentLesson?.chapterId, changeLesson, allLessonProgressData]);
+  }, [lessonsResponse, activeChapterId, searchParams.activityId, currentLesson?.chapterId, changeLesson]);
+
   // Get progress for current lesson
   const { data: lessonProgressData } = useGetLessonProgressByLessonIdQuery(
     currentLesson?.id ? currentLesson.id : skipToken
   );
-    // Effect to update current lesson completion status when progress data changes
+  
+  // Effect to update current lesson completion status when progress data changes
   useEffect(() => {
     if (currentLesson && lessonProgressData?.data?.result?.[0]) {
       const progress = lessonProgressData.data.result[0];
@@ -431,10 +422,13 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
         changeLesson(firstLesson);
       }
     }
-  }, [effectivelyEnrolled, firstLesson, searchParams.activityId, chaptersLoading, params.id, router, changeLesson]);  // Complete lesson mutation
+  }, [effectivelyEnrolled, firstLesson, searchParams.activityId, chaptersLoading, params.id, router, changeLesson]);  
+
+  // Complete lesson mutation
   const [completingLesson, setCompletingLesson] = useState<boolean>(false);
   const [completeLesson] = useCompleteLessonMutation();
-    // Function to handle lesson completion
+  
+  // Function to handle lesson completion
   const handleCompleteLesson = async () => {
     if (!currentUser || !currentLesson) return;
     
@@ -485,6 +479,7 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
       setIsLocalEnrolled(false);
     }
   }, [enrollmentsLoading, isEnrolled]);
+
   // Helper functions for rendering different lesson types
 
   // Render the appropriate content based on lesson type
@@ -568,6 +563,7 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
       </div>
     );
   };
+
   // Render normal lessons (reading, video, quiz) - types 1, 2, 4
   const renderNormalLesson = (
     currentLesson: Lesson,
@@ -616,6 +612,7 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
       </div>
     );
   };
+
   // Render the chapters list in sidebar
   const renderChapters = (
     chaptersLoading: boolean,
@@ -669,7 +666,9 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
         )}
       </div>
     ));
-  };  // Render lessons for each chapter
+  };
+
+  // Render lessons for each chapter
   const renderLessons = (
     loadedLessons: {[key: string]: Lesson[]},
     chapter: Chapter,
@@ -685,8 +684,6 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
         // For the current lesson, check if it's completed from the progress data
         const isCurrentLesson = currentLesson?.id === lesson.id;
         const lessonProgress = isCurrentLesson ? lessonProgressData?.data?.result?.[0] : null;
-        
-        // Use the isCompleted flag from the lesson object, which is now populated from allLessonProgressData
         const isCompleted = lesson.isCompleted || (isCurrentLesson && lessonProgress?.status === "1");
         
         return (
@@ -718,7 +715,9 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
           </Link>
         );
       });
-  };  // Render the complete lesson button for video and reading lessons
+  };  
+
+  // Render the complete lesson button for video and reading lessons
   const renderCompleteLessonButton = (
     currentLesson: Lesson,
     handleCompleteLesson: () => Promise<void>,
@@ -726,10 +725,9 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   ) => {
     if (currentLesson.type !== 2 && currentLesson.type !== 4) return null;
     
-    // Check if lesson is completed based on the lesson object's isCompleted property
-    // or from the current lesson progress data as a fallback
+    // Check if lesson is completed based on progress data
     const lessonProgress = lessonProgressData?.data?.result?.[0];
-    const isLessonCompleted = currentLesson.isCompleted || lessonProgress?.status === "1";
+    const isLessonCompleted = lessonProgress?.status === "1" || currentLesson.isCompleted;
     
     return (
       <div className="flex justify-end mb-4">
@@ -762,13 +760,13 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
         </button>
       </div>
     );
-  };// Render content based on lesson type
+  };
+
+  // Render content based on lesson type
   const renderLessonTypeContent = (lesson: Lesson) => {
-    // Check if lesson is completed based on lesson object's isCompleted property 
-    // which is now populated from allLessonProgressData
-    // or from the current lesson progress data as a fallback
+    // Check if lesson is completed based on progress data
     const lessonProgress = lessonProgressData?.data?.result?.[0];
-    const isLessonCompleted = lesson.isCompleted || (lessonProgress?.status === "1");
+    const isLessonCompleted = lessonProgress?.status === "1" || lesson.isCompleted;
     
     switch (lesson.type) {
       case 1: // Quiz
@@ -805,14 +803,9 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   };
 
   // Handle lesson navigation
-  const handlePreviousLesson = (
-    chapters: Chapter[],
-    loadedLessons: {[key: string]: Lesson[]},
-    currentLesson: Lesson,
-    changeLesson: (lesson: Lesson) => void,
-    router: any,
-    params: { id: string }
-  ) => {
+  const handlePreviousLesson = () => {
+    if (!currentLesson) return;
+
     const prevLesson = getPreviousLesson(chapters, loadedLessons, currentLesson.id);
     if (prevLesson && typeof changeLesson === 'function') {
       router.push(`/learning/${params.id}?activityId=${prevLesson.id}`);
@@ -820,14 +813,10 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
     }
   };
 
-  const handleNextLesson = (
-    chapters: Chapter[],
-    loadedLessons: {[key: string]: Lesson[]},
-    currentLesson: Lesson,
-    changeLesson: (lesson: Lesson) => void,
-    router: any,
-    params: { id: string }
-  ) => {    const nextLesson = getNextLesson(chapters, loadedLessons, currentLesson.id);
+  const handleNextLesson = () => {
+    if (!currentLesson) return;
+
+    const nextLesson = getNextLesson(chapters, loadedLessons, currentLesson.id);
     if (nextLesson && typeof changeLesson === 'function') {
       router.push(`/learning/${params.id}?activityId=${nextLesson.id}`);
       changeLesson(nextLesson);
@@ -835,37 +824,25 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   };
 
   // Render lesson number buttons
-  const renderLessonNumbers = (
-    chapters: Chapter[],
-    loadedLessons: {[key: string]: Lesson[]},
-    currentLesson: Lesson,
-    changeLesson: (lesson: Lesson) => void,
-    router: any,
-    params: { id: string }
-  ) => {
+  const renderLessonNumbers = () => {
+    if (!currentLesson) return null;
+
     // Check if current lesson is completed from progress data
     const lessonProgress = lessonProgressData?.data?.result?.[0];
     const isCurrentLessonCompleted = lessonProgress?.status === "1" || currentLesson.isCompleted;
     
-    // Create a set to track unique lesson IDs
-    const uniqueLessons = new Set();
+    // Create a flat array of all lessons from all chapters
+    const allLessons: { lesson: Lesson, chapterIndex: number, lessonIndex: number }[] = [];
     
-    // First, collect all unique lessons in order
-    const allLessons = chapters.flatMap((chapter) => {
+    chapters.forEach((chapter, chapterIndex) => {
       const chapterLessons = loadedLessons[chapter.id] || [];
-      return chapterLessons.map(lesson => lesson);
+      chapterLessons.forEach((lesson, lessonIndex) => {
+        allLessons.push({ lesson, chapterIndex, lessonIndex });
+      });
     });
     
-    // Now render only unique lessons
-    return allLessons.filter(lesson => {
-      if (uniqueLessons.has(lesson.id)) {
-        return false;
-      }
-      uniqueLessons.add(lesson.id);
-      return true;
-    }).map((lesson, overallIndex) => {
+    return allLessons.map(({ lesson, chapterIndex, lessonIndex }) => {
       const isActive = lesson.id === currentLesson.id;
-      // Use the isCompleted flag from the lesson object, which is now populated from allLessonProgressData
       const isCompleted = isActive ? isCurrentLessonCompleted : lesson.isCompleted;
       
       return (
@@ -887,7 +864,7 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                 : 'text-white hover:bg-blue-800'
             }`}
         >
-          {overallIndex + 1}
+          {lessonIndex + 1}
         </Link>
       );
     });
@@ -955,29 +932,33 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                           {loadingStates[chapter.id] ? (
                             <div className="py-2 text-gray-500">Đang tải...</div>
                           ) : (
-                            (loadedLessons[chapter.id] || []).filter(lesson => lesson.chapterId === chapter.id).map((lesson: Lesson, lessonIndex: number) => (                                <div 
-                                key={lesson.id}
-                                className={`flex justify-between items-center text-gray-600 py-1 px-2 rounded-md transition-colors
-                                  ${currentLesson?.id === lesson.id ? 'bg-blue-50 text-blue-600' : 'hover:text-blue-600'}`}
-                                role="button"                                onClick={() => {
-                                  if (typeof changeLesson === 'function') {
-                                    // Cập nhật bài học hiện tại trong Redux store
-                                    changeLesson(lesson);
-                                  }
-                                  // Chuyển hướng người dùng đến URL của bài học đã chọn
-                                  router.push(`/learning/${params.id}?activityId=${lesson.id}`);
-                                }}
-                              >
-                                <div>{index + 1}.{lessonIndex + 1} {lesson.title}</div>
-                                {lesson.isCompleted && (
-                                  <div className="h-4 w-4 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 ml-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="text-white h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                  </div>
-                                )}
-                              </div>
-                            ))
+                            (loadedLessons[chapter.id] || [])
+                              .filter(lesson => lesson.chapterId === chapter.id)
+                              .map((lesson: Lesson, lessonIndex: number) => (
+                                <div 
+                                  key={lesson.id}
+                                  className={`flex justify-between items-center text-gray-600 py-1 px-2 rounded-md transition-colors
+                                    ${currentLesson?.id === lesson.id ? 'bg-blue-50 text-blue-600' : 'hover:text-blue-600'}`}
+                                  role="button"                                
+                                  onClick={() => {
+                                    if (typeof changeLesson === 'function') {
+                                      // Update current lesson
+                                      changeLesson(lesson);
+                                    }
+                                    // Navigate to lesson URL
+                                    router.push(`/learning/${params.id}?activityId=${lesson.id}`);
+                                  }}
+                                >
+                                  <div>{index + 1}.{lessonIndex + 1} {lesson.title}</div>
+                                  {lesson.isCompleted && (
+                                    <div className="h-4 w-4 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 ml-2">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="text-white h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      </svg>
+                                    </div>
+                                  )}
+                                </div>
+                              ))
                           )}
                         </div>
                       )}
@@ -1000,7 +981,8 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                     </svg>
                     <span className="text-gray-600">{course.duration ? `${course.duration} giờ học` : 'Không xác định'}</span>
                   </div>
-                  <div className="flex items-center space-x-2">                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                  <div className="flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 005.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/>
                     </svg>
                     <span className="text-gray-600">{chapters.length || 0} chương học</span>
@@ -1045,24 +1027,40 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                     <ChevronLeftIcon className="h-5 w-5 mr-1" />
                   </Link>
                   <h2 className="text-2xl font-bold text-white">{currentLesson.title}</h2>
-                </div>                <div className="flex items-center space-x-2">
+                </div>                
+                <div className="flex items-center space-x-2">
                   <button
-                    onClick={() => handlePreviousLesson(chapters, loadedLessons, currentLesson, changeLesson, router, params)}
+                    onClick={handlePreviousLesson}
                     className="p-2 rounded-md bg-blue-800 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-white"
                     disabled={!getPreviousLesson(chapters, loadedLessons, currentLesson.id)}
                   >
                     <ChevronLeftIcon className="h-5 w-5" />
                   </button>
                   {/* Display lesson number */}
-                  {renderLessonNumbers(chapters, loadedLessons, currentLesson, changeLesson, router, params)}
+                  {renderLessonNumbers()}
                   <button
-                    onClick={() => handleNextLesson(chapters, loadedLessons, currentLesson, changeLesson, router, params)}
+                    onClick={handleNextLesson}
                     className="p-2 rounded-md bg-blue-800 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-white"
                     disabled={!getNextLesson(chapters, loadedLessons, currentLesson.id)}
                   >
                     <ChevronRightIcon className="h-5 w-5" />
                   </button>
-                </div>              </div>              {renderLessonContent(currentLesson, chapters, expandedChapters, loadingStates, loadedLessons, params, changeLesson, router, chaptersLoading, toggleChapter, handleCompleteLesson, completingLesson)}
+                </div>
+              </div>              
+              {renderLessonContent(
+                currentLesson, 
+                chapters,
+                expandedChapters, 
+                loadingStates, 
+                loadedLessons, 
+                params, 
+                changeLesson, 
+                router, 
+                chaptersLoading, 
+                toggleChapter, 
+                handleCompleteLesson, 
+                completingLesson
+              )}
             </>
           ) : (
             <div className="text-center py-12">
