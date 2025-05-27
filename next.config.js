@@ -2,9 +2,8 @@
 const nextConfig = {
   devIndicators: false,
   /* config options here */
-  transpilePackages: ["@ant-design/plots"],
-  images: {
-    domains: ['example.com'],
+  transpilePackages: ["@ant-design/plots"],  images: {
+    domains: ['example.com', 'res.cloudinary.com'],
   },
   webpack: (config) => {
     // This is needed to handle dynamic imports properly

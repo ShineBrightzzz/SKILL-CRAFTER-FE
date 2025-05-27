@@ -11,7 +11,8 @@ import {
   AppstoreOutlined,
   LogoutOutlined,
   SettingOutlined,
-  UserSwitchOutlined
+  UserSwitchOutlined,
+  SafetyCertificateOutlined
 } from '@ant-design/icons';
 import { useAuth } from '@/store/hooks';
 import { useRouter } from 'next/navigation';
@@ -22,6 +23,8 @@ import dynamic from 'next/dynamic';
 const CoursesManagement = dynamic(() => import('../../components/admin/CoursesManagement'));
 const LessonsManagement = dynamic(() => import('../../components/admin/LessonsManagement'));
 const UsersManagement = dynamic(() => import('../../components/admin/UsersManagement'));
+const PermissionsManagement = dynamic(() => import('../../components/admin/PermissionsManagement'));
+const RolesManagement = dynamic(() => import('../../components/admin/RolesManagement'));
 
 const { Sider, Content, Header } = Layout;
 
@@ -60,9 +63,12 @@ const AdminPage = () => {
       case 'courses':
         return <CoursesManagement />;
       case 'lessons':
-        return <LessonsManagement />;
-      case 'users':
+        return <LessonsManagement />;      case 'users':
         return <UsersManagement />;
+      case 'permissions':
+        return <PermissionsManagement />;
+      case 'roles':
+        return <RolesManagement />;
       default:
         return <CoursesManagement />;
     }
@@ -90,13 +96,33 @@ const AdminPage = () => {
           setMobileMenuVisible(false);
         }
       }
-    },
-    {
+    },    {
       key: 'users',
       icon: <UserOutlined />,
       label: 'Người dùng',
       onClick: () => {
         setSelectedMenu('users');
+        if (isMobile) {
+          setMobileMenuVisible(false);
+        }
+      }
+    },    {
+      key: 'permissions',
+      icon: <SafetyCertificateOutlined />,
+      label: 'Quản lý quyền',
+      onClick: () => {
+        setSelectedMenu('permissions');
+        if (isMobile) {
+          setMobileMenuVisible(false);
+        }
+      }
+    },
+    {
+      key: 'roles',
+      icon: <UserSwitchOutlined />,
+      label: 'Quản lý vai trò',
+      onClick: () => {
+        setSelectedMenu('roles');
         if (isMobile) {
           setMobileMenuVisible(false);
         }

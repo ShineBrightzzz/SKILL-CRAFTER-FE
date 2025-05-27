@@ -157,6 +157,7 @@ export const {
   useGetRoleByIdQuery,
   useGetActiveRolesQuery,
   useGetRolePermissionsQuery,
+  useLazyGetRolePermissionsQuery,
   useCreateRoleMutation,
   useUpdateRoleMutation,
   useDeleteRoleMutation,

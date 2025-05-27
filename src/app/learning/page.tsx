@@ -16,6 +16,7 @@ interface Course {
   tags?: string[];
   duration?: number;
   price?: number;
+  imageUrl?: string;
 }
 
 // Define Pagination Metadata type
@@ -224,7 +225,7 @@ export default function LearningPage() {
                   <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition">
                     <div className="relative h-48">
                       <Image
-                        src={'/logo.png'}
+                        src={course.imageUrl || '/logo.png'}
                         alt={course.title}
                         fill
                         className="object-cover"

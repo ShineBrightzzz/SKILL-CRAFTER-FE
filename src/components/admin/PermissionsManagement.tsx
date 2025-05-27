@@ -3,31 +3,34 @@
 import React, { useState } from 'react';
 import { Table, Button, Space, Modal, Form, Input, Select, message } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import { useGetAllAccountsQuery, useCreateAccountMutation, useDeleteAccountMutation, useUpdateAccountMutation } from '@/services/user.service';
-import { useGetAllRolesQuery } from '@/services/role.service';
+import { 
+  useGetAllPermissionsQuery,
+  useCreatePermissionMutation,
+  useUpdatePermissionMutation,
+  useDeletePermissionMutation
+} from '@/services/permission.service';
 
-const UsersManagement = () => {
+const PermissionsManagement = () => {
   const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingUser, setEditingUser] = useState<any>(null);
-  const { data: usersData, isLoading, refetch } = useGetAllAccountsQuery();
-  const { data: rolesData } = useGetAllRolesQuery();
-  const [createUser] = useCreateAccountMutation();
-  const [updateUser] = useUpdateAccountMutation();
-  const [deleteUser] = useDeleteAccountMutation();
+  const [editingPermission, setEditingPermission] = useState<any>(null);
+  
+  const { data: permissionsData, isLoading, refetch } = useGetAllPermissionsQuery({});
+  const [createPermission] = useCreatePermissionMutation();
+  const [updatePermission] = useUpdatePermissionMutation();
+  const [deletePermission] = useDeletePermissionMutation();
 
-  const showModal = (user?: any) => {
-    if (user) {
-      setEditingUser(user);
+  const showModal = (permission?: any) => {
+    if (permission) {
+      setEditingPermission(permission);
       form.setFieldsValue({
-        username: user.username,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-        // Do not set password for security
+        name: permission.name,
+        apiPath: permission.apiPath,
+        method: permission.method,
+        module: permission.module,
       });
     } else {
-      setEditingUser(null);
+      setEditingPermission(null);
       form.resetFields();
     }
     setIsModalVisible(true);
@@ -40,12 +43,12 @@ const UsersManagement = () => {
 
   const handleSubmit = async (values: any) => {
     try {
-      if (editingUser) {
-        await updateUser({ username: editingUser.username, body: values }).unwrap();
-        message.success('Cập nhật người dùng thành công!');
+      if (editingPermission) {
+        await updatePermission({ id: editingPermission.id, body: values }).unwrap();
+        message.success('Cập nhật quyền thành công!');
       } else {
-        await createUser({ body: values }).unwrap();
-        message.success('Tạo người dùng thành công!');
+        await createPermission({ body: values }).unwrap();
+        message.success('Tạo quyền mới thành công!');
       }
       setIsModalVisible(false);
       refetch();
@@ -55,20 +58,20 @@ const UsersManagement = () => {
     }
   };
 
-  const handleDelete = async (username: string) => {
+  const handleDelete = async (id: string) => {
     Modal.confirm({
-      title: 'Bạn có chắc chắn muốn xóa người dùng này?',
+      title: 'Bạn có chắc chắn muốn xóa quyền này?',
       content: 'Hành động này không thể hoàn tác.',
       okText: 'Xóa',
       okType: 'danger',
       cancelText: 'Hủy',
       onOk: async () => {
         try {
-          await deleteUser({ username }).unwrap();
-          message.success('Xóa người dùng thành công!');
+          await deletePermission({ id }).unwrap();
+          message.success('Xóa quyền thành công!');
           refetch();
         } catch (error) {
-          message.error('Có lỗi xảy ra khi xóa người dùng!');
+          message.error('Có lỗi xảy ra khi xóa quyền!');
           console.error(error);
         }
       },
@@ -77,28 +80,24 @@ const UsersManagement = () => {
 
   const columns = [
     {
-      title: 'Tên đăng nhập',
-      dataIndex: 'username',
-      key: 'username',
+      title: 'Tên quyền',
+      dataIndex: 'name',
+      key: 'name',
     },
     {
-      title: 'Họ và tên',
-      dataIndex: 'fullName',
-      key: 'fullName',
+      title: 'API Path',
+      dataIndex: 'apiPath',
+      key: 'apiPath',
     },
     {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
+      title: 'Phương thức',
+      dataIndex: 'method',
+      key: 'method',
     },
     {
-      title: 'Vai trò',
-      dataIndex: 'role',
-      key: 'role',
-      render: (roleId: string) => {
-        const role = rolesData?.data?.result?.find((r: { id: string }) => r.id === roleId);
-        return role?.name || roleId;
-      }
+      title: 'Module',
+      dataIndex: 'module',
+      key: 'module',
     },
     {
       title: 'Thao tác',
@@ -115,7 +114,7 @@ const UsersManagement = () => {
           <Button 
             danger 
             icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record.username)}
+            onClick={() => handleDelete(record.id)}
           >
             Xóa
           </Button>
@@ -123,17 +122,16 @@ const UsersManagement = () => {
       ),
     },
   ];
+
   // Set up responsive columns
   const getResponsiveColumns = () => {
-    // Get current window width
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     
-    // Base columns that always show
     let responsiveColumns = [...columns];
     
     if (isMobile) {
-      // Remove email column on small screens
-      responsiveColumns = responsiveColumns.filter(col => col.key !== 'email');
+      // Remove apiPath column on small screens
+      responsiveColumns = responsiveColumns.filter(col => col.key !== 'apiPath');
       
       // Simplify action buttons on mobile
       const actionColumn = responsiveColumns.find(col => col.key === 'action');
@@ -150,7 +148,7 @@ const UsersManagement = () => {
               danger 
               size="small"
               icon={<DeleteOutlined />}
-              onClick={() => handleDelete(record.username)}
+              onClick={() => handleDelete(record.id)}
             />
           </Space>
         );
@@ -188,19 +186,21 @@ const UsersManagement = () => {
           onClick={() => showModal()}
           style={{ alignSelf: typeof window !== 'undefined' && window.innerWidth < 768 ? 'flex-start' : 'auto' }}
         >
-          Thêm người dùng
+          Thêm quyền mới
         </Button>
       </div>
 
       <Table 
         columns={responsiveColumns} 
-        dataSource={usersData?.data || []} 
-        rowKey="username" 
+        dataSource={permissionsData?.data?.result || []} 
+        rowKey="id" 
         loading={isLoading}
         pagination={{ pageSize: 10 }}
         scroll={{ x: 'max-content' }}
-      />      <Modal
-        title={editingUser ? "Chỉnh sửa người dùng" : "Thêm người dùng mới"}
+      />
+
+      <Modal
+        title={editingPermission ? "Chỉnh sửa quyền" : "Thêm quyền mới"}
         open={isModalVisible}
         onCancel={handleCancel}
         footer={null}
@@ -215,66 +215,48 @@ const UsersManagement = () => {
           style={{ width: '100%' }}
         >
           <Form.Item
-            name="username"
-            label="Tên đăng nhập"
+            name="name"
+            label="Tên quyền"
             rules={[
-              { required: true, message: 'Vui lòng nhập tên đăng nhập!' },
-              { min: 3, message: 'Tên đăng nhập phải có ít nhất 3 ký tự!' }
+              { required: true, message: 'Vui lòng nhập tên quyền!' },
+              { min: 3, message: 'Tên quyền phải có ít nhất 3 ký tự!' }
             ]}
-            disabled={!!editingUser}
           >
-            <Input disabled={!!editingUser} />
+            <Input />
           </Form.Item>
           
           <Form.Item
-            name="fullName"
-            label="Họ và tên"
-            rules={[{ required: true, message: 'Vui lòng nhập họ và tên!' }]}
+            name="apiPath"
+            label="API Path"
+            rules={[{ required: true, message: 'Vui lòng nhập API Path!' }]}
           >
             <Input />
           </Form.Item>
           
           <Form.Item
-            name="email"
-            label="Email"
-            rules={[
-              { required: true, message: 'Vui lòng nhập email!' },
-              { type: 'email', message: 'Email không hợp lệ!' }
-            ]}
+            name="method"
+            label="Phương thức"
+            rules={[{ required: true, message: 'Vui lòng chọn phương thức!' }]}
           >
-            <Input />
-          </Form.Item>
-
-          {!editingUser && (
-            <Form.Item
-              name="password"
-              label="Mật khẩu"
-              rules={[
-                { required: !editingUser, message: 'Vui lòng nhập mật khẩu!' },
-                { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' }
-              ]}
-            >
-              <Input.Password />
-            </Form.Item>
-          )}
-          
-          <Form.Item
-            name="role"
-            label="Vai trò"
-            rules={[{ required: true, message: 'Vui lòng chọn vai trò!' }]}
-          >
-            <Select 
-              placeholder="Chọn vai trò"
+            <Select
+              placeholder="Chọn phương thức"
               style={{ width: '100%' }}
               getPopupContainer={trigger => trigger.parentElement}
-              loading={!rolesData}
             >
-              {rolesData?.data?.result?.map((role: { id: string, name: string }) => (
-                <Select.Option key={role.id} value={role.id}>
-                  {role.name}
-                </Select.Option>
-              ))}
+              <Select.Option value="GET">GET</Select.Option>
+              <Select.Option value="POST">POST</Select.Option>
+              <Select.Option value="PUT">PUT</Select.Option>
+              <Select.Option value="DELETE">DELETE</Select.Option>
+              <Select.Option value="PATCH">PATCH</Select.Option>
             </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="module"
+            label="Module"
+            rules={[{ required: true, message: 'Vui lòng nhập tên module!' }]}
+          >
+            <Input />
           </Form.Item>
           
           <Form.Item>
@@ -296,7 +278,7 @@ const UsersManagement = () => {
                 htmlType="submit"
                 style={{ width: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : 'auto' }}
               >
-                {editingUser ? 'Cập nhật' : 'Tạo mới'}
+                {editingPermission ? 'Cập nhật' : 'Tạo mới'}
               </Button>
             </div>
           </Form.Item>
@@ -306,4 +288,4 @@ const UsersManagement = () => {
   );
 };
 
-export default UsersManagement;
+export default PermissionsManagement;
