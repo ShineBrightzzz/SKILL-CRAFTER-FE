@@ -48,6 +48,11 @@ export const codeSubmitApiSlice = apiSlice.injectEndpoints({
           body: payload
         };
       },
+      invalidatesTags: (result, error, { lessonId, userId }) => [
+        ...(lessonId ? [{ type: 'CodeSubmits' as const, id: `Lesson-${lessonId}` }] : []),
+        ...(userId ? [{ type: 'CodeSubmits' as const, id: `User-${userId}` }] : []),
+        ...(lessonId && userId ? [{ type: 'CodeSubmits' as const, id: `User-${userId}-Lesson-${lessonId}` }] : []),
+      ],
     }),
 
     runCode : builder.mutation<SubmitCodeResponse, SubmitCodeRequest>({
