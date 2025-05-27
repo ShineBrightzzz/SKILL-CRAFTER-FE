@@ -911,76 +911,172 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   return (
     <main className="min-h-screen bg-gray-50">
       {!searchParams.activityId ? (
-        /* Course Overview */
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Course Overview Section */}
+          <div className="mb-8">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h1 className="text-3xl font-bold mb-4">{course.title}</h1>
+              <p className="text-gray-600 mb-6">{course.description}</p>
+              
+              {effectivelyEnrolled ? (
+                <button
+                  onClick={() => {
+                    if (firstLesson) {
+                      router.push(`/learning/${params.id}?activityId=${firstLesson.id}`);
+                    }
+                  }}
+                  disabled={isEnrolling || !firstLesson}
+                  className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
+                >
+                  {isEnrolling ? 'Đang xử lý...' : 'Vào học ngay'}
+                </button>
+              ) : (
+                <button
+                  onClick={handleEnrollment}
+                  disabled={isEnrolling}
+                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                >
+                  {isEnrolling ? 'Đang xử lý...' : 'Đăng ký khóa học'}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Course Details Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Course Info - Left Side */}
-            <div className="md:col-span-2">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h1 className="text-3xl font-bold mb-4">{course.title}</h1>
-                <p className="text-gray-600 mb-6">{course.description}</p>
-                
-                {effectivelyEnrolled ? (
-                  /* Show "Vào học ngay" button if enrolled */
-                  <button
-                    onClick={() => {
-                      if (firstLesson) {
-                        router.push(`/learning/${params.id}?activityId=${firstLesson.id}`);
-                      }
-                    }}
-                    disabled={isEnrolling || !firstLesson}
-                    className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
-                  >
-                    {isEnrolling ? 'Đang xử lý...' : 'Vào học ngay'}
-                  </button>
-                ) : (
-                  /* Show enrollment button if not enrolled */
-                  <button
-                    onClick={handleEnrollment}
-                    disabled={isEnrolling}
-                    className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-                  >
-                    {isEnrolling ? 'Đang xử lý...' : 'Đăng ký khóa học'}
-                  </button>
-                )}
-              </div>
-            </div>
-            
-            {/* Course Details - Right Side */}
-            <div>
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="divide-y">
-                  <div className="py-4">
-                    <h3 className="text-lg font-medium">Thông tin khóa học</h3>
-                  </div>
-                  <div className="py-4">
-                    <p className="flex justify-between">
-                      <span>Cấp độ:</span>
-                      <span>{getLevelText(course.level)}</span>
-                    </p>
-                  </div>
-                  <div className="py-4">
-                    <p className="flex justify-between">
-                      <span>Thời lượng:</span>
-                      <span>{course.duration ? `${course.duration} giờ` : "Chưa cập nhật"}</span>
-                    </p>
-                  </div>
-                  <div className="py-4">
-                    <p className="flex justify-between">
-                      <span>Danh mục:</span>
-                      <span>{course.categoryName || "Chưa phân loại"}</span>
-                    </p>
-                  </div>
-                  <div className="py-4">
-                    <p className="flex justify-between">
-                      <span>Học phí:</span>
-                      <span className="font-medium text-blue-600">
-                        {new Intl.NumberFormat('vi-VN').format(course.price || 0)} VNĐ
-                      </span>
-                    </p>
+            <div className="md:col-span-2 space-y-6">
+              {/* Course Content */}
+              <div className="bg-white rounded-lg shadow">
+                <div className="p-6">
+                  <h2 className="text-2xl font-semibold mb-4">Nội dung khóa học</h2>
+                  <div className="space-y-4">
+                    {chapters.map((chapter, index) => {
+                      const chapterLessons = loadedLessons[chapter.id] || [];
+                      const totalDuration = chapterLessons.reduce((acc, lesson) => acc + (lesson.duration || 0), 0);
+                      const completedLessons = chapterLessons.filter(lesson => lesson.isCompleted).length;
+
+                      return (
+                        <div key={chapter.id} className="border rounded-lg">
+                          <div className="flex justify-between items-center p-4 bg-gray-50">
+                            <div>
+                              <h3 className="text-lg font-medium">
+                                Chương {index + 1}: {chapter.name}
+                              </h3>
+                              <p className="text-sm text-gray-500 mt-1">
+                                {chapterLessons.length} bài học • {totalDuration} phút
+                              </p>
+                            </div>
+                            {effectivelyEnrolled && (
+                              <div className="text-sm text-gray-600">
+                                {completedLessons}/{chapterLessons.length} bài học hoàn thành
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="divide-y">
+                            {chapterLessons.map((lesson, lessonIndex) => (
+                              <div key={lesson.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                                <div className="flex items-center space-x-3">
+                                  {lesson.isCompleted && (
+                                    <div className="text-green-500">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                      </svg>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <p className="font-medium">{index + 1}.{lessonIndex + 1} {lesson.title}</p>
+                                    {lesson.duration && (
+                                      <p className="text-sm text-gray-500">{lesson.duration} phút</p>
+                                    )}
+                                  </div>
+                                </div>
+                                {!effectivelyEnrolled && (
+                                  <div className="text-sm text-gray-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                    </svg>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Course Info - Right Side */}
+            <div className="space-y-6">
+              {/* Course Details Card */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-medium mb-4">Thông tin khóa học</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Cấp độ</span>
+                    <span className="font-medium">{getLevelText(course.level)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Thời lượng</span>
+                    <span className="font-medium">{course.duration ? `${course.duration} giờ` : "Chưa cập nhật"}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Số chương</span>
+                    <span className="font-medium">{chapters.length} chương</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Số bài học</span>
+                    <span className="font-medium">
+                      {Object.values(loadedLessons).reduce((acc, lessons) => acc + lessons.length, 0)} bài
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Danh mục</span>
+                    <span className="font-medium">{course.categoryName || "Chưa phân loại"}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Học phí</span>
+                    <span className="font-medium text-blue-600">
+                      {new Intl.NumberFormat('vi-VN').format(course.price || 0)} VNĐ
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Card (Only show if enrolled) */}
+              {effectivelyEnrolled && (
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h3 className="text-lg font-medium mb-4">Tiến độ học tập</h3>
+                  <div className="space-y-4">
+                    {chapters.map((chapter, index) => {
+                      const chapterLessons = loadedLessons[chapter.id] || [];
+                      const completedLessons = chapterLessons.filter(lesson => lesson.isCompleted).length;
+                      const progress = chapterLessons.length > 0 
+                        ? (completedLessons / chapterLessons.length) * 100 
+                        : 0;
+
+                      return (
+                        <div key={chapter.id}>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span>Chương {index + 1}</span>
+                            <span>{Math.round(progress)}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-green-600 h-2 rounded-full" 
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -988,8 +1084,7 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
         // ... existing code for lesson view
         <div className="min-h-screen">
           {currentLesson ? (
-            <>
-              {/* Navigation header */}
+            <>              {/* Navigation header */}
               <div className="flex items-center justify-between px-6 py-4 border-b bg-blue-900">
                 <div className="flex items-center space-x-4">
                   <Link
@@ -997,9 +1092,11 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                     className="flex items-center text-white hover:text-blue-200 transition"
                   >
                     <ChevronLeftIcon className="h-5 w-5 mr-1" />
+                    <span>Trở về khóa học</span>
                   </Link>
                   <h2 className="text-2xl font-bold text-white">{currentLesson.title}</h2>
-                </div>                <div className="flex items-center space-x-2">
+                </div>
+                <div className="flex items-center space-x-2">
                   <button
                     onClick={() => handlePreviousLesson(chapters, loadedLessons, currentLesson, changeLesson, router, params)}
                     className="p-2 rounded-md bg-blue-800 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-white"
