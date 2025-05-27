@@ -1,114 +1,161 @@
 import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useGetAllLessonsByChapterIdQuery } from '@/services/course.service';
-import { RootState } from '@/store/store';
+import { useAppDispatch, useAppSelector } from '../hooks';
+import { RootState } from '../store';
 import { 
-  setCurrentLesson,
-  setChapterLessons,
-  setLessonProgress,
-  saveUserCode,
-  setLessonLoading,
-  setLessonError
-} from '@/store/slices/lessonSlice';
-import { Lesson } from '@/store/slices/courseSlice';
+  useGetLessonsByChapterIdQuery, 
+  useGetLessonByIdQuery 
+} from '@/services/lesson.service';
+import { 
+  setLesson, 
+  setLessons, 
+  setCurrentLesson, 
+  saveUserCode, 
+  updateLessonCompletion 
+} from '../slices/lessonSlice';
 
-// Hook to get chapter lessons with caching
-export const useChapterLessons = (chapterId: string) => {
-  const dispatch = useDispatch();
-  const cachedLessons = useSelector(
-    (state: RootState) => state.lessons.lessonsByChapterId[chapterId]
+/**
+ * Hook to get a lesson by ID from either the Redux store or API
+ */
+export const useLesson = (lessonId: string) => {
+  const dispatch = useAppDispatch();
+  
+  // Get the lesson from Redux store if it exists
+  const lesson = useAppSelector((state: RootState) => 
+    state.lessons.lessons[lessonId]
   );
-  const isLoading = useSelector((state: RootState) => state.lessons.loading);
   
-  // Only fetch if we don't have the lessons cached
-  const shouldFetch = !cachedLessons && chapterId;
-  
+  // Use RTK Query to fetch the lesson data
   const { 
-    data: lessonsResponse,
-    isLoading: apiLoading,
-    error: apiError
-  } = useGetAllLessonsByChapterIdQuery(chapterId, {
-    skip: !shouldFetch,
+    data: lessonResponse, 
+    isLoading: isFetching,
+    error
+  } = useGetLessonByIdQuery(lessonId, {
+    // Skip fetching if we already have the data cached
+    skip: !!lesson
   });
-
+  
+  // Save lesson to Redux when it's fetched
   useEffect(() => {
-    if (shouldFetch) {
-      dispatch(setLessonLoading(true));
+    if (lessonResponse?.data && !lesson) {
+      dispatch(setLesson(lessonResponse.data));
     }
-  }, [shouldFetch, dispatch]);
-
-  useEffect(() => {
-    if (lessonsResponse?.data?.result && shouldFetch) {
-      dispatch(setChapterLessons({
-        chapterId,
-        lessons: lessonsResponse.data.result
-      }));
-      dispatch(setLessonLoading(false));
-    }
-    
-    if (apiError) {
-      dispatch(setLessonError('Failed to load lessons'));
-      dispatch(setLessonLoading(false));
-    }
-  }, [lessonsResponse, apiError, chapterId, shouldFetch, dispatch]);
-
+  }, [lessonResponse, lesson, dispatch]);
+  
   return {
-    lessons: cachedLessons || lessonsResponse?.data?.result || [],
-    isLoading: isLoading || apiLoading,
-    pagination: lessonsResponse?.data?.meta || { page: 1, pageSize: 10, pages: 1, total: 0 }
+    lesson: lesson || lessonResponse?.data,
+    isLoading: isFetching && !lesson,
+    error
   };
 };
 
-// Hook to manage the current lesson
-export const useCurrentLesson = (initialLesson?: Lesson | null) => {
-  const dispatch = useDispatch();
-  const currentLesson = useSelector((state: RootState) => state.lessons.currentLesson);
+/**
+ * Hook to get all lessons for a chapter
+ */
+export const useChapterLessons = (chapterId: string) => {
+  const dispatch = useAppDispatch();
   
-  // Set initial lesson if provided and no current lesson exists
-  useEffect(() => {
-    if (initialLesson && !currentLesson) {
-      dispatch(setCurrentLesson(initialLesson));
-    }
-  // Only run this effect when the component mounts or initialLesson changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialLesson, dispatch]);
-    // Function to change the current lesson
-  const changeLesson = (lesson: Lesson) => {
-    // Make sure lesson is defined and has necessary properties
-    if (!lesson || !lesson.id) {
-      console.warn('Attempted to set an invalid lesson:', lesson);
-      return;
-    }
-    
-    // Prevent unnecessary updates if the lesson is the same
-    if (currentLesson && lesson.id === currentLesson.id) {
-      return;
-    }
-    
-    dispatch(setCurrentLesson(lesson));
-  };
-  
-  return {
-    currentLesson: currentLesson || initialLesson || null,
-    changeLesson: changeLesson // Explicitly return the function
-  };
-};
-
-// Hook to save and retrieve user code for coding exercises
-export const useUserCode = (lessonId: string, initialCode: string = '') => {
-  const dispatch = useDispatch();
-  const savedCode = useSelector(
-    (state: RootState) => state.lessons.userCode[lessonId]
+  // Get all lesson IDs for this chapter from Redux store
+  const lessonIds = useAppSelector((state: RootState) => 
+    state.lessons.byChapter[chapterId] || []
   );
   
-  // Function to save code to Redux
-  const saveCode = (code: string) => {
-    dispatch(saveUserCode({ lessonId, code }));
+  // Get all lessons from Redux store
+  const lessonsMap = useAppSelector((state: RootState) => 
+    state.lessons.lessons
+  );
+  
+  // Use RTK Query to fetch all lessons for this chapter
+  const { 
+    data: lessonsResponse, 
+    isLoading: isFetching,
+    error
+  } = useGetLessonsByChapterIdQuery(chapterId, {
+    // Skip fetching if we already have lessons for this chapter
+    skip: lessonIds.length > 0
+  });
+  
+  // Save lessons to Redux when they're fetched
+  useEffect(() => {
+    if (lessonsResponse?.data?.result && lessonIds.length === 0) {
+      dispatch(setLessons(lessonsResponse.data.result));
+    }
+  }, [lessonsResponse, lessonIds.length, dispatch, chapterId]);
+  
+  // Convert lessons map to array
+  const lessons = lessonIds.map(id => lessonsMap[id]);
+  
+  return {
+    lessons: lessons.length > 0 ? lessons : lessonsResponse?.data?.result || [],
+    isLoading: isFetching && lessons.length === 0,
+    error
+  };
+};
+
+/**
+ * Hook to manage the current lesson
+ */
+export const useCurrentLesson = () => {
+  const dispatch = useAppDispatch();
+  
+  // Get current lesson ID from Redux
+  const currentLessonId = useAppSelector((state: RootState) => 
+    state.lessons.currentLessonId
+  );
+  
+  // Get current lesson from Redux if it exists
+  const currentLesson = useAppSelector((state: RootState) => 
+    currentLessonId ? state.lessons.lessons[currentLessonId] : null
+  );
+  
+  // Function to change the current lesson
+  const changeLesson = (lessonIdOrObject: string | any) => {
+    let lessonId: string;
+    
+    if (typeof lessonIdOrObject === 'string') {
+      lessonId = lessonIdOrObject;
+    } else if (lessonIdOrObject && lessonIdOrObject.id) {
+      lessonId = lessonIdOrObject.id;
+      // Also save the lesson object to Redux if provided
+      dispatch(setLesson(lessonIdOrObject));
+    } else {
+      console.error('Invalid lesson provided to changeLesson:', lessonIdOrObject);
+      return;
+    }
+    
+    dispatch(setCurrentLesson(lessonId));
   };
   
-  // Return saved code or initial code if none saved
+  // Function to mark a lesson as completed
+  const markLessonCompleted = (lessonId: string, isCompleted = true) => {
+    dispatch(updateLessonCompletion({ lessonId, isCompleted }));
+  };
+  
   return {
-    code: savedCode || initialCode,
+    currentLesson,
+    currentLessonId,
+    changeLesson,
+    markLessonCompleted
+  };
+};
+
+/**
+ * Hook to manage user code for programming exercises
+ */
+export const useUserCode = (lessonId: string) => {
+  const dispatch = useAppDispatch();
+  
+  // Get user code from Redux
+  const code = useAppSelector((state: RootState) => 
+    state.lessons.userCode[lessonId] || ''
+  );
+  
+  // Function to save user code
+  const saveCode = (newCode: string) => {
+    dispatch(saveUserCode({ lessonId, code: newCode }));
+  };
+  
+  return {
+    code,
     saveCode
   };
 };

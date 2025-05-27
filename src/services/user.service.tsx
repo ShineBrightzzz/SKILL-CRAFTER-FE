@@ -1,3 +1,4 @@
+import { setUser } from '@/store/slices/authSlice';
 import apiSlice from './api';
 
 export const userApiSlice = apiSlice.injectEndpoints({
@@ -7,14 +8,29 @@ export const userApiSlice = apiSlice.injectEndpoints({
         url: '/login',
         method: 'POST',
         body,
-      }),
-      async onQueryStarted(arg, {dispatch, queryFulfilled }) {
+      }),      async onQueryStarted(arg, {dispatch, queryFulfilled }) {
         try {
-          const { data } = await queryFulfilled;
-          localStorage.setItem('accessToken', data.data.accessToken);
-          localStorage.setItem('userId', data.data.username);
+          const response = await queryFulfilled;
+          const { data } = response.data;
+          
+          // Store user data safely
+          const userData = {
+            id: data.id,
+            username: data.username,
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken
+          };
+          
+          localStorage.setItem('user', JSON.stringify(userData));
+          localStorage.setItem('accessToken', data.accessToken);
+          
+          // Dispatch the user data to Redux store
+          dispatch(setUser(userData));
         } catch (error) {
-          console.log('Error saving token:', error);
+          console.error('Error saving user data:', error);
+          // Clean up any partial data
+          localStorage.removeItem('user');
+          localStorage.removeItem('accessToken');
         }
       },
     }),

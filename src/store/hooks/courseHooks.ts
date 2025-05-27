@@ -1,136 +1,86 @@
-import { useEffect, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '../hooks';
+import { RootState } from '../store';
 import { 
   useGetCourseByIdQuery, 
-  useGetAllCoursesQuery,
-  useGetEnrollmentsByUserIdQuery,
-  useGetAllCourseByCategoryQuery,
-  useGetAllCourseByInstructorQuery,
-  useEnrollCourseMutation
+  useGetAllCoursesQuery 
 } from '@/services/course.service';
-import { RootState } from '@/store/store';
-import { 
-  setCourse, 
-  setAllCourses, 
-  setLoading as setCourseLoading,
-  setError as setCourseError,
-  setCategoryCoursesMap,
-  setInstructorCoursesMap
-} from '@/store/slices/courseSlice';
-import { 
-  setUserEnrollments,
-  addEnrollment,
-  setEnrollmentLoading,
-  setEnrollmentError
-} from '@/store/slices/enrollmentSlice';
-import { toast } from 'react-toastify';
+import { setCourse, setCourses } from '../slices/courseSlice';
 
-// Hook for getting a single course with caching
-export const useGetCourse = (courseId: string) => {
-  const dispatch = useDispatch();
-  const course = useSelector((state: RootState) => state.courses.courses[courseId]);
-  const isLoading = useSelector((state: RootState) => state.courses.loading);
-  const error = useSelector((state: RootState) => state.courses.error);
-
-  // Only fetch if we don't already have the course in Redux
-  const shouldFetch = !course;
-  const { data: courseResponse, isLoading: apiLoading, error: apiError } = useGetCourseByIdQuery(courseId, {
-    skip: !shouldFetch,
+/**
+ * Hook to get a course by ID from either the Redux store or API
+ */
+export const useCourse = (courseId: string) => {
+  const dispatch = useAppDispatch();
+  
+  // Get the course from Redux store if it exists
+  const course = useAppSelector((state: RootState) => 
+    state.courses.courses[courseId]
+  );
+  
+  // Use RTK Query to fetch the course data
+  const { 
+    data: courseResponse, 
+    isLoading: isFetching,
+    error
+  } = useGetCourseByIdQuery(courseId, {
+    // Skip fetching if we already have the data cached
+    skip: !!course
   });
-
-  useEffect(() => {
-    if (shouldFetch) {
-      dispatch(setCourseLoading(true));
-    }
-  }, [shouldFetch, dispatch]);
-
-  useEffect(() => {
-    if (apiLoading) {
-      dispatch(setCourseLoading(apiLoading));
-    }
-  }, [apiLoading, dispatch]);
-
-  useEffect(() => {
-    if (apiError) {
-      dispatch(setCourseError((apiError as any)?.data?.message || 'Có lỗi xảy ra khi tải thông tin khóa học'));
-    }
-  }, [apiError, dispatch]);
-
+  
+  // Save course to Redux when it's fetched
   useEffect(() => {
     if (courseResponse?.data && !course) {
       dispatch(setCourse(courseResponse.data));
-      dispatch(setCourseLoading(false));
     }
   }, [courseResponse, course, dispatch]);
-
-  return { 
-    course: course || (courseResponse?.data), 
-    isLoading: isLoading || apiLoading,
-    error: error || (apiError ? (apiError as any)?.data?.message || 'Có lỗi xảy ra' : null) 
+  
+  return {
+    course: course || courseResponse?.data,
+    isLoading: isFetching && !course,
+    error
   };
 };
 
-// Hook for checking if a user is enrolled in a course
-export const useCheckEnrollment = (courseId: string, userId?: string) => {
-  const dispatch = useDispatch();
-  const isEnrolled = useSelector((state: RootState) => {
-    const enrollmentIds = state.enrollments.userEnrollmentIds;
-    return enrollmentIds.includes(courseId);
-  });
-  const enrollmentsLoaded = useSelector((state: RootState) => 
-    state.enrollments.userEnrollmentsLoaded
+/**
+ * Hook to get all courses
+ */
+export const useCourses = (params = {}) => {
+  const dispatch = useAppDispatch();
+  
+  // Get all course IDs from Redux store
+  const courseIds = useAppSelector((state: RootState) => 
+    state.courses.allIds
   );
   
-  const { 
-    data: enrollmentsResponse, 
-    isLoading: enrollmentLoading 
-  } = useGetEnrollmentsByUserIdQuery(
-    { userId: userId || '' },
-    { skip: !userId || enrollmentsLoaded }
+  // Get all courses from Redux store
+  const coursesMap = useAppSelector((state: RootState) => 
+    state.courses.courses
   );
-
-  // Store enrollments in Redux when they come from the API
+  
+  // Use RTK Query to fetch all courses
+  const { 
+    data: coursesResponse, 
+    isLoading: isFetching,
+    error
+  } = useGetAllCoursesQuery(params, {
+    // Skip fetching if we already have courses
+    skip: courseIds.length > 0
+  });
+  
+  // Save courses to Redux when they're fetched
   useEffect(() => {
-    if (enrollmentsResponse?.data?.result && !enrollmentsLoaded && userId) {
-      dispatch(setUserEnrollments(enrollmentsResponse.data.result));
+    if (coursesResponse?.data?.result && courseIds.length === 0) {
+      dispatch(setCourses(coursesResponse.data.result));
     }
-  }, [enrollmentsResponse, enrollmentsLoaded, userId, dispatch]);
-
+  }, [coursesResponse, courseIds.length, dispatch]);
+  
+  // Convert courses map to array
+  const courses = courseIds.map(id => coursesMap[id]);
+  
   return {
-    isEnrolled,
-    isLoading: enrollmentLoading && !enrollmentsLoaded,
-    enrollmentsLoaded
-  };
-};
-
-// Hook for enrolling in a course with Redux state updates
-export const useEnrollCourse = () => {
-  const dispatch = useDispatch();
-  const [enrollCourseApi, { isLoading }] = useEnrollCourseMutation();
-
-  const enrollInCourse = async (courseId: string, userId: string) => {
-    try {
-      dispatch(setEnrollmentLoading(true));
-      const response = await enrollCourseApi({ courseId, userId }).unwrap();
-      
-      // Add the enrollment to Redux
-      if (response?.data?.result) {
-        dispatch(addEnrollment(response.data.result));
-        toast.success('Đăng ký khóa học thành công!');
-      }
-      
-      dispatch(setEnrollmentLoading(false));
-      return { success: true };
-    } catch (error) {
-      dispatch(setEnrollmentError('Có lỗi xảy ra khi đăng ký khóa học'));
-      toast.error('Có lỗi xảy ra khi đăng ký khóa học');
-      dispatch(setEnrollmentLoading(false));
-      return { success: false, error };
-    }
-  };
-
-  return {
-    enrollInCourse,
-    isLoading
+    courses: courses.length > 0 ? courses : coursesResponse?.data?.result || [],
+    isLoading: isFetching && courses.length === 0,
+    error
   };
 };

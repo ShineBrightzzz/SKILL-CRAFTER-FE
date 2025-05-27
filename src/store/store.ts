@@ -3,16 +3,18 @@
 import { configureStore } from '@reduxjs/toolkit';
 import apiSlice from '@/services/api';
 import courseReducer from './slices/courseSlice';
-import enrollmentReducer from './slices/enrollmentSlice';
+import chapterReducer from './slices/chapterSlice';
 import lessonReducer from './slices/lessonSlice';
+import enrollmentReducer from './slices/enrollmentSlice';
 import authReducer from './slices/authSlice';
 
 export const store = configureStore({
   reducer: {
     [apiSlice.reducerPath]: apiSlice.reducer,
     courses: courseReducer,
-    enrollments: enrollmentReducer,
+    chapters: chapterReducer,
     lessons: lessonReducer,
+    enrollments: enrollmentReducer,
     auth: authReducer,
   },
   middleware: (getDefaultMiddleware) =>

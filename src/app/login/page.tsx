@@ -9,7 +9,6 @@ import { toast } from 'react-toastify';
 
 export default function Login() {
   const [login, { isLoading: apiLoading }] = useLoginMutation();
-  const { login: authLogin, loading: authLoading, error: authError } = useAuth();
   const router = useRouter();
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,24 +27,13 @@ export default function Login() {
     try {
       // Call API to login
       const response = await login({ username, password }).unwrap();
-      
-      if (!response || response.statusCode !== 200) {
+
+      if (!response) {
         setError('Tên đăng nhập hoặc mật khẩu không hợp lệ');
         setIsSubmitting(false);
         return;
       }
-      
-      // Save user in Redux and localStorage
-      const result = await authLogin(response);
-      
-      if (result.success) {
-        // Show success message and redirect
-        toast.success('Đăng nhập thành công!');
-        router.push('/');
-      } else {
-        setError(result.error || 'Đăng nhập không thành công');
-        setIsSubmitting(false);
-      }
+      router.replace('/');
     } catch (err: any) {
       setError('Tên đăng nhập hoặc mật khẩu không hợp lệ');
       console.error('Đăng nhập thất bại:', err);
@@ -95,9 +83,9 @@ export default function Login() {
           </div>          <button 
             type="submit"
             className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
-            disabled={apiLoading || authLoading || isSubmitting}
+            disabled={apiLoading || isSubmitting}
           >
-            {apiLoading || authLoading || isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            {apiLoading || isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
           {error && <p className="text-red-500 mt-2 text-sm text-center">{error}</p>}
         </form>

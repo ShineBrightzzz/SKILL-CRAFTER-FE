@@ -1,116 +1,80 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-// Define types based on your existing interfaces
-export interface Lesson {
-  id: string;
-  chapterId: string;
-  chapterName: string;
-  title: string;
-  type: number;
-  content: string | null;
-  videoUrl: string | null;
-  duration: number | null;
-  initialCode?: string;
-  language?: string;
-  quizData?: any;
-}
-
-export interface Chapter {
-  id: string;
-  courseId: string;
-  courseName: string;
-  name: string;
-  estimatedTime: number;
-  lessons: Lesson[] | null;
-}
-
+// Define types for our state
 export interface Course {
   id: string;
   title: string;
   description: string;
-  instructorId: string;
-  categoryId: string;
-  categoryName?: string;
-  price: number;
-  imageUrl?: string;
-  duration: number;
+  price?: number;
+  duration?: number;
   level: number;
-  tags: string[] | null;
-  chapters?: Chapter[];
+  categoryName?: string;
+  tags?: string[] | null;
   createdAt: string;
-  updatedAt: string | null;
+  updatedAt?: string | null;
   createdBy: string;
+  [key: string]: any; // For other properties we might not know about
 }
 
 interface CourseState {
-  courses: { [id: string]: Course }; // Map courses by ID for quick lookup
-  allCoursesLoaded: boolean;
-  loading: boolean;
+  courses: { [key: string]: Course }; // Map courseId to course
+  allIds: string[]; // List of all course IDs
+  isLoading: boolean;
   error: string | null;
-  categoryCoursesMap: { [categoryId: string]: string[] }; // Map category IDs to course IDs
-  instructorCoursesMap: { [instructorId: string]: string[] }; // Map instructor IDs to course IDs
 }
 
 const initialState: CourseState = {
   courses: {},
-  allCoursesLoaded: false,
-  loading: false,
+  allIds: [],
+  isLoading: false,
   error: null,
-  categoryCoursesMap: {},
-  instructorCoursesMap: {}
 };
 
 const courseSlice = createSlice({
   name: 'courses',
   initialState,
   reducers: {
-    setCourse: (state, action: PayloadAction<Course>) => {
-      state.courses[action.payload.id] = action.payload;
-    },
-    setAllCourses: (state, action: PayloadAction<Course[]>) => {
-      action.payload.forEach(course => {
-        state.courses[course.id] = course;
-      });
-      state.allCoursesLoaded = true;
-    },
-    setCategoryCoursesMap: (
-      state, 
-      action: PayloadAction<{ categoryId: string; courseIds: string[] }>
-    ) => {
-      const { categoryId, courseIds } = action.payload;
-      state.categoryCoursesMap[categoryId] = courseIds;
-    },
-    setInstructorCoursesMap: (
-      state, 
-      action: PayloadAction<{ instructorId: string; courseIds: string[] }>
-    ) => {
-      const { instructorId, courseIds } = action.payload;
-      state.instructorCoursesMap[instructorId] = courseIds;
-    },
-    setLoading: (state, action: PayloadAction<boolean>) => {
-      state.loading = action.payload;
-    },
-    setError: (state, action: PayloadAction<string | null>) => {
-      state.error = action.payload;
-    },
-    // Update course after enrollment changes
-    updateCourse: (state, action: PayloadAction<{ id: string; updates: Partial<Course> }>) => {
-      const { id, updates } = action.payload;
-      if (state.courses[id]) {
-        state.courses[id] = { ...state.courses[id], ...updates };
+    setCourse(state, action: PayloadAction<Course>) {
+      const course = action.payload;
+      state.courses[course.id] = course;
+      if (!state.allIds.includes(course.id)) {
+        state.allIds.push(course.id);
       }
+    },
+    setCourses(state, action: PayloadAction<Course[]>) {
+      const courses = action.payload;
+      courses.forEach(course => {
+        state.courses[course.id] = course;
+        if (!state.allIds.includes(course.id)) {
+          state.allIds.push(course.id);
+        }
+      });
+    },
+    removeCourse(state, action: PayloadAction<string>) {
+      const courseId = action.payload;
+      delete state.courses[courseId];
+      state.allIds = state.allIds.filter(id => id !== courseId);
+    },
+    clearCourses(state) {
+      state.courses = {};
+      state.allIds = [];
+    },
+    setLoading(state, action: PayloadAction<boolean>) {
+      state.isLoading = action.payload;
+    },
+    setError(state, action: PayloadAction<string | null>) {
+      state.error = action.payload;
     }
-  }
+  },
 });
 
-export const {
-  setCourse,
-  setAllCourses,
-  setCategoryCoursesMap,
-  setInstructorCoursesMap,
+export const { 
+  setCourse, 
+  setCourses, 
+  removeCourse, 
+  clearCourses,
   setLoading,
-  setError,
-  updateCourse
+  setError
 } = courseSlice.actions;
 
 export default courseSlice.reducer;
