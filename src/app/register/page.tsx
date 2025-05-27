@@ -1,8 +1,12 @@
 'use client';
+
 import { useRouter } from "next/navigation";
+import { useRegisterMutation } from '@/services/auth.service';
+import { toast } from 'react-toastify';
 
 export default function Register() {
   const router = useRouter();
+  const [register, { isLoading }] = useRegisterMutation();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -13,21 +17,24 @@ export default function Register() {
     const email = formData.get('email') as string;
 
     if (password !== confirmPassword) {
-      alert('Passwords do not match');
+      toast.error('Mật khẩu xác nhận không khớp');
       return;
     }
 
-    const response = await fetch("http://localhost:3000/api/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password, email }),
-    });
+    try {
+      const response = await register({ 
+        username, 
+        password, 
+        email 
+      }).unwrap();
 
-    const data = await response.json();
-    if (data.success) {
-      router.push("/login");
-    } else {
-      alert(data.message);
+      if (response.success) {
+        toast.success('Đăng ký tài khoản thành công!');
+        router.push("/login");
+      }
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      toast.error(error.data?.message || 'Có lỗi xảy ra khi đăng ký')
     }
   };
 
@@ -93,12 +100,12 @@ export default function Register() {
               placeholder="Confirm your password"
               required
             />
-          </div>
-          <button
+          </div>          <button
             type="submit"
             className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
+            disabled={isLoading}
           >
-            Register
+            {isLoading ? 'Đang xử lý...' : 'Đăng ký'}  
           </button>
           <div className="text-center mt-3 text-sm">
             <span>Already have an account? </span>

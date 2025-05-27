@@ -1,17 +1,11 @@
 import apiSlice from './api';
-
-// Define auth types
-interface User {
-  id: string;
-  username: string;
-  email: string;
-  role: string;
-  // Add other user properties as needed
-}
+import type { User, AuthResponse } from '@/types/auth';
 
 interface LoginCredentials {
   username: string;
+  email: string;
   password: string;
+  recaptchaToken?: string | null;
 }
 
 interface RegisterUserData {
@@ -19,12 +13,6 @@ interface RegisterUserData {
   email: string;
   password: string;
   confirmPassword?: string;
-  // Add other registration fields as needed
-}
-
-interface AuthResponse {
-  user: User;
-  token: string;
 }
 
 export const authApiSlice = apiSlice.injectEndpoints({
@@ -40,7 +28,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
     
     register: builder.mutation<AuthResponse, RegisterUserData>({
       query: (userData) => ({
-        url: '/api/auth/register',
+        url: '/register',
         method: 'POST',
         body: userData,
       }),

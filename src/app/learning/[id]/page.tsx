@@ -930,9 +930,16 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                 >
                   {isEnrolling ? 'Đang xử lý...' : 'Vào học ngay'}
                 </button>
+              ) : course.price && course.price > 0 ? (
+                <button
+                  onClick={() => router.push(`/checkout/${params.id}`)}
+                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                >
+                  Mua ngay - {new Intl.NumberFormat('vi-VN').format(course.price)} VNĐ
+                </button>
               ) : (
                 <button
-                  onClick={handleEnrollment}
+                  onClick={handleEnrollment} 
                   disabled={isEnrolling}
                   className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                 >
