@@ -8,28 +8,19 @@ export const userApiSlice = apiSlice.injectEndpoints({
         url: '/login',
         method: 'POST',
         body,
-      }),      async onQueryStarted(arg, {dispatch, queryFulfilled }) {
+      }),      
+      async onQueryStarted(arg, {dispatch, queryFulfilled }) {
         try {
           const response = await queryFulfilled;
           const { data } = response.data;
           
-          // Store user data safely
-          const userData = {
-            id: data.id,
-            username: data.username,
-            accessToken: data.accessToken,
-            refreshToken: data.refreshToken
-          };
           
-          localStorage.setItem('user', JSON.stringify(userData));
+          localStorage.setItem('userId', data.id);
           localStorage.setItem('accessToken', data.accessToken);
-          
-          // Dispatch the user data to Redux store
-          dispatch(setUser(userData));
         } catch (error) {
           console.error('Error saving user data:', error);
           // Clean up any partial data
-          localStorage.removeItem('user');
+          localStorage.removeItem('userId');
           localStorage.removeItem('accessToken');
         }
       },
@@ -108,15 +99,13 @@ export const userApiSlice = apiSlice.injectEndpoints({
 
 export const {
   useLoginMutation,
-  useLazyGetUserInfoQuery,
-  useGetUserInfoQuery,
+  useLogoutMutation,
+  useGetUserByIdQuery,
+  useLazyGetUserByIdQuery,
+  useGetUserPermissionsQuery,
+  useGetUserEmbeddingQuery,
   useCreateUserMutation,
   useEditUserMutation,
-  useLogoutMutation,
-  useGetUserPermissionsQuery,
-  useLazyGetUserPermissionsQuery,
-  useGetUserEmbeddingQuery,
-  useGetStudentInfoByClassIdQuery,
   useGetAllClassInfoQuery,
   useGetAllDepartmentInfoQuery,
   useGetAllUserQuery,
