@@ -48,11 +48,11 @@ interface ApiResponse<T> {
 
 export const userApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    login: builder.mutation<{ data: { id: string; accessToken: string } }, { username: string; password: string }>({
-      query: (body) => ({
+    login: builder.mutation<{ data: { id: string; accessToken: string } }, { username: string; password: string; recaptchaToken?: string | null }>({
+      query: (credentials) => ({
         url: '/login',
         method: 'POST',
-        body,
+        body: credentials,
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
