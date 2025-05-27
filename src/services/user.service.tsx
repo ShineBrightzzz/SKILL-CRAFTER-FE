@@ -9,7 +9,28 @@ interface User {
   firstName?: string;
   lastName?: string;
   role?: string;
+  active?: boolean;
   // Add other user properties as needed
+}
+
+// Role assignment DTO
+interface RoleAssignmentDTO {
+  roleId?: string;
+  roleName?: string;
+}
+
+// Account update DTO
+interface AccountUpdateDTO {
+  username?: string;
+  password?: string;
+  // Add other updateable fields
+}
+
+// Register account DTO
+interface RegisterAccountDTO {
+  username: string;
+  password: string;
+  // Add other registration fields
 }
 
 interface UserPermission {
@@ -18,14 +39,11 @@ interface UserPermission {
   description?: string;
 }
 
-// Response type for multiple users
-interface UsersResponse {
-  data: User[];
-}
-
-// Response type for permissions
-interface PermissionsResponse {
-  data: UserPermission[];
+// Response type for API responses
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
 }
 
 export const userApiSlice = apiSlice.injectEndpoints({
@@ -35,13 +53,12 @@ export const userApiSlice = apiSlice.injectEndpoints({
         url: '/login',
         method: 'POST',
         body,
-      }),      
-      async onQueryStarted(arg, {dispatch, queryFulfilled }) {
+      }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const response = await queryFulfilled;
           const { data } = response.data;
-          
-          
+
           localStorage.setItem('userId', data.id);
           localStorage.setItem('accessToken', data.accessToken);
         } catch (error) {
@@ -62,62 +79,12 @@ export const userApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: [{ type: 'Users' as const, id: 'CURRENT' }],
     }),
 
-    getUserInfo: builder.query<User, { userId: string }>({
-      query: ({userId}) => `/student/${userId}`,
-      providesTags: (result, error, { userId }) => [
-        { type: 'Users' as const, id: userId },
-        { type: 'Users' as const, id: 'CURRENT' },
-      ],
-    }),
 
-    createUser: builder.mutation<User, { body: any }>({
-      query: ({body}) => ({
-        url: '/accounts/create',
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: [{ type: 'Users' as const, id: 'LIST' }],
-    }),
-
-    editUser: builder.mutation<User, { body: any }>({
-      query: ({ body }) => ({
-        url: '/api/user',
-        method: 'PATCH',
-        body,
-      }),
-      invalidatesTags: (result, error, { body }) => [
-        { type: 'Users' as const, id: body.id || 'UNKNOWN' },
-        { type: 'Users' as const, id: 'LIST' },
-        ...(body.id === localStorage.getItem('userId') ? [{ type: 'Users' as const, id: 'CURRENT' }] : []),
-      ],
-    }),
-
-    getUserPermissions: builder.query<PermissionsResponse, { studentId: string }>({
-      query: ({studentId}) => `/accounts/${studentId}/permissions`,
-      providesTags: (result, error, { studentId }) => [
-        { type: 'Permission' as const, id: `User-${studentId}` },
-      ],
-    }),
-
-    getUserEmbedding: builder.query<any, void>({
-      query: () => `/student/check-embedding`,
-      providesTags: [{ type: 'Users' as const, id: 'CURRENT' }],
-    }),
-
-    getAllClassInfo: builder.query<any, void>({
-      query: () => `/get-all-class-information`,
-      providesTags: [{ type: 'Users' as const, id: 'CLASS-INFO' }],
-    }),
-
-    getAllDepartmentInfo: builder.query<any, void>({
-      query: () => `/get-all-department`,
-      providesTags: [{ type: 'Users' as const, id: 'DEPARTMENT-INFO' }],
-    }),
-
-    getAllUser: builder.query<UsersResponse, void>({
-      query: () => `/accounts`,
-      providesTags: (result) => 
-        result
+    // Account management endpoints
+    getAllAccounts: builder.query<ApiResponse<User[]>, void>({
+      query: () => '/accounts',
+      providesTags: (result) =>
+        result?.data
           ? [
               ...result.data.map(({ id }) => ({ type: 'Users' as const, id })),
               { type: 'Users' as const, id: 'LIST' },
@@ -125,47 +92,97 @@ export const userApiSlice = apiSlice.injectEndpoints({
           : [{ type: 'Users' as const, id: 'LIST' }],
     }),
 
-    getUserById: builder.query<User, { id: string }>({
-      query: ({ id }) => `/accounts/${id}`,
-      providesTags: (result, error, { id }) => [{ type: 'Users' as const, id }],
+    getAccountById: builder.query<ApiResponse<User>, string>({
+      query: (id) => `/accounts/${id}`,
+      providesTags: (result, error, id) => [{ type: 'Users' as const, id }],
     }),
-    
-    deleteUser: builder.mutation<void, { username: string }>({
-      query: ({ username }) => ({
-        url: `/accounts/${username}`,
-        method: 'DELETE',
+
+    createAccount: builder.mutation<ApiResponse<User>, { body: RegisterAccountDTO }>({
+      query: ({ body }) => ({
+        url: '/accounts/create',
+        method: 'POST',
+        body,
       }),
       invalidatesTags: [{ type: 'Users' as const, id: 'LIST' }],
     }),
 
-    updateUser: builder.mutation<User, { username: string; body: any }>({
-      query: ({ username, body }) => ({
-        url: `/accounts/${username}`,
+    updateAccount: builder.mutation<ApiResponse<User>, { id: string; body: AccountUpdateDTO }>({
+      query: ({ id, body }) => ({
+        url: `/accounts/${id}`,
         method: 'PUT',
         body,
       }),
-      invalidatesTags: (result, error, { username, body }) => [
-        { type: 'Users' as const, id: body.id || username },
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Users' as const, id },
         { type: 'Users' as const, id: 'LIST' },
       ],
     }),
 
+    deleteAccount: builder.mutation<ApiResponse<string>, string>({
+      query: (id) => ({
+        url: `/accounts/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: 'Users' as const, id },
+        { type: 'Users' as const, id: 'LIST' },
+      ],
+    }),
+
+    // Role management endpoints
+    assignRole: builder.mutation<ApiResponse<User>, { accountId: string; body: RoleAssignmentDTO }>({
+      query: ({ accountId, body }) => ({
+        url: `/accounts/${accountId}/role`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (result, error, { accountId }) => [
+        { type: 'Users' as const, id: accountId },
+        { type: 'Users' as const, id: 'LIST' },
+      ],
+    }),
+
+    updateRole: builder.mutation<ApiResponse<User>, { accountId: string; body: RoleAssignmentDTO }>({
+      query: ({ accountId, body }) => ({
+        url: `/accounts/${accountId}/role`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: (result, error, { accountId }) => [
+        { type: 'Users' as const, id: accountId },
+        { type: 'Users' as const, id: 'LIST' },
+      ],
+    }),
+
+    removeRole: builder.mutation<ApiResponse<User>, string>({
+      query: (accountId) => ({
+        url: `/accounts/${accountId}/role`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (result, error, accountId) => [
+        { type: 'Users' as const, id: accountId },
+        { type: 'Users' as const, id: 'LIST' },
+      ],
+    }),
   }),
   overrideExisting: true,
 });
 
+// Export the hooks
 export const {
   useLoginMutation,
   useLogoutMutation,
-  useGetUserByIdQuery,
-  useLazyGetUserByIdQuery,
-  useGetUserPermissionsQuery,
-  useGetUserEmbeddingQuery,
-  useCreateUserMutation,
-  useEditUserMutation,
-  useGetAllClassInfoQuery,
-  useGetAllDepartmentInfoQuery,
-  useGetAllUserQuery,
-  useDeleteUserMutation,
-  useUpdateUserMutation,
+
+  // New account management hooks
+  useGetAllAccountsQuery,
+  useGetAccountByIdQuery,
+  useLazyGetAccountByIdQuery,
+  useCreateAccountMutation,
+  useUpdateAccountMutation,
+  useDeleteAccountMutation,
+
+  // Role management hooks
+  useAssignRoleMutation,
+  useUpdateRoleMutation,
+  useRemoveRoleMutation,
 } = userApiSlice;

@@ -13,7 +13,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import { setUser, logout } from '@/store/slices/authSlice';
-import { useGetUserByIdQuery, useLazyGetUserByIdQuery } from '@/services/user.service';
+import { useLazyGetAccountByIdQuery } from '@/services/user.service';
 
 interface AuthContextType {
   signIn: (token: string) => Promise<void>;
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const dispatch = useDispatch();
   const router = useRouter();
 
-  const [getUserById, { data: userData }] = useLazyGetUserByIdQuery();
+  const [getUserById] = useLazyGetAccountByIdQuery();
 
   const handleAuthFailure = useCallback((shouldRedirect = true) => {
     localStorage.removeItem('accessToken');
@@ -69,8 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = localStorage.getItem('accessToken');
         const userId = localStorage.getItem('userId');
         
-        const userData = await getUserById({ id: userId }).unwrap();
         if (token && userId) {
+          const userData = await getUserById(userId).unwrap();
           
           tokenRef.current = token;
           setCurrentUserId(userId);
