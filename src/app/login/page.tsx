@@ -4,9 +4,11 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useLoginMutation } from '@/services/user.service';
+import { useGoogleAuthMutation } from '@/services/google-auth.service';
 import { useAuth } from '@/store/hooks';
 import { toast } from 'react-toastify';
 import ReCAPTCHA from "react-google-recaptcha";
+import { GoogleLogin } from '@react-oauth/google';
 
 interface LoginAttempts {
   count: number;
@@ -15,14 +17,12 @@ interface LoginAttempts {
 
 export default function Login() {
   const [login, { isLoading: apiLoading }] = useLoginMutation();
-  const router = useRouter();
-  const [error, setError] = useState('');
+  const [googleAuth] = useGoogleAuthMutation();
+  const router = useRouter();  const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [showCaptcha, setShowCaptcha] = useState(false);
-  const [captchaValue, setCaptchaValue] = useState<string | null>(null);
-
-  const RESET_DURATION = 3600000; // 1 giờ tính bằng milliseconds
+  const [captchaValue, setCaptchaValue] = useState<string | null>(null);  const RESET_DURATION = 3600000; // 1 giờ tính bằng milliseconds
 
   // Kiểm tra và load số lần đăng nhập thất bại khi component mount
   useEffect(() => {
@@ -169,14 +169,53 @@ export default function Login() {
                 onChange={handleCaptchaChange}
               />
             </div>
-          )}
-          <button 
+          )}          <button 
             type="submit"
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded mb-3"
             disabled={apiLoading || isSubmitting || (showCaptcha && !captchaValue)}
           >
             {apiLoading || isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
+          
+          <div className="flex justify-center mt-4 mb-3">
+            <GoogleLogin
+              onSuccess={async (credentialResponse) => {
+                try {
+                  console.log('Google login response:', credentialResponse);
+                  
+                  if (credentialResponse.credential) {
+                    // Send ID token directly to backend
+                    await googleAuth({
+                      idToken: credentialResponse.credential,
+                      // Note: email and name are already included in the JWT, backend will decode them
+                    }).unwrap();
+                    
+                    // Reset failed attempts on successful login
+                    localStorage.removeItem('loginAttempts');
+                    setFailedAttempts(0);
+                    
+                    // Redirect to home page
+                    router.replace('/');
+                  }
+                } catch (err) {
+                  console.error('Google login failed:', err);
+                  toast.error('Đăng nhập với Google thất bại');
+                }
+              }}
+              onError={() => {
+                console.error('Google login failed');
+                toast.error('Đăng nhập với Google thất bại');
+              }}
+              useOneTap
+              locale="vi"
+              text="signin_with"
+              theme="outline"
+              shape="rectangular"
+              logo_alignment="center"
+              width="240"
+            />
+          </div>
+          
           {error && <p className="text-red-500 mt-2 text-sm text-center">{error}</p>}
         </form>
       </div>

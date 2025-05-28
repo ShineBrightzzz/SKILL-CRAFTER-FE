@@ -26,11 +26,9 @@ export default function Register() {
         username, 
         password, 
         email 
-      }).unwrap();
-
-      if (response.success) {
+      }).unwrap();      if (response.success) {
         toast.success('Đăng ký tài khoản thành công!');
-        router.push("/login");
+        router.push(`/verification-pending?email=${encodeURIComponent(email)}`);
       }
     } catch (error: any) {
       console.error('Registration error:', error);
