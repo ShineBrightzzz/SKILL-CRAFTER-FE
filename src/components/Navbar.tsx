@@ -6,7 +6,9 @@ import MobileNav from './MobileNav';
 import { useAuth } from '@/store/hooks';
 import Image from 'next/image';
 import { Badge } from 'antd';
-import { BellOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { BellOutlined, QuestionCircleOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import { useGetCartByUserIdQuery } from '@/services/cart.service';
+import { skipToken } from '@reduxjs/toolkit/query';
 
 const navigation = [
   { name: 'Trang chủ', href: '/' },
@@ -19,6 +21,13 @@ const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [mounted, setMounted] = useState(false);
+  
+  // Fetch cart data to display cart item count
+  const { data: cartData } = useGetCartByUserIdQuery(
+    user?.id ?? skipToken
+  );
+  
+  const cartItemCount = cartData?.data?.length || 0;
   
   // Handle hydration mismatch by only rendering user-dependent UI after mount
   useEffect(() => {
@@ -82,14 +91,20 @@ const Navbar: React.FC = () => {
                 >
                   Đăng ký
                 </Link>
-              </>
-            ) : (
+              </>            ) : (
               <div className="flex items-center space-x-5">
                 <Badge count={3} size="small">
                   <BellOutlined 
                     className="text-white text-xl cursor-pointer hover:text-blue-200" 
                   />
                 </Badge>
+                <Link href="/cart">
+                  <Badge count={cartItemCount} size="small">
+                    <ShoppingCartOutlined 
+                      className="text-white text-xl cursor-pointer hover:text-blue-200" 
+                    />
+                  </Badge>
+                </Link>
                 <QuestionCircleOutlined 
                   className="text-white text-xl cursor-pointer hover:text-blue-200"
                 />

@@ -20,6 +20,7 @@ import {
 } from '@/services/lesson.service';
 import { useGetChaptersByCourseIdQuery, useGetChapterByIdQuery } from '@/services/chapter.service';
 import { useGetCourseByIdQuery, useEnrollCourseMutation, useGetEnrollmentsByUserIdQuery } from '@/services/course.service';
+import { useAddToCartMutation } from '@/services/cart.service';
 import { skipToken } from '@reduxjs/toolkit/query/react';
 import { Chapter } from '@/types/chapter';
 
@@ -169,11 +170,18 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   const router = useRouter();
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
   const { user: currentUser } = useAuth();
-      // Use RTK Query to fetch data  // Get course data
+  
+  // Course enrollment mutation
+  const [enrollCourse, { isLoading: isEnrolling }] = useEnrollCourseMutation();
+  
+  // Cart mutation
+  const [addToCart, { isLoading: isAddingToCart }] = useAddToCartMutation();
+  
+  // Use RTK Query to fetch data  // Get course data
   const { data: courseData, isLoading: courseLoading } = useGetCourseByIdQuery(params.id);
   const course: Course | undefined = courseData?.data;
   // course is already defined from the destructuring above
-    // Check enrollment
+  // Check enrollment
   const { data: enrollmentsData, isLoading: enrollmentsLoading } = useGetEnrollmentsByUserIdQuery(
     currentUser?.id ? { userId: currentUser.id } : skipToken
   );
@@ -182,15 +190,11 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   const { data: allLessonProgressData } = useGetLessonProgressByUserIdQuery(
     currentUser?.id ? currentUser.id : skipToken
   );
-  
-  // Check if user is enrolled in this course
+    // Check if user is enrolled in this course
   const isEnrolled = useMemo(() => {
     if (!enrollmentsData?.data?.result || !params.id) return false;
     return enrollmentsData.data.result.some((enrollment: any) => enrollment.courseId === params.id);
   }, [enrollmentsData, params.id]);
-  
-  // Course enrollment mutation
-  const [enrollCourse, { isLoading: isEnrolling }] = useEnrollCourseMutation();
   
   // Get chapters using RTK Query
   const { data: chaptersResponse, isLoading: chaptersLoading } = useGetChaptersByCourseIdQuery({
@@ -226,7 +230,6 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
     
     setCurrentLesson(lesson);
   }, [currentLesson]);
-
   // Function to handle enrollment
   const handleEnrollment = async () => {
     if (!currentUser || !course) return;
@@ -244,6 +247,23 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
     } catch (error) {
       console.error('Enrollment error:', error);
       toast.error('Có lỗi xảy ra khi đăng ký khóa học');
+    }
+  };
+  
+  // Function to handle adding course to cart
+  const handleAddToCart = async () => {
+    if (!currentUser || !course) return;
+    
+    try {
+      await addToCart({
+        userId: currentUser.id,
+        courseId: params.id
+      }).unwrap();
+      
+      toast.success('Đã thêm khóa học vào giỏ hàng');
+    } catch (error) {
+      console.error('Add to cart error:', error);
+      toast.error('Có lỗi xảy ra khi thêm vào giỏ hàng');
     }
   };
   
@@ -906,53 +926,57 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
       </div>
     );
   }
-
   return (
     <main className="min-h-screen bg-gray-50">
       {!searchParams.activityId ? (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Course Overview Section */}
-          <div className="mb-8">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h1 className="text-3xl font-bold mb-4">{course.title}</h1>
-              <p className="text-gray-600 mb-6">{course.description}</p>
-              
-              {effectivelyEnrolled ? (
-                <button
-                  onClick={() => {
-                    if (firstLesson) {
-                      router.push(`/learning/${params.id}?activityId=${firstLesson.id}`);
-                    }
-                  }}
-                  disabled={isEnrolling || !firstLesson}
-                  className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
-                >
-                  {isEnrolling ? 'Đang xử lý...' : 'Vào học ngay'}
-                </button>
-              ) : course.price && course.price > 0 ? (
-                <button
-                  onClick={() => router.push(`/checkout/${params.id}`)}
-                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-                >
-                  Mua ngay - {new Intl.NumberFormat('vi-VN').format(course.price)} VNĐ
-                </button>
-              ) : (
-                <button
-                  onClick={handleEnrollment} 
-                  disabled={isEnrolling}
-                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-                >
-                  {isEnrolling ? 'Đang xử lý...' : 'Đăng ký khóa học'}
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Course Details Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Course Info - Left Side */}
-            <div className="md:col-span-2 space-y-6">
-              {/* Course Content */}
+            {/* Main Content - Left Side */}
+            <div className="md:col-span-2">
+              {/* Course Header */}
+              <div className="bg-white rounded-lg shadow p-6 mb-6">
+                <h1 className="text-3xl font-bold mb-4">{course.title}</h1>
+                
+                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 mr-1 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                    </svg>
+                    <span>4.9</span>
+                  </div>
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 mr-1 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"></path>
+                    </svg>
+                    <span>{course.duration ? `${course.duration} giờ học` : "Chưa cập nhật"}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 mr-1 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
+                    </svg>
+                    <span>1051 Học viên</span>
+                  </div>
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 mr-1 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"></path>
+                    </svg>
+                    <span>{getLevelText(course.level)}</span>
+                  </div>
+                </div>
+                
+                <p className="text-gray-600 mb-4">{course.description}</p>
+                
+                {course.tags && course.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {course.tags.map((tag, index) => (
+                      <span key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>              {/* Course Content */}
               <div className="bg-white rounded-lg shadow">
                 <div className="p-6">
                   <h2 className="text-2xl font-semibold mb-4">Nội dung khóa học</h2>
@@ -1013,11 +1037,135 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                     })}
                   </div>
                 </div>
-              </div>
-            </div>
+              </div>            </div>
 
             {/* Course Info - Right Side */}
             <div className="space-y-6">
+              {/* Price Card with Purchase Button */}
+              <div className="bg-white rounded-lg shadow overflow-hidden">
+                {course.imageUrl && (
+                  <div className="relative w-full h-48">
+                    <Image 
+                      src={course.imageUrl}
+                      alt={course.title}
+                      fill
+                      style={{objectFit: "cover"}}
+                      className="w-full"
+                    />
+                  </div>
+                )}
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-2xl font-bold text-blue-900">
+                      {new Intl.NumberFormat('vi-VN').format(course.price || 0)}đ
+                    </h3>
+                    {course.price > 0 && (
+                      <span className="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded">
+                        31% Giảm giá
+                      </span>
+                    )}
+                  </div>
+                  
+                  {course.price > 0 && (
+                    <p className="text-gray-500 line-through mb-6">
+                      {new Intl.NumberFormat('vi-VN').format(course.price * 1.45)}đ
+                    </p>
+                  )}
+                    {effectivelyEnrolled ? (
+                    <button
+                      onClick={() => {
+                        if (firstLesson) {
+                          router.push(`/learning/${params.id}?activityId=${firstLesson.id}`);
+                        }
+                      }}
+                      disabled={isEnrolling || !firstLesson}
+                      className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors mb-4"
+                    >
+                      {isEnrolling ? 'Đang xử lý...' : 'Vào học ngay'}
+                    </button>
+                  ) : course.price && course.price > 0 ? (
+                    <div className="space-y-3 mb-4">
+                      <button
+                        onClick={() => router.push(`/checkout/${params.id}`)}
+                        className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                      >
+                        Mua ngay
+                      </button>
+                      <button
+                        onClick={handleAddToCart}
+                        disabled={isAddingToCart}
+                        className="w-full bg-white border border-blue-600 text-blue-600 py-3 px-6 rounded-lg hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex justify-center items-center"
+                      >
+                        {isAddingToCart ? (
+                          'Đang thêm vào giỏ...'
+                        ) : (
+                          <>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            Thêm vào giỏ hàng
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleEnrollment} 
+                      disabled={isEnrolling}
+                      className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors mb-4"
+                    >
+                      {isEnrolling ? 'Đang xử lý...' : 'Đăng ký khóa học'}
+                    </button>
+                  )}
+                  
+                  <h4 className="font-semibold text-lg mb-4">Khóa học này bao gồm:</h4>
+                  <ul className="space-y-2">
+                    <li className="flex items-center">
+                      <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+                      </svg>
+                      <span>{course.duration ? `${course.duration} giờ học` : "Video bài giảng"}</span>
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+                      </svg>
+                      <span>28 bài đọc</span>
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+                      </svg>
+                      <span>37 video</span>
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+                      </svg>
+                      <span>6 tài liệu tham khảo</span>
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+                      </svg>
+                      <span>6 bài tập thực hành</span>
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+                      </svg>
+                      <span>Truy cập mọi lúc mọi nơi</span>
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+                      </svg>
+                      <span>Giấy chứng nhận hoàn thành</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              
               {/* Course Details Card */}
               <div className="bg-white rounded-lg shadow p-6">
                 <h3 className="text-lg font-medium mb-4">Thông tin khóa học</h3>
@@ -1043,12 +1191,6 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Danh mục</span>
                     <span className="font-medium">{course.categoryName || "Chưa phân loại"}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Học phí</span>
-                    <span className="font-medium text-blue-600">
-                      {new Intl.NumberFormat('vi-VN').format(course.price || 0)} VNĐ
-                    </span>
                   </div>
                 </div>
               </div>
