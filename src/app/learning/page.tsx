@@ -50,6 +50,7 @@ const PAGE_SIZE = 9; // Number of courses to display per page
 
 export default function LearningPage() {  // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
+  const [isLoaded, setIsLoaded] = useState(false);
   
   // Fetch courses data from API
   const { data: coursesResponse, isLoading, error } = useGetAllCoursesQuery({
@@ -112,26 +113,31 @@ export default function LearningPage() {  // State for pagination
       setCurrentPage(newPage);
     }
   };
-
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, selectedCategory, selectedLevel]);
   
+  // Add animation effect when courses load
+  useEffect(() => {
+    if (!isLoading && !error && allCourses.length > 0) {
+      setIsLoaded(true);
+    }
+  }, [isLoading, error, allCourses]);
+  
   return (
-    <main className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4">
-        <h1 className="text-3xl font-bold mb-8">Khóa học</h1>
-        
-        {/* Search Bar */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
+    <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12">
+      <div className="container mx-auto px-4 max-w-7xl">
+        <h1 className="text-4xl font-bold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-700">Khóa học</h1>
+          {/* Search Bar */}
+        <div className="bg-white rounded-xl shadow-md p-6 mb-6 transform transition duration-300 hover:shadow-lg">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FiSearch className="h-5 w-5 text-gray-400" />
+              <FiSearch className="h-5 w-5 text-blue-500" />
             </div>
             <input
               type="text"
-              className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
+              className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400 transition-all duration-300 focus:shadow-md"
               placeholder="Tìm kiếm khóa học..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -140,7 +146,7 @@ export default function LearningPage() {  // State for pagination
         </div>
         
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+        <div className="bg-white rounded-xl shadow-md p-6 mb-8 transform transition duration-300 hover:shadow-lg">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -148,7 +154,7 @@ export default function LearningPage() {  // State for pagination
               </label>
               <div className="relative">
                 <select 
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 appearance-none bg-white focus:ring-blue-500 focus:border-blue-500 pr-10" 
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 appearance-none bg-white focus:ring-blue-500 focus:border-blue-500 pr-10 transition-all duration-300 hover:border-blue-400" 
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
                 >
@@ -159,7 +165,7 @@ export default function LearningPage() {  // State for pagination
                   ))}
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                  <FiChevronDown className="h-5 w-5 text-gray-500" />
+                  <FiChevronDown className="h-5 w-5 text-blue-500" />
                 </div>
               </div>
             </div>
@@ -169,7 +175,7 @@ export default function LearningPage() {  // State for pagination
               </label>
               <div className="relative">
                 <select 
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 appearance-none bg-white focus:ring-blue-500 focus:border-blue-500 pr-10" 
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 appearance-none bg-white focus:ring-blue-500 focus:border-blue-500 pr-10 transition-all duration-300 hover:border-blue-400" 
                   value={selectedLevel}
                   onChange={(e) => setSelectedLevel(e.target.value)}
                 >
@@ -180,7 +186,7 @@ export default function LearningPage() {  // State for pagination
                   ))}
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                  <FiChevronDown className="h-5 w-5 text-gray-500" />
+                  <FiChevronDown className="h-5 w-5 text-blue-500" />
                 </div>
               </div>
             </div>
@@ -189,8 +195,8 @@ export default function LearningPage() {  // State for pagination
         {isLoading && (
           <div className="flex justify-center items-center h-64">
             <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-              <p className="text-xl text-gray-600">Đang tải khóa học...</p>
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mb-4"></div>
+              <p className="text-xl text-gray-700 font-medium">Đang tải khóa học...</p>
               <p className="text-sm text-gray-500 mt-2">Vui lòng đợi trong giây lát</p>
             </div>
           </div>
@@ -199,15 +205,16 @@ export default function LearningPage() {  // State for pagination
         {/* Error state */}
         {error && (
           <div className="flex justify-center items-center h-64">
-            <div className="text-center">
-              <p className="text-xl text-red-600 mb-2">Có lỗi xảy ra khi tải khóa học</p>
-              <p className="text-sm text-gray-600">
+            <div className="text-center bg-red-50 p-8 rounded-xl shadow-md">
+              <div className="text-red-600 text-5xl mb-4">&#9888;</div>
+              <p className="text-xl text-red-600 font-medium mb-2">Có lỗi xảy ra khi tải khóa học</p>
+              <p className="text-sm text-gray-600 max-w-md mx-auto">
                 {(error as any)?.data?.message || 
                  (error as any)?.error || 
                  'Không thể kết nối tới máy chủ. Vui lòng thử lại sau.'}
               </p>
               <button 
-                className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
                 onClick={() => window.location.reload()}
               >
                 Thử lại
@@ -215,18 +222,17 @@ export default function LearningPage() {  // State for pagination
             </div>
           </div>
         )}
-        
-        {/* Results information */}
+          {/* Results information */}
         {!isLoading && !error && (
-          <div className="flex justify-between items-center mb-4">
-            <p className="text-gray-600">
+          <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm">
+            <p className="text-gray-700 font-medium">
               {filteredCourses.length > 0 
                 ? `Hiển thị ${filteredCourses.length} trong tổng số ${paginationMeta.total} khóa học` 
                 : "Không tìm thấy khóa học nào"}
             </p>
             {(searchTerm || selectedCategory !== 'Tất cả' || selectedLevel !== 'Tất cả') && (
               <button 
-                className="px-4 py-2 text-sm text-blue-600 hover:text-blue-800"
+                className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md"
                 onClick={() => {
                   setSearchTerm('');
                   setSelectedCategory('Tất cả');
@@ -241,51 +247,70 @@ export default function LearningPage() {  // State for pagination
 
         {/* Course Grid */}
         {!isLoading && !error && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
             {filteredCourses.length > 0 ? (
               filteredCourses.map((course: Course) => (            
-                <Link href={`/learning/${course.id}`} key={course.id}>
-                  <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition">
-                    <div className="relative h-48">
+                <Link href={`/learning/${course.id}`} key={course.id} className="group">
+                  <div className="bg-white rounded-xl shadow-md overflow-hidden group-hover:shadow-xl transition-all duration-300 transform group-hover:-translate-y-1">
+                    <div className="relative h-52 overflow-hidden">
                       <Image
                         src={course.imageUrl || '/logo.png'}
                         alt={course.title}
                         fill
-                        className="object-cover"
+                        className="object-cover transition-transform duration-700 group-hover:scale-110"
                       />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      </div>
                     </div>
                     <div className="p-6">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-blue-600">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-medium text-white bg-blue-600 px-3 py-1 rounded-full">
                           {course.categoryName || 'Chưa phân loại'}
                         </span>
-                        <span className="text-sm text-gray-500">{getLevelText(course.level)}</span>
+                        <span className="text-sm text-gray-600 font-medium bg-gray-100 px-3 py-1 rounded-full">{getLevelText(course.level)}</span>
                       </div>
-                      <h3 className="text-xl font-semibold mb-2">{course.title}</h3>
-                      <p className="text-gray-600 mb-4">{course.description}</p>
+                      <h3 className="text-xl font-bold mb-3 text-gray-800 group-hover:text-blue-600 transition-colors">{course.title}</h3>
+                      <p className="text-gray-600 mb-4 line-clamp-2">{course.description}</p>
                       <div className="flex flex-wrap gap-2 mb-4">
                         {course.tags && Array.isArray(course.tags) && course.tags.map((tag: string) => (
                           <span
                             key={tag}
-                            className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-sm"
+                            className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs"
                           >
                             {tag}
                           </span>
                         ))}
                       </div>
-                      <div className="flex justify-between text-sm text-gray-500">
-                        <span>{course.duration ? `${course.duration} giờ` : 'Không xác định'}</span>
-                        <span>{new Intl.NumberFormat('vi-VN').format(course.price || 0)} VNĐ</span>
+                      <div className="flex justify-between text-sm border-t pt-4 mt-2">
+                        <span className="font-medium text-gray-700 flex items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          {course.duration ? `${course.duration} giờ` : 'Không xác định'}
+                        </span>
+                        <span className="font-bold text-blue-600">{new Intl.NumberFormat('vi-VN').format(course.price || 0)} VNĐ</span>
                       </div>
                     </div>
                   </div>
                 </Link>
               ))
-            ) : (
-              <div className="col-span-1 md:col-span-2 lg:col-span-3 flex justify-center items-center h-64">
-                <div className="text-center">
-                  <p className="text-xl text-gray-500 mb-3">Không tìm thấy khóa học nào</p>
-                  <p className="text-gray-400">Hãy thử tìm kiếm hoặc lọc theo tiêu chí khác</p>
+            ) : (              <div className="col-span-1 md:col-span-2 lg:col-span-3 flex justify-center items-center h-64">
+                <div className="text-center bg-white p-10 rounded-xl shadow-md">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-xl text-gray-600 font-medium mb-3">Không tìm thấy khóa học nào</p>
+                  <p className="text-gray-500">Hãy thử tìm kiếm hoặc lọc theo tiêu chí khác</p>
+                  <button
+                    onClick={() => {
+                      setSearchTerm('');
+                      setSelectedCategory('Tất cả');
+                      setSelectedLevel('Tất cả');
+                    }}
+                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Xem tất cả khóa học
+                  </button>
                 </div>
               </div>
             )}
@@ -294,18 +319,19 @@ export default function LearningPage() {  // State for pagination
         
         {/* Pagination */}
         {!isLoading && !error && getTotalPages(paginationMeta) > 1 && (
-          <div className="mt-8 flex justify-center">
-            <div className="flex items-center space-x-1">
+          <div className="mt-10 flex justify-center">
+            <div className="flex items-center space-x-2 bg-white px-4 py-3 rounded-xl shadow-md">
               <button 
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className={`px-4 py-2 border rounded-md ${
+                className={`p-2 rounded-lg flex items-center justify-center ${
                   currentPage === 1 
-                    ? 'text-gray-400 border-gray-300 cursor-not-allowed' 
-                    : 'text-blue-600 border-blue-600 hover:bg-blue-50'
-                }`}
+                    ? 'text-gray-400 bg-gray-100 cursor-not-allowed' 
+                    : 'text-blue-600 hover:bg-blue-50 hover:text-blue-700'
+                } transition-colors`}
+                aria-label="Previous page"
               >
-                <FiChevronLeft />
+                <FiChevronLeft className="w-5 h-5" />
               </button>
               
               {Array.from({ length: getTotalPages(paginationMeta) }, (_, i) => i + 1)
@@ -323,22 +349,24 @@ export default function LearningPage() {  // State for pagination
                   return (
                     <div key={page} className="flex items-center">
                       {showEllipsisBefore && (
-                        <span className="px-3 py-2 text-gray-500">...</span>
+                        <span className="px-2 py-1 text-gray-500">...</span>
                       )}
                       
                       <button
                         onClick={() => handlePageChange(page)}
-                        className={`px-4 py-2 border rounded-md ${
+                        className={`w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-200 ${
                           currentPage === page
-                            ? 'bg-blue-600 text-white'
-                            : 'text-blue-600 hover:bg-blue-50'
+                            ? 'bg-blue-600 text-white font-medium shadow-md'
+                            : 'text-gray-700 hover:bg-blue-50 hover:text-blue-600'
                         }`}
+                        aria-label={`Page ${page}`}
+                        aria-current={currentPage === page ? 'page' : undefined}
                       >
                         {page}
                       </button>
                       
                       {showEllipsisAfter && (
-                        <span className="px-3 py-2 text-gray-500">...</span>
+                        <span className="px-2 py-1 text-gray-500">...</span>
                       )}
                     </div>
                   );
@@ -347,13 +375,14 @@ export default function LearningPage() {  // State for pagination
               <button 
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === getTotalPages(paginationMeta)}
-                className={`px-4 py-2 border rounded-md ${
+                className={`p-2 rounded-lg flex items-center justify-center ${
                   currentPage === getTotalPages(paginationMeta)
-                    ? 'text-gray-400 border-gray-300 cursor-not-allowed' 
-                    : 'text-blue-600 border-blue-600 hover:bg-blue-50'
-                }`}
+                    ? 'text-gray-400 bg-gray-100 cursor-not-allowed' 
+                    : 'text-blue-600 hover:bg-blue-50 hover:text-blue-700'
+                } transition-colors`}
+                aria-label="Next page"
               >
-                <FiChevronRight />
+                <FiChevronRight className="w-5 h-5" />
               </button>
             </div>
           </div>

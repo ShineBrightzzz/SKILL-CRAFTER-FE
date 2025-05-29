@@ -27,14 +27,13 @@ export default function MobileNav() {
     }
     return user?.username || '';
   };
-
   // Return a consistent initial UI structure to prevent hydration errors
   return (
     <div className="md:hidden">
       {/* Hamburger button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="text-gray-600 hover:text-blue-600 focus:outline-none"
+        className="text-white hover:text-blue-200 focus:outline-none"
         aria-label="Toggle menu"
       >
         <svg
@@ -55,8 +54,7 @@ export default function MobileNav() {
       </button>
       
       {/* Mobile menu - only render when mounted to avoid hydration errors */}
-      {isOpen && isMounted && (
-        <div 
+      {isOpen && isMounted && (        <div 
           className="fixed top-0 left-0 right-0 z-50 bg-white animate-fadeIn" 
           style={{ 
             height: 'auto',
@@ -89,12 +87,11 @@ export default function MobileNav() {
             </button>
           </div>
 
-          <div className="px-4 py-3">
-            {navigation.map((item) => (
+          <div className="px-4 py-3">            {navigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className="block text-gray-600 hover:text-blue-600 transition py-3 px-2 rounded-md hover:bg-gray-50"
+                className="block text-gray-700 hover:text-blue-600 transition py-3 px-2 rounded-md hover:bg-blue-50 font-medium"
                 onClick={() => setIsOpen(false)}
               >
                 {item.name}

@@ -3,40 +3,122 @@
 import { useRouter } from "next/navigation";
 import { useRegisterMutation } from '@/services/auth.service';
 import { toast } from 'react-toastify';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function Register() {
   const router = useRouter();
   const [register, { isLoading }] = useRegisterMutation();
   const [error, setError] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordStrength, setPasswordStrength] = useState(0);
+  const [passwordMessage, setPasswordMessage] = useState('');
+
+  // Kiểm tra độ mạnh của mật khẩu
+  const checkPasswordStrength = (password: string) => {
+    // Khởi tạo điểm
+    let strength = 0;
+    
+    // Nếu mật khẩu trống
+    if (password.length === 0) {
+      setPasswordStrength(0);
+      setPasswordMessage('');
+      return;
+    }
+    
+    // Nếu độ dài mật khẩu < 6, trả về 0
+    if (password.length < 6) {
+      setPasswordStrength(1);
+      setPasswordMessage('Yếu - Mật khẩu phải có ít nhất 6 ký tự');
+      return;
+    }
+    
+    // Nếu độ dài mật khẩu >= 6, +1 điểm
+    if (password.length >= 6) strength += 1;
+    
+    // Nếu độ dài mật khẩu >= 8, +1 điểm
+    if (password.length >= 8) strength += 1;
+    
+    // Nếu có ít nhất 1 chữ số, +1 điểm
+    if (/\d/.test(password)) strength += 1;
+    
+    // Nếu có ít nhất 1 ký tự đặc biệt, +1 điểm
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength += 1;
+    
+    // Nếu có ít nhất 1 chữ cái viết hoa, +1 điểm
+    if (/[A-Z]/.test(password)) strength += 1;
+    
+    // Nếu có ít nhất 1 chữ cái viết thường, +1 điểm
+    if (/[a-z]/.test(password)) strength += 1;
+    
+    // Thiết lập thông báo dựa trên điểm
+    let message = '';
+    if (strength <= 2) {
+      message = 'Yếu - Thêm chữ hoa, chữ thường, số và ký tự đặc biệt';
+    } else if (strength <= 4) {
+      message = 'Trung bình - Cải thiện bằng cách thêm chữ hoa, số hoặc ký tự đặc biệt';
+    } else {
+      message = 'Mạnh - Mật khẩu đủ an toàn';
+    }
+    
+    setPasswordStrength(strength);
+    setPasswordMessage(message);
+  };
+
+  // Cập nhật độ mạnh mật khẩu khi mật khẩu thay đổi
+  useEffect(() => {
+    checkPasswordStrength(password);
+  }, [password]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.target as HTMLFormElement);
     const username = formData.get('username') as string;
-    const password = formData.get('password') as string;
+    const formPassword = formData.get('password') as string;
     const confirmPassword = formData.get('confirmPassword') as string;
     const email = formData.get('email') as string;
+    const familyName = formData.get('familyName') as string;
+    const givenName = formData.get('givenName') as string;
 
-    if (password !== confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp');
+    // Kiểm tra độ mạnh mật khẩu
+    if (passwordStrength <= 2) {
+      setError('Mật khẩu quá yếu. Vui lòng sử dụng mật khẩu mạnh hơn.');
       return;
     }
 
-    try {
+    if (formPassword !== confirmPassword) {
+      setError('Mật khẩu xác nhận không khớp');
+      return;
+    }    try {
+      setError(''); // Clear previous errors
+      
       const response = await register({ 
         username, 
-        password, 
-        email 
+        password: formPassword, 
+        email,
+        familyName,
+        givenName
       }).unwrap();
       
-      if (response.success) {
-        toast.success('Đăng ký tài khoản thành công!');
+      // Display success message
+      toast.success('Đăng ký tài khoản thành công!');
+      
+      // Set a small timeout to ensure the toast is displayed before redirect
+      setTimeout(() => {
+        // Redirect to verification-pending page with email
         router.push(`/verification-pending?email=${encodeURIComponent(email)}`);
-      }
+      }, 500);
     } catch (error: any) {
       console.error('Registration error:', error);
-      setError(error.data?.message || 'Có lỗi xảy ra khi đăng ký');
+      
+      // Handle API error message if available
+      if (error.data && error.data.message) {
+        setError(error.data.message);
+      } else {
+        setError('Có lỗi xảy ra khi đăng ký. Vui lòng thử lại sau.');
+      }
+      
+      // Show toast notification for error
+      toast.error('Đăng ký thất bại');
     }
   };
 
@@ -71,6 +153,41 @@ export default function Register() {
                 <svg className="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                 </svg>
+              </div>            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <label htmlFor="familyName" className="block text-gray-700 font-medium">Họ</label>
+            <div className="relative">
+              <input 
+                type="text" 
+                className="w-full p-3 pl-10 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700 placeholder-gray-400 transition-all" 
+                id="familyName" 
+                name="familyName"
+                placeholder="Nhập họ của bạn"
+              />
+              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                <svg className="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <label htmlFor="givenName" className="block text-gray-700 font-medium">Tên</label>
+            <div className="relative">
+              <input 
+                type="text" 
+                className="w-full p-3 pl-10 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700 placeholder-gray-400 transition-all" 
+                id="givenName" 
+                name="givenName"
+                placeholder="Nhập tên của bạn"
+              />
+              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                <svg className="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                </svg>
               </div>
             </div>
           </div>
@@ -95,8 +212,7 @@ export default function Register() {
             </div>
           </div>
           
-          <div className="space-y-2">
-            <label htmlFor="password" className="block text-gray-700 font-medium">Mật khẩu</label>
+          <div className="space-y-2">            <label htmlFor="password" className="block text-gray-700 font-medium">Mật khẩu</label>
             <div className="relative">
               <input 
                 type="password" 
@@ -104,6 +220,8 @@ export default function Register() {
                 id="password" 
                 name="password"
                 placeholder="Nhập mật khẩu"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
               />
               <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
@@ -112,6 +230,25 @@ export default function Register() {
                 </svg>
               </div>
             </div>
+            {password.length > 0 && (
+              <div className="mt-2">
+                <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full ${
+                      passwordStrength <= 2 ? 'bg-red-500' : 
+                      passwordStrength <= 4 ? 'bg-yellow-500' : 'bg-green-500'
+                    }`} 
+                    style={{ width: `${(passwordStrength / 6) * 100}%` }}
+                  ></div>
+                </div>
+                <p className={`text-xs mt-1 ${
+                  passwordStrength <= 2 ? 'text-red-500' : 
+                  passwordStrength <= 4 ? 'text-yellow-500' : 'text-green-500'
+                }`}>
+                  {passwordMessage}
+                </p>
+              </div>
+            )}
           </div>
           
           <div className="space-y-2">
