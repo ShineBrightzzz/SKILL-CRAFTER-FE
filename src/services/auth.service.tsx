@@ -10,6 +10,8 @@ interface LoginCredentials {
 interface RegisterUserData {
   username: string;
   email: string;
+  familyName?: string;
+  givenName?: string;
   password: string;
   confirmPassword?: string;
 }

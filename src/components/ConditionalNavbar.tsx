@@ -6,10 +6,12 @@ import Navbar from './Navbar';
 export default function ConditionalNavbar() {
   const pathname = usePathname();
   
-  // Ẩn Navbar cho các trang admin để tránh xung đột với sidebar
+  // Danh sách các đường dẫn không hiển thị Navbar
+  const hiddenNavbarPaths = ['/login', '/register'];
+  const isHiddenPath = hiddenNavbarPaths.includes(pathname || '');
   const isAdminPage = pathname?.startsWith('/admin');
 
-  if (isAdminPage) {
+  if (isAdminPage || isHiddenPath) {
     return null;
   }
 

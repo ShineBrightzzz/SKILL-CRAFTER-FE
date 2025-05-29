@@ -17,6 +17,42 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Animation cho trang login */
+@keyframes blob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Custom Google button */
+.custom-google-button {
+  background: white !important;
+  border: 1px solid #e0e0e0 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.custom-google-button:hover {
+  background: #f8f9fa !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
 /* Đảm bảo font chữ không bị vỡ trên các thiết bị */
 html {
     font-size: 16px; /* Kích thước font cơ bản */

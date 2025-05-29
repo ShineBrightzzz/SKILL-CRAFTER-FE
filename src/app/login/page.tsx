@@ -1,14 +1,22 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useLoginMutation } from '@/services/user.service';
 import { useGoogleAuthMutation } from '@/services/google-auth.service';
-import { useAuth } from '@/store/hooks';
 import { toast } from 'react-toastify';
 import ReCAPTCHA from "react-google-recaptcha";
 import { GoogleLogin } from '@react-oauth/google';
+
+// Tạo CSS cho các hiệu ứng animation
+const styles = {
+  '@keyframes blob': {
+    '0%': { transform: 'translate(0px, 0px) scale(1)' },
+    '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+    '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+    '100%': { transform: 'translate(0px, 0px) scale(1)' }
+  }
+};
 
 interface LoginAttempts {
   count: number;
@@ -18,11 +26,13 @@ interface LoginAttempts {
 export default function Login() {
   const [login, { isLoading: apiLoading }] = useLoginMutation();
   const [googleAuth] = useGoogleAuthMutation();
-  const router = useRouter();  const [error, setError] = useState('');
+  const router = useRouter();
+  const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [showCaptcha, setShowCaptcha] = useState(false);
-  const [captchaValue, setCaptchaValue] = useState<string | null>(null);  const RESET_DURATION = 3600000; // 1 giờ tính bằng milliseconds
+  const [captchaValue, setCaptchaValue] = useState<string | null>(null);
+  const RESET_DURATION = 3600000; // 1 giờ tính bằng milliseconds
 
   // Kiểm tra và load số lần đăng nhập thất bại khi component mount
   useEffect(() => {
@@ -106,68 +116,100 @@ export default function Login() {
       console.error('Đăng nhập thất bại:', err);
       setIsSubmitting(false);
     }
-  };
-
-  return (
-    <div className="flex justify-center items-center min-h-screen px-4 sm:px-2" style={{ backgroundColor: "#f8f9fa" }}>
-      <div className="p-4 shadow-lg rounded w-full sm:max-w-sm md:max-w-md">
-        <div className="flex justify-center mb-4">
-          <Image 
-            src="/logo.png" 
-            alt="Logo Học viện Ngân hàng" 
-            width={150} 
-            height={150}
-            priority
-          />
+  };  return (
+    <div className="flex justify-center items-center min-h-screen px-4 bg-gradient-to-b from-gray-100 to-gray-200 relative overflow-hidden">
+      {/* Decorative elements for background - more subtle */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+        <div className="absolute w-96 h-96 bg-blue-100 opacity-20 rounded-full -top-20 -left-20"></div>
+        <div className="absolute w-80 h-80 bg-blue-100 opacity-20 rounded-full bottom-0 right-0"></div>
+      </div>
+      
+      <div className="bg-white p-8 rounded-xl shadow-lg w-full sm:max-w-md md:max-w-lg z-10 border border-gray-100 transition-all duration-300 hover:shadow-md">        <div className="mb-6 text-center">
+          <h1 className="text-3xl font-bold mb-2 text-gray-800">Chào mừng trở lại</h1>
+          <div className="h-1 w-16 bg-blue-500 mx-auto rounded-full mb-4"></div>
+          <p className="text-gray-600 text-base">Đăng nhập để tiếp tục hành trình học tập</p>
         </div>
-        <h2 className="text-center mb-4 text-xl font-bold">Đăng Nhập</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <label htmlFor="username" className="block mb-1">Tên đăng nhập</label>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="username" className="block text-gray-700 font-medium">Tên đăng nhập</label>
+            <div className="relative">
+              <input 
+                type="text" 
+                className="w-full p-3 pl-10 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700 placeholder-gray-400 transition-all" 
+                id="username" 
+                name="username"
+                placeholder="Nhập tên đăng nhập"
+                required
+              />              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                <svg className="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <label htmlFor="password" className="block text-gray-700 font-medium">Mật khẩu</label>
+            <div className="relative">
+              <input 
+                type="password" 
+                className="w-full p-3 pl-10 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700 placeholder-gray-400 transition-all" 
+                id="password" 
+                name="password"
+                placeholder="Nhập mật khẩu"
+                required
+              />
+              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                <svg className="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+              </div>            </div>
+          </div>
+          
+          <div className="flex items-center">
             <input 
-              type="text" 
-              className="w-full p-2 border rounded" 
-              id="username" 
-              name="username"
-              placeholder="Nhập tên đăng nhập"
-              required
+              type="checkbox" 
+              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" 
+              id="rememberMe" 
             />
+            <label className="ml-2 text-sm text-gray-600" htmlFor="rememberMe">Ghi nhớ đăng nhập</label>
           </div>
-          <div className="mb-3">
-            <label htmlFor="password" className="block mb-1">Mật khẩu</label>
-            <input 
-              type="password" 
-              className="w-full p-2 border rounded" 
-              id="password" 
-              name="password"
-              placeholder="Nhập mật khẩu"
-              required
-            />
-          </div>
-          <div className="mb-3 flex items-center">
-            <input type="checkbox" className="mr-2" id="rememberMe" />
-            <label className="text-sm" htmlFor="rememberMe">Ghi nhớ đăng nhập</label>
-          </div>
+          
           {showCaptcha && (
-            <div className="mb-4 flex justify-center">
+            <div className="flex justify-center p-2 bg-gray-50 rounded-lg border border-gray-200">
               <ReCAPTCHA
                 sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}
                 onChange={handleCaptchaChange}
               />
             </div>
-          )}          <button 
+          )}
+          
+          <button 
             type="submit"
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded mb-3"
+            className="w-full bg-blue-600 text-white font-medium py-3 px-4 rounded-lg shadow hover:bg-blue-700 transition-all duration-300 disabled:opacity-70 disabled:bg-blue-400"
             disabled={apiLoading || isSubmitting || (showCaptcha && !captchaValue)}
-          >
-            {apiLoading || isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
+          >            {apiLoading || isSubmitting ? (
+              <span className="flex items-center justify-center">
+                <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Đang đăng nhập...
+              </span>
+            ) : 'Đăng nhập'}
           </button>
           
-          <div className="flex justify-center mt-4 mb-3">
+          <div className="relative flex items-center justify-center py-3">
+            <div className="flex-grow border-t border-gray-300"></div>
+            <span className="flex-shrink mx-4 text-gray-500">hoặc</span>
+            <div className="flex-grow border-t border-gray-300"></div>
+          </div>
+          
+          <div className="flex justify-center">
             <GoogleLogin
-              onSuccess={async (credentialResponse) => {
+              onSuccess={async (credentialResponse) => {                
                 try {
-                  console.log('Google login response:', credentialResponse);
                   
                   if (credentialResponse.credential) {
                     // Send ID token directly to backend
@@ -198,13 +240,28 @@ export default function Login() {
               theme="outline"
               shape="rectangular"
               logo_alignment="center"
-              width="240"
+              width="240"              
+              className="custom-google-button"
             />
           </div>
           
-          {error && <p className="text-red-500 mt-2 text-sm text-center">{error}</p>}
+          {error && (
+            <div className="bg-red-50 p-3 rounded-lg border border-red-200 text-red-600 text-center mt-4">
+              <p>{error}</p>
+            </div>
+          )}
+          
+          <div className="mt-6 text-center">
+            <p className="text-gray-500 text-sm">
+              Chưa có tài khoản? <a href="../register" className="text-blue-600 font-medium hover:underline">Đăng ký</a>
+            </p>
+          </div>
         </form>
       </div>
+      
+      {/* Decorative circles - more subtle */}
+      <div className="hidden lg:block absolute -bottom-16 -left-16 w-80 h-80 bg-blue-100 opacity-30 rounded-full filter blur-xl animate-blob"></div>
+      <div className="hidden lg:block absolute -top-16 -right-16 w-80 h-80 bg-gray-100 opacity-30 rounded-full filter blur-xl animate-blob animation-delay-2000"></div>
     </div>
   );
 }
