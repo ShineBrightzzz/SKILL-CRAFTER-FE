@@ -20,6 +20,14 @@ export default function MobileNav() {
     setIsMounted(true);
   }, []);
 
+  // Function to get display name
+  const getDisplayName = () => {
+    if (user?.family_name && user?.given_name) {
+      return `${user.family_name} ${user.given_name}`;
+    }
+    return user?.username || '';
+  };
+
   // Return a consistent initial UI structure to prevent hydration errors
   return (
     <div className="md:hidden">
@@ -116,9 +124,9 @@ export default function MobileNav() {
                 <>
                   <div className="block text-gray-700 font-medium py-2 flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                      {user.username?.charAt(0).toUpperCase()}
+                      {getDisplayName().charAt(0).toUpperCase()}
                     </div>
-                    <span>{user.username}</span>
+                    <span>{getDisplayName()}</span>
                   </div>
                   
                   <Link

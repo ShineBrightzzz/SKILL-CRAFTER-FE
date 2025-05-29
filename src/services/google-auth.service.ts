@@ -1,14 +1,5 @@
 import apiSlice from './api';
-
-interface GoogleAuthResponse {
-  data: {
-    id: string;
-    accessToken: string;
-    email: string;
-    givenName: string;
-    familyName: string;
-  };
-}
+import type { AuthResponse } from '@/types/auth';
 
 interface GoogleAuthRequest {
   idToken: string;
@@ -18,7 +9,7 @@ interface GoogleAuthRequest {
 
 export const googleAuthApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    googleAuth: builder.mutation<GoogleAuthResponse, GoogleAuthRequest>({
+    googleAuth: builder.mutation<AuthResponse, GoogleAuthRequest>({
       query: (credentials) => ({
         url: '/api/auth/google',
         method: 'POST',

@@ -22,6 +22,14 @@ const Navbar: React.FC = () => {
     setMounted(true);
   }, []);
 
+  // Function to get display name
+  const getDisplayName = () => {
+    if (user?.family_name && user?.given_name) {
+      return `${user.family_name} ${user.given_name}`;
+    }
+    return user?.username || '';
+  };
+
   return (
     <nav className="bg-white shadow-sm">
       <div className="container mx-auto px-4">
@@ -69,7 +77,7 @@ const Navbar: React.FC = () => {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition"
                 >
-                  <span className="font-medium">{user.username}</span>
+                  <span className="font-medium">{getDisplayName()}</span>
                   <svg
                     className={`h-4 w-4 transition-transform ${showUserMenu ? 'rotate-180' : ''}`}
                     xmlns="http://www.w3.org/2000/svg"

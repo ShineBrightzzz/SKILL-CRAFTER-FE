@@ -1,5 +1,6 @@
 import { setUser } from '@/store/slices/authSlice';
 import apiSlice from './api';
+import type { AuthResponse } from '@/types/auth';
 
 // Define types
 export interface User {
@@ -51,7 +52,7 @@ export interface ApiResponse<T> {
 
 export const userApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    login: builder.mutation<{ data: { id: string; accessToken: string } }, { username: string; password: string; recaptchaToken?: string | null }>({
+    login: builder.mutation<AuthResponse, { username: string; password: string; recaptchaToken?: string | null }>({
       query: (credentials) => ({
         url: '/login',
         method: 'POST',
