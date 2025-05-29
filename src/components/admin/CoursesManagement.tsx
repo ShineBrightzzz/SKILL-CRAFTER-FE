@@ -51,12 +51,19 @@ const CoursesManagement = () => {
   };
 
   const handleSubmit = async (values: any) => {
-    try {
-      if (editingCourse) {
-        await updateCourse({ id: editingCourse.id, body: values }).unwrap();
+    try {      if (editingCourse) {
+        const formData = new FormData();
+        Object.entries(values).forEach(([key, value]) => {
+          formData.append(key, value as string);
+        });
+        await updateCourse({ id: editingCourse.id, body: formData }).unwrap();
         message.success('Cập nhật khóa học thành công!');
       } else {
-        await createCourse({ body: values }).unwrap();
+        const formData = new FormData();
+        Object.entries(values).forEach(([key, value]) => {
+          formData.append(key, value as string);
+        });
+        await createCourse(formData).unwrap();
         message.success('Tạo khóa học thành công!');
       }
       setIsModalVisible(false);
@@ -73,10 +80,9 @@ const CoursesManagement = () => {
       content: 'Hành động này không thể hoàn tác.',
       okText: 'Xóa',
       okType: 'danger',
-      cancelText: 'Hủy',
-      onOk: async () => {
+      cancelText: 'Hủy',      onOk: async () => {
         try {
-          await deleteCourse({ id }).unwrap();
+          await deleteCourse({ courseId: id }).unwrap();
           message.success('Xóa khóa học thành công!');
           refetch();
         } catch (error) {

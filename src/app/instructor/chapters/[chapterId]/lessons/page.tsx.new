@@ -553,7 +553,17 @@ export default function ChapterLessonsPage({ params }: { params: { chapterId: st
         width={900}
       >
         {previewLesson ? (
-          <LessonPreview lesson={previewLesson} />
+          <LessonPreview lesson={{
+            ...previewLesson,
+            initialCode: previewLesson.initialCode || null,
+            language: previewLesson.language || null,
+            content: previewLesson.content || null,
+            videoUrl: previewLesson.videoUrl || null,
+            duration: previewLesson.duration || null,
+            quizData: previewLesson.quizData || null,
+            contentFile: null,
+            videoFile: null
+          }} />
         ) : (
           <div className="p-4 text-center">
             <p className="text-gray-500">Không thể tải dữ liệu bài học.</p>

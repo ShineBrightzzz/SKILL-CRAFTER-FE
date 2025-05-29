@@ -2,45 +2,48 @@ import { setUser } from '@/store/slices/authSlice';
 import apiSlice from './api';
 
 // Define types
-interface User {
+export interface User {
   id: string;
   username: string;
   email?: string;
   firstName?: string;
   lastName?: string;
+  fullName?: string;
   role?: string;
   active?: boolean;
-  // Add other user properties as needed
 }
 
 // Role assignment DTO
-interface RoleAssignmentDTO {
+export interface RoleAssignmentDTO {
   roleId?: string;
   roleName?: string;
 }
 
 // Account update DTO
-interface AccountUpdateDTO {
+export interface AccountUpdateDTO {
   username?: string;
   password?: string;
-  // Add other updateable fields
+  email?: string;
+  fullName?: string;
+  role?: string;
 }
 
 // Register account DTO
-interface RegisterAccountDTO {
+export interface RegisterAccountDTO {
   username: string;
   password: string;
-  // Add other registration fields
+  email: string;
+  fullName?: string;
 }
 
-interface UserPermission {
+export interface UserPermission {
   id: string;
   name: string;
   description?: string;
 }
 
 // Response type for API responses
-interface ApiResponse<T> {
+export interface ApiResponse<T> {
   success: boolean;
   message: string;
   data: T;

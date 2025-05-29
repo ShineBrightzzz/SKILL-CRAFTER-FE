@@ -44,14 +44,12 @@ export default function CourseEditPage({ params }: CourseEditProps) {
   const [qrFileList, setQrFileList] = useState<UploadFile[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [paymentQrFile, setPaymentQrFile] = useState<File | null>(null);
-  
-  // Fetch course details
+    // Fetch course details
   const { data: courseResponse, isLoading: courseLoading } = useGetCourseByIdQuery(courseId);
   const course = courseResponse?.data;
-  
-  // Fetch categories
-  const { data: categoriesResponse, isLoading: categoriesLoading } = useGetAllCategoriesQuery({});
-  const categories = categoriesResponse?.data || [];
+    // Fetch categories
+  const { data: categoriesResponse, isLoading: categoriesLoading } = useGetAllCategoriesQuery();
+  const categories = categoriesResponse?.data?.result || [];
   
   // Update course mutation
   const [updateCourse, { isLoading: isUpdating }] = useUpdateCourseMutation();
@@ -223,13 +221,15 @@ export default function CourseEditPage({ params }: CourseEditProps) {
                 name="price"
                 label="Giá (VNĐ)"
                 rules={[{ required: true, message: 'Vui lòng nhập giá khóa học!' }]}
-              >
-                <InputNumber
+              >                <InputNumber
                   className="w-full"
-                  placeholder="Nhập giá khóa học"
-                  min={0}
+                  placeholder="Nhập giá khóa học"                  min={0}
                   formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={value => value!.replace(/\$\s?|(,*)/g, '')}
+                  parser={(value: string | undefined): 0 | number => {
+                    if (!value) return 0;
+                    const parsed = Number(value.replace(/\$\s?|(,*)/g, ''));
+                    return isNaN(parsed) ? 0 : parsed;
+                  }}
                 />
               </Form.Item>
             </div>

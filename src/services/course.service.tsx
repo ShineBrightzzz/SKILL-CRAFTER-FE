@@ -1,4 +1,6 @@
 import apiSlice from './api';
+import { ListResponse } from '@/types/api';
+import { LessonsResponse } from './lesson.service';
 
 // Define types for pagination parameters
 interface PaginationParams {
@@ -25,12 +27,20 @@ interface EnrollmentParams extends PaginationParams {
 // Define the Course type
 interface Course {
   id: string;
-  title?: string;
-  description?: string;
-  price?: number;
-  categoryId?: string;
-  instructorId?: string;
-  // Add other course properties as needed
+  title: string;
+  description: string;
+  instructorId: string;
+  categoryId: string;
+  categoryName?: string;
+  price: number;
+  imageUrl?: string;
+  paymentQrUrl?: string;
+  duration: number;
+  level: number;
+  tags: string[] | null;
+  createdAt: string;
+  updatedAt: string | null;
+  createdBy: string;
 }
 
 // Define the Enrollment type
@@ -42,37 +52,16 @@ interface Enrollment {
   // Add other enrollment properties as needed
 }
 
+// Response type for a single course
+interface CourseResponse {
+  data: Course;
+}
+
 // Response type for multiple courses
-interface CoursesResponse {
-  data: {
-    result: Course[];
-    meta?: {
-      page: number;
-      pageSize: number;
-      total: number;
-    }
-  };
-}
+interface CoursesResponse extends ListResponse<Course> {}
 
-// Response type for multiple enrollments
-interface EnrollmentsResponse {
-  data: {
-    result: Enrollment[];
-    meta?: {
-      page: number;
-      pageSize: number;
-      total: number;
-    }
-  };
-}
-
-// Response type for multiple lessons
-interface LessonsResponse {
-  data: any[]; // Replace with Lesson type if available
-  totalCount?: number;
-  page?: number;
-  pageSize?: number;
-}
+// Response type for multiple enrollments  
+interface EnrollmentsResponse extends ListResponse<Enrollment> {}
 
 export const courseApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -92,7 +81,8 @@ export const courseApiSlice = apiSlice.injectEndpoints({
           : '';
           
         return `/api/courses${queryString}`;
-      },      providesTags: (result) => 
+      },
+      providesTags: (result) => 
         result?.data?.result
           ? [
               ...result.data.result.map(({ id }) => ({ type: 'Courses' as const, id })),
@@ -100,10 +90,9 @@ export const courseApiSlice = apiSlice.injectEndpoints({
             ]
           : [{ type: 'Courses' as const, id: 'LIST' }],
     }),
-    
-    getCourseById: builder.query<Course, string>({
-        query: (courseId) => `/api/courses/${courseId}`,
-        providesTags: (result, error, id) => [{ type: 'Courses' as const, id }],
+      getCourseById: builder.query<CourseResponse, string>({
+      query: (courseId) => `/api/courses/${courseId}`,
+      providesTags: (result, error, id) => [{ type: 'Courses' as const, id }],
     }),
     
     createCourse: builder.mutation<Course, FormData>({
@@ -231,8 +220,7 @@ export const courseApiSlice = apiSlice.injectEndpoints({
       },
       providesTags: (result, error, { chapterId }) => 
         result
-          ? [
-              ...result.data.map(({ id }: { id: string }) => ({ type: 'Lessons' as const, id })),
+          ? [              ...result.data.result.map(({ id }: { id: string }) => ({ type: 'Lessons' as const, id })),
               { type: 'Lessons' as const, id: 'LIST' },
               { type: 'Lessons' as const, id: `Chapter-${chapterId}` },
             ]

@@ -107,10 +107,10 @@ const chapterSlice = createSlice({
       // Remove course entry
       delete state.byCourse[courseId];
     },
-    setLoading(state, action: PayloadAction<boolean>) {
+    setChapterLoading(state, action: PayloadAction<boolean>) {
       state.isLoading = action.payload;
     },
-    setError(state, action: PayloadAction<string | null>) {
+    setChapterError(state, action: PayloadAction<string | null>) {
       state.error = action.payload;
     }
   },
@@ -122,8 +122,8 @@ export const {
   removeChapter, 
   clearChapters,
   clearCourseChapters,
-  setLoading,
-  setError
+  setChapterLoading,
+  setChapterError
 } = chapterSlice.actions;
 
 export default chapterSlice.reducer;

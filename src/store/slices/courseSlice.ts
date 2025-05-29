@@ -9,6 +9,8 @@ export interface Course {
   duration?: number;
   level: number;
   categoryName?: string;
+  imageUrl?: string;
+  paymentQrUrl?: string;
   tags?: string[] | null;
   createdAt: string;
   updatedAt?: string | null;
@@ -59,12 +61,12 @@ const courseSlice = createSlice({
       state.courses = {};
       state.allIds = [];
     },
-    setLoading(state, action: PayloadAction<boolean>) {
+    setCourseLoading(state, action: PayloadAction<boolean>) {
       state.isLoading = action.payload;
     },
-    setError(state, action: PayloadAction<string | null>) {
+    setCourseError(state, action: PayloadAction<string | null>) {
       state.error = action.payload;
-    }
+    },
   },
 });
 
@@ -73,8 +75,8 @@ export const {
   setCourses, 
   removeCourse, 
   clearCourses,
-  setLoading,
-  setError
+  setCourseLoading,
+  setCourseError
 } = courseSlice.actions;
 
 export default courseSlice.reducer;

@@ -17,7 +17,7 @@ const eslintConfig = [
       "@next/next/no-page-custom-font": "off",
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "off",
-      "@typescript-eslint/prefer-as-const": "off", // Disable this rule
+      "@typescript-eslint/prefer-as-const": "true", // Disable this rule
       "react-hooks/exhaustive-deps": "off",
       "no-console": "off",
       "no-unused-vars": "off",

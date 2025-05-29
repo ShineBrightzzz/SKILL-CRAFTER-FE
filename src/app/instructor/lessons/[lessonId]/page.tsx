@@ -41,10 +41,9 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
   const [testCases, setTestCases] = useState<TestCaseDTO[]>([]);
   const [activeTestCase, setActiveTestCase] = useState<number | null>(null);
   const [modifiedTestCases, setModifiedTestCases] = useState<Set<number>>(new Set());
-    // Fetch lesson details
-  const { data: lessonResponse, isLoading: lessonLoading } = useGetLessonByIdQuery(lessonId);
-  const lesson = lessonResponse?.data;
-  
+    // Fetch lesson details  
+  const { data: lesson, isLoading: lessonLoading } = useGetLessonByIdQuery(lessonId);
+
   // Fetch test cases for programming lessons
   const { data: testCasesResponse, isLoading: testCasesLoading } = useGetTestCasesByLessonIdQuery(
     lessonId, 
@@ -968,9 +967,16 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
               </TabPane>
             )}
               <TabPane tab="Xem trước" key="preview">
-              <div className="bg-white p-4 rounded-md">
-                {lesson ? (
-                  <LessonPreview lesson={lesson} />
+              <div className="bg-white p-4 rounded-md">                  {lesson ? (                  <LessonPreview lesson={{
+                    ...lesson,                    initialCode: lesson.initialCode || null,
+                    language: lesson.language || null,
+                    content: lesson.content || null,
+                    videoUrl: lesson.videoUrl || null,
+                    duration: lesson.duration || null,
+                    contentFile: null,
+                    videoFile: null,
+                    quizData: lesson.quizData || null
+                  }} />
                 ) : (
                   <p className="text-gray-500 mb-4">Không thể tải dữ liệu bài học.</p>
                 )}

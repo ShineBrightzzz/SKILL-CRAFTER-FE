@@ -62,7 +62,7 @@ export default function CourseDetailPage({ params }: PageProps) {
   const chapters = useMemo(() => {
     const result = chaptersResponse?.data?.result || [];
     // Sort chapters by order if available
-    return [...result].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    return result;
   }, [chaptersResponse]);
 
   // Course enrollment mutation
@@ -72,14 +72,13 @@ export default function CourseDetailPage({ params }: PageProps) {
   const handleEnrollment = async () => {
     if (!currentUser || !course) return;
     
-    try {
-      const result = await enrollCourse({ 
+    try {      const result = await enrollCourse({ 
         courseId: params.id, 
         userId: currentUser.id 
       }).unwrap();
       
-      // If enrollment was successful, update local state immediately
-      if (result.success) {
+      // If enrollment was successful (result contains the enrollment data)
+      if (result.id) {
         setIsLocalEnrolled(true);
         toast.success('Đăng ký khóa học thành công!');
       }
@@ -200,8 +199,7 @@ export default function CourseDetailPage({ params }: PageProps) {
                             <ChevronDownIcon className="h-5 w-5 text-gray-500" />
                           ) : (
                             <ChevronRightIcon className="h-5 w-5 text-gray-500" />
-                          )}
-                          <div className="flex flex-col text-left">
+                          )}                          <div className="flex flex-col text-left">
                             <span className="font-medium text-gray-900">{chapter.name}</span>
                             <span className="text-sm text-gray-500">
                               {chapter.estimatedTime} phút

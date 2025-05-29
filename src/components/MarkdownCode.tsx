@@ -4,12 +4,17 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeHighlight from 'rehype-highlight';
+import { DetailedHTMLProps, HTMLAttributes } from 'react';
 import 'highlight.js/styles/github-dark.css';
 
 interface MarkdownCodeProps {
   content: string;
   className?: string;
 }
+
+type CodeProps = DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement> & {
+  inline?: boolean;
+};
 
 export default function MarkdownCode({ content, className }: MarkdownCodeProps) {
   return (
@@ -18,7 +23,7 @@ export default function MarkdownCode({ content, className }: MarkdownCodeProps) 
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw, rehypeHighlight]}
         components={{
-          code({ node, inline, className, children, ...props }) {
+          code: ({ inline, className, children, ...props }: CodeProps) => {
             const match = /language-(\w+)/.exec(className || '');
             return !inline && match ? (
               <div className="relative group">

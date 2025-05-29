@@ -8,24 +8,27 @@ import { FiSearch, FiChevronDown, FiChevronLeft, FiChevronRight } from 'react-ic
 
 // Define Course type
 interface Course {
-  id: string | number;
+  id: string;
   title: string;
-  description?: string;
+  description: string;
+  instructorId: string;
+  categoryId: string;
   categoryName?: string;
-  level: number;
-  tags?: string[];
-  duration?: number;
-  price?: number;
+  price: number;
   imageUrl?: string;
+  duration: number;
+  level: number;
+  tags: string[] | null;
+  createdAt: string;
+  updatedAt: string | null;
+  createdBy: string;
 }
 
-// Define Pagination Metadata type
-interface PaginationMeta {
-  page: number;
-  pageSize: number;
-  pages: number;
-  total: number;
-}
+// Helper function to safely get total pages
+const getTotalPages = (meta: { page: number; pageSize: number; pages?: number; total: number }) => {
+  if ('pages' in meta && meta.pages) return meta.pages;
+  return Math.ceil(meta.total / meta.pageSize);
+};
 
 // Map level number to text
 const getLevelText = (level: number) => {
@@ -45,8 +48,7 @@ const categories = ['Tất cả', 'Frontend', 'Backend', 'Mobile', 'DevOps'];
 const levels = ['Tất cả', 'Cơ bản', 'Trung cấp', 'Nâng cao'];
 const PAGE_SIZE = 9; // Number of courses to display per page
 
-export default function LearningPage() {
-  // State for pagination
+export default function LearningPage() {  // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
   
   // Fetch courses data from API
@@ -54,6 +56,11 @@ export default function LearningPage() {
     // Add pagination parameters if needed in your API
     page: currentPage,
     pageSize: PAGE_SIZE
+  }, {
+    // Thêm cấu hình này để đảm bảo request không bị treo vĩnh viễn
+    refetchOnMountOrArgChange: true,
+    refetchOnReconnect: true,
+    pollingInterval: 0
   });
   
   // Extract courses and pagination metadata from the new API response format
@@ -64,14 +71,14 @@ export default function LearningPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tất cả');
   const [selectedLevel, setSelectedLevel] = useState('Tất cả');
-  const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
+  const [filteredCourses, setFilteredCourses] = useState<Course[]>(allCourses);
   const [filteredTotal, setFilteredTotal] = useState(0);
-  
-  // Filter courses based on search term and filters
+    // Filter courses based on search term and filters
   useEffect(() => {
-    if (!allCourses.length) return;
+    // Đảm bảo đã có dữ liệu hoặc khởi tạo một mảng rỗng
+    const courses = Array.isArray(allCourses) ? [...allCourses] : [];
     
-    let result = [...allCourses];
+    let result = courses;
     
     // Apply search filter
     if (searchTerm.trim() !== '') {
@@ -100,11 +107,12 @@ export default function LearningPage() {
   
   // Handle page change
   const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && newPage <= paginationMeta.pages) {
+    const totalPages = getTotalPages(paginationMeta);
+    if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
     }
   };
-  
+
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -177,19 +185,34 @@ export default function LearningPage() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Loading state */}
+        </div>        {/* Loading state */}
         {isLoading && (
           <div className="flex justify-center items-center h-64">
-            <p className="text-xl text-gray-600">Đang tải khóa học...</p>
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+              <p className="text-xl text-gray-600">Đang tải khóa học...</p>
+              <p className="text-sm text-gray-500 mt-2">Vui lòng đợi trong giây lát</p>
+            </div>
           </div>
         )}
 
         {/* Error state */}
         {error && (
           <div className="flex justify-center items-center h-64">
-            <p className="text-xl text-red-600">Có lỗi xảy ra khi tải khóa học</p>
+            <div className="text-center">
+              <p className="text-xl text-red-600 mb-2">Có lỗi xảy ra khi tải khóa học</p>
+              <p className="text-sm text-gray-600">
+                {(error as any)?.data?.message || 
+                 (error as any)?.error || 
+                 'Không thể kết nối tới máy chủ. Vui lòng thử lại sau.'}
+              </p>
+              <button 
+                className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                onClick={() => window.location.reload()}
+              >
+                Thử lại
+              </button>
+            </div>
           </div>
         )}
         
@@ -270,7 +293,7 @@ export default function LearningPage() {
         )}
         
         {/* Pagination */}
-        {!isLoading && !error && paginationMeta.pages > 1 && (
+        {!isLoading && !error && getTotalPages(paginationMeta) > 1 && (
           <div className="mt-8 flex justify-center">
             <div className="flex items-center space-x-1">
               <button 
@@ -285,11 +308,11 @@ export default function LearningPage() {
                 <FiChevronLeft />
               </button>
               
-              {Array.from({ length: paginationMeta.pages }, (_, i) => i + 1)
+              {Array.from({ length: getTotalPages(paginationMeta) }, (_, i) => i + 1)
                 .filter(page => 
                   // Show first page, last page, current page, and pages around current
                   page === 1 || 
-                  page === paginationMeta.pages ||
+                  page === getTotalPages(paginationMeta) ||
                   Math.abs(currentPage - page) <= 1
                 )
                 .map((page, index, array) => {
@@ -323,9 +346,9 @@ export default function LearningPage() {
               
               <button 
                 onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === paginationMeta.pages}
+                disabled={currentPage === getTotalPages(paginationMeta)}
                 className={`px-4 py-2 border rounded-md ${
-                  currentPage === paginationMeta.pages 
+                  currentPage === getTotalPages(paginationMeta)
                     ? 'text-gray-400 border-gray-300 cursor-not-allowed' 
                     : 'text-blue-600 border-blue-600 hover:bg-blue-50'
                 }`}

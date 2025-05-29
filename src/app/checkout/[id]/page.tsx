@@ -11,7 +11,6 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { user: currentUser } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
-
   // Fetch course data
   const { data: courseData, isLoading: courseLoading } = useGetCourseByIdQuery(params.id);
   const course = courseData?.data;

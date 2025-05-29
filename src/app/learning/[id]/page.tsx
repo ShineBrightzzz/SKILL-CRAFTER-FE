@@ -21,6 +21,7 @@ import {
 import { useGetChaptersByCourseIdQuery, useGetChapterByIdQuery } from '@/services/chapter.service';
 import { useGetCourseByIdQuery, useEnrollCourseMutation, useGetEnrollmentsByUserIdQuery } from '@/services/course.service';
 import { skipToken } from '@reduxjs/toolkit/query/react';
+import { Chapter } from '@/types/chapter';
 
 // Define the page props interface
 interface PageProps {
@@ -49,13 +50,15 @@ interface Lesson {
   isCompleted?: boolean;
 }
 
-interface Chapter {
-  id: string;
-  courseId: string;
-  courseName: string;
-  name: string;
-  estimatedTime: number;
-  order?: number;
+interface EnrollmentResponse {
+  data: {
+    success: boolean;
+    message?: string;
+  };
+}
+
+interface CourseResponse {
+  data: Course;
 }
 
 interface Course {
@@ -166,10 +169,10 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   const router = useRouter();
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
   const { user: currentUser } = useAuth();
-    
-  // Use RTK Query to fetch data
+      // Use RTK Query to fetch data  // Get course data
   const { data: courseData, isLoading: courseLoading } = useGetCourseByIdQuery(params.id);
-  const course = courseData?.data;
+  const course: Course | undefined = courseData?.data;
+  // course is already defined from the destructuring above
     // Check enrollment
   const { data: enrollmentsData, isLoading: enrollmentsLoading } = useGetEnrollmentsByUserIdQuery(
     currentUser?.id ? { userId: currentUser.id } : skipToken
@@ -192,10 +195,8 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   // Get chapters using RTK Query
   const { data: chaptersResponse, isLoading: chaptersLoading } = useGetChaptersByCourseIdQuery({
     courseId: params.id
-  });
-  const chapters = useMemo(() => {
-    const result = chaptersResponse?.data?.result || [];
-    return result;
+  });  const chapters = useMemo(() => {
+    return (chaptersResponse?.data?.result || []) as Chapter[];
   }, [chaptersResponse]);
   
   // State to track which chapter we're currently fetching
@@ -230,14 +231,13 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   const handleEnrollment = async () => {
     if (!currentUser || !course) return;
     
-    try {
-      const result = await enrollCourse({ 
+    try {      const response = await enrollCourse({ 
         courseId: params.id, 
         userId: currentUser.id 
       }).unwrap();
       
       // If enrollment was successful, update local state immediately
-      if (result.success) {
+      if (response) {
         setIsLocalEnrolled(true);
         toast.success('Đăng ký khóa học thành công!');
       }
@@ -351,10 +351,9 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
           isCompleted
         };
       });
-      
-      setLoadedLessons(prev => ({
+        setLoadedLessons(prev => ({
         ...prev,
-        [activeChapterId]: enhancedLessons
+        [activeChapterId]: enhancedLessons as Lesson[]
       }));
 
       // Pre-load the lesson content if it's the current chapter
@@ -1104,10 +1103,9 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                   <h2 className="text-2xl font-bold text-white">{currentLesson.title}</h2>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => handlePreviousLesson(chapters, loadedLessons, currentLesson, changeLesson, router, params)}
+                  <button                    onClick={() => currentLesson && handlePreviousLesson(chapters, loadedLessons, currentLesson, changeLesson, router, params)}
                     className="p-2 rounded-md bg-blue-800 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-white"
-                    disabled={!getPreviousLesson(chapters, loadedLessons, currentLesson.id)}
+                    disabled={!currentLesson || !getPreviousLesson(chapters, loadedLessons, currentLesson.id)}
                   >
                     <ChevronLeftIcon className="h-5 w-5" />
                   </button>

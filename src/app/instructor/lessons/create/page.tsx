@@ -29,8 +29,9 @@ interface LessonFormValues {
 
 interface QuizQuestion {
   question: string;
-  options: string[];
-  correctAnswer: number;
+  options: string[];  // Must contain exactly 4 options
+  correctAnswer: number;  // Index of the correct answer (0-3)
+  explanation?: string;  // Optional explanation for the correct answer
 }
 
 const lessonTypes = [
@@ -408,14 +409,35 @@ export default function CreateLessonPage() {
     setQuestions(questions.filter((_, i) => i !== index));
   };
 
-  const updateQuestion = (index: number, field: keyof QuizQuestion, value: any) => {
-    const newQuestions = [...questions];
-    if (field === 'options') {
-      const [optionIndex, optionValue] = value;
-      newQuestions[index].options[optionIndex] = optionValue;
-    } else {
-      newQuestions[index][field] = value;
-    }
+  const updateQuestion = (index: number, field: keyof QuizQuestion, value: string | number | [number, string]) => {
+    const newQuestions = questions.map((q, i) => {
+      if (i !== index) return q;
+      
+      if (field === 'options') {
+        // Handle the special case for options array updates
+        const [optionIndex, optionValue] = value as [number, string];
+        return {
+          ...q,
+          options: q.options.map((opt, j) => j === optionIndex ? optionValue : opt)
+        };
+      } else if (field === 'correctAnswer') {
+        // Ensure correctAnswer is between 0-3
+        const numValue = Number(value);
+        if (numValue >= 0 && numValue <= 3) {
+          return {
+            ...q,
+            [field]: numValue
+          };
+        }
+        return q;
+      } else {
+        // Handle all other fields
+        return {
+          ...q,
+          [field]: value
+        };
+      }
+    });
     setQuestions(newQuestions);
   };
 

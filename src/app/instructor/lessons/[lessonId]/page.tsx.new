@@ -469,7 +469,17 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
             <TabPane tab="Xem trước" key="preview">
               <div className="bg-white p-4 rounded-md">
                 {lesson ? (
-                  <LessonPreview lesson={lesson} />
+                  <LessonPreview lesson={{
+                    ...lesson,
+                    initialCode: lesson.initialCode || null,
+                    language: lesson.language || null,
+                    content: lesson.content || null,
+                    videoUrl: lesson.videoUrl || null,
+                    duration: lesson.duration || null,
+                    quizData: lesson.quizData || null,
+                    contentFile: null,
+                    videoFile: null
+                  }} />
                 ) : (
                   <p className="text-gray-500 mb-4">Không thể tải dữ liệu bài học.</p>
                 )}

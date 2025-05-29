@@ -9,8 +9,9 @@ import {
   useUpdateCourseMutation, 
   useDeleteCourseMutation 
 } from '@/services/course.service';
+import { useGetAllCategoriesQuery } from '@/services/category.service';
 import { useAuth } from '@/store/hooks';
-import type { UploadProps } from 'antd';
+import type { UploadFile, UploadProps } from 'antd';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -21,15 +22,22 @@ const CoursesManagement = () => {
   const [editingCourse, setEditingCourse] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFileList, setImageFileList] = useState<UploadFile[]>([]);
   
   const { user } = useAuth();
   const instructorId = user?.id || '';
   
+  // Fetch courses
   const { data: coursesResponse, isLoading, refetch } = useGetAllCourseByInstructorQuery({
     instructorId,
     page: currentPage,
     pageSize: pageSize
   });
+
+  // Fetch categories
+  const { data: categoriesResponse, isLoading: categoriesLoading } = useGetAllCategoriesQuery();
+  const categories = categoriesResponse?.data?.result || [];
 
   // Extract courses and pagination metadata from the response
   const courses = coursesResponse?.data?.result || [];
@@ -47,6 +55,12 @@ const CoursesManagement = () => {
   const showModal = (course?: any) => {
     if (course) {
       setEditingCourse(course);
+      setImageFileList(course.imageUrl ? [{
+        uid: '-1',
+        name: 'Current Image',
+        status: 'done',
+        url: course.imageUrl,
+      }] : []);
       form.setFieldsValue({
         title: course.title,
         description: course.description,
@@ -58,33 +72,50 @@ const CoursesManagement = () => {
       });
     } else {
       setEditingCourse(null);
+      setImageFileList([]);
+      setImageFile(null);
       form.resetFields();
     }
     setIsModalVisible(true);
   };
-
   const handleCancel = () => {
     setIsModalVisible(false);
     form.resetFields();
+    setImageFileList([]);
+    setImageFile(null);
   };
-
   const handleSubmit = async (values: any) => {
     try {
-      // Process tags to array
-      const tagsArray = values.tags ? values.tags.split(',').map((tag: string) => tag.trim()) : [];
+      // Create FormData object
+      const formData = new FormData();
       
-      // Prepare submission data
-      const courseData = {
-        ...values,
-        instructorId,
-        tags: tagsArray
-      };
+      // Required fields
+      formData.append('title', values.title);
+      formData.append('description', values.description);
+      formData.append('instructorId', instructorId);
+      formData.append('categoryId', values.categoryId);
+      
+      // Optional fields with defaults
+      formData.append('price', values.price?.toString() || '0');
+      formData.append('duration', values.duration?.toString() || '0');
+      formData.append('level', values.level?.toString() || '1');
+      
+      // Process tags
+      if (values.tags) {
+        const tagsArray = values.tags.split(',').map((tag: string) => tag.trim());
+        formData.append('tags', JSON.stringify(tagsArray));
+      }
+
+      // Add image file if present
+      if (imageFile) {
+        formData.append('imageFile', imageFile);
+      }
       
       if (editingCourse) {
-        await updateCourse({ id: editingCourse.id, body: courseData }).unwrap();
+        await updateCourse({ id: editingCourse.id, body: formData }).unwrap();
         message.success('Cập nhật khóa học thành công!');
       } else {
-        await createCourse({ body: courseData }).unwrap();
+        await createCourse(formData).unwrap();
         message.success('Tạo khóa học thành công!');
       }
       setIsModalVisible(false);
@@ -94,8 +125,7 @@ const CoursesManagement = () => {
       console.error(error);
     }
   };
-
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (courseId: string) => {
     Modal.confirm({
       title: 'Bạn có chắc chắn muốn xóa khóa học này?',
       content: 'Hành động này không thể hoàn tác.',
@@ -104,7 +134,7 @@ const CoursesManagement = () => {
       cancelText: 'Hủy',
       onOk: async () => {
         try {
-          await deleteCourse({ id }).unwrap();
+          await deleteCourse({ courseId }).unwrap();
           message.success('Xóa khóa học thành công!');
           refetch();
         } catch (error) {
@@ -114,25 +144,20 @@ const CoursesManagement = () => {
       },
     });
   };
-
-  // Upload props for course image
-  const uploadProps: UploadProps = {
-    name: 'file',
-    action: '/api/upload', // Replace with your API endpoint
-    headers: {
-      authorization: 'Bearer ' + user?.accessToken,
-    },
-    onChange(info) {
-      if (info.file.status === 'done') {
-        message.success(`${info.file.name} tải lên thành công`);
-        // Update form with the uploaded image URL
-        form.setFieldsValue({
-          imageUrl: info.file.response.url
-        });
-      } else if (info.file.status === 'error') {
-        message.error(`${info.file.name} tải lên thất bại.`);
-      }
-    },
+  // Custom request function for Upload component
+  const customRequest = async ({ file, onSuccess, onError }: any) => {
+    if (file instanceof File) {
+      setImageFile(file);
+      setImageFileList([{
+        uid: '-1',
+        name: file.name,
+        status: 'done',
+        url: URL.createObjectURL(file)
+      }]);
+      if (onSuccess) onSuccess();
+    } else {
+      if (onError) onError(new Error('Not a valid file'));
+    }
   };
 
   const columns = [
@@ -266,10 +291,11 @@ const CoursesManagement = () => {
             rules={[{ required: true, message: 'Vui lòng chọn danh mục!' }]}
           >
             <Select placeholder="Chọn danh mục">
-              <Option value="frontend">Frontend</Option>
-              <Option value="backend">Backend</Option>
-              <Option value="mobile">Mobile</Option>
-              <Option value="devops">DevOps</Option>
+              {categories.map(category => (
+                <Option key={category.id} value={category.id}>
+                  {category.name}
+                </Option>
+              ))}
             </Select>
           </Form.Item>
           
@@ -315,17 +341,39 @@ const CoursesManagement = () => {
               <Input placeholder="Ví dụ: javascript, react, web" />
             </Form.Item>
           </div>
-          
-          <Form.Item
-            name="imageUrl"
+            <Form.Item 
             label="Ảnh khóa học"
+            required
+            extra="Kích thước khuyến nghị: 1280x720 pixels, tối đa 2MB"
           >
-            <Input placeholder="URL ảnh" />
-          </Form.Item>
-          
-          <Form.Item label="Tải lên ảnh mới">
-            <Upload {...uploadProps}>
-              <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
+            <Upload
+              accept="image/*"
+              customRequest={customRequest}
+              fileList={imageFileList}
+              maxCount={1}
+              listType="picture-card"
+              onRemove={() => {
+                setImageFile(null);
+                setImageFileList([]);
+              }}
+              beforeUpload={file => {
+                const isImage = file.type.startsWith('image/');
+                if (!isImage) {
+                  message.error('Bạn chỉ có thể tải lên file ảnh!');
+                }
+                const isLt2M = file.size / 1024 / 1024 < 2;
+                if (!isLt2M) {
+                  message.error('Ảnh phải nhỏ hơn 2MB!');
+                }
+                return isImage && isLt2M;
+              }}
+            >
+              {imageFileList.length === 0 && (
+                <div>
+                  <PlusOutlined />
+                  <div style={{ marginTop: 8 }}>Tải lên</div>
+                </div>
+              )}
             </Upload>
           </Form.Item>
           

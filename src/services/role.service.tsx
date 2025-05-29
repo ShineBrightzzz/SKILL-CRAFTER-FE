@@ -2,7 +2,7 @@ import apiSlice from './api';
 import { Permission } from './permission.service';
 
 // Define types for pagination parameters
-interface PaginationParams {
+export interface PaginationParams {
   page?: number;
   pageSize?: number;
   sort?: string;
@@ -10,7 +10,7 @@ interface PaginationParams {
 }
 
 // Define the Role type
-interface Role {
+export interface Role {
   id: string;
   name?: string;
   description?: string;
@@ -19,7 +19,7 @@ interface Role {
 }
 
 // Response type for multiple roles
-interface RolesResponse {
+export interface RolesResponse {
   data: {
     result: Role[];
     meta?: {

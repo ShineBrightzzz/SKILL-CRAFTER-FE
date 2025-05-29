@@ -7,20 +7,21 @@ import {
   useGetAllPermissionsQuery,
   useCreatePermissionMutation,
   useUpdatePermissionMutation,
-  useDeletePermissionMutation
+  useDeletePermissionMutation,
+  Permission
 } from '@/services/permission.service';
 
 const PermissionsManagement = () => {
   const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingPermission, setEditingPermission] = useState<any>(null);
+  const [editingPermission, setEditingPermission] = useState<Permission | null>(null);
   
   const { data: permissionsData, isLoading, refetch } = useGetAllPermissionsQuery({});
   const [createPermission] = useCreatePermissionMutation();
   const [updatePermission] = useUpdatePermissionMutation();
   const [deletePermission] = useDeletePermissionMutation();
 
-  const showModal = (permission?: any) => {
+  const showModal = (permission?: Permission) => {
     if (permission) {
       setEditingPermission(permission);
       form.setFieldsValue({
@@ -99,13 +100,12 @@ const PermissionsManagement = () => {
       dataIndex: 'module',
       key: 'module',
     },
-    {
-      title: 'Thao tác',
+    {      title: 'Thao tác',
       key: 'action',
-      render: (_, record: any) => (
+      render: (_: unknown, record: Permission) => (
         <Space size="middle">
-          <Button 
-            type="primary" 
+          <Button
+            type="primary"
             icon={<EditOutlined />}
             onClick={() => showModal(record)}
           >

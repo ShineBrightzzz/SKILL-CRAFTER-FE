@@ -3,24 +3,31 @@ import apiSlice from './api';
 // Define types
 interface Lesson {
   id: string;
-  title?: string;
-  content?: string;
-  chapterId?: string;
-  type?: string;
-  // Add other lesson properties as needed
+  title: string;
+  chapterId: string;
+  chapterName: string;
+  type: number;
+  content: string | null;
+  videoUrl: string | null;
+  duration: number | null;
+  order?: number;
+  initialCode?: string;
+  language?: string;
+  quizData?: any;
+  isCompleted?: boolean;
 }
 
 interface LessonProgress {
   id: string;
   userId: string;
   lessonId: string;
+  status: string;
   completed: boolean;
   completedAt?: string;
-  // Add other progress properties as needed
 }
 
 // Response type for multiple lessons
-interface LessonsResponse {
+export interface LessonsResponse {
   data: {
     result: Lesson[];
     meta?: {
@@ -44,10 +51,21 @@ interface ProgressResponse {
 }
 
 export const lessonApiSlice = apiSlice.injectEndpoints({
-  endpoints: (builder) => ({
-    // Lesson endpoints
-    getAllLessons: builder.query<LessonsResponse, void>({
-      query: () => '/api/lessons',      providesTags: (result) => 
+  endpoints: (builder) => ({    // Lesson endpoints
+    getAllLessons: builder.query<LessonsResponse, { page?: number; pageSize?: number }>({
+      query: (params = {}) => {
+        const { page, pageSize } = params;
+        const queryParams = [];
+        
+        if (page) queryParams.push(`page=${page}`);
+        if (pageSize) queryParams.push(`pageSize=${pageSize}`);
+        
+        const queryString = queryParams.length > 0 
+          ? `?${queryParams.join('&')}` 
+          : '';
+          
+        return `/api/lessons${queryString}`;
+      },providesTags: (result) => 
         result?.data?.result
           ? [
               ...result.data.result.map(({ id }) => ({ type: 'Lessons' as const, id })),

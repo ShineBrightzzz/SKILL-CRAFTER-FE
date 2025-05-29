@@ -13,12 +13,12 @@ interface AuthGuardProps {
 }
 
 export default function AuthGuard({ children, requiredRole }: AuthGuardProps) {
-  const { isAuthenticated, loading, user } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!loading) {
+    if (!isLoading) {
       // Check if the current path or its parent is a public route
       const isPublicRoute = publicRoutes.some(route => 
         pathname === route || pathname?.startsWith(`${route}/`)
@@ -39,9 +39,9 @@ export default function AuthGuard({ children, requiredRole }: AuthGuardProps) {
       }
       */
     }
-  }, [isAuthenticated, loading, pathname, router, requiredRole, user]);
+  }, [isAuthenticated, isLoading, pathname, router, requiredRole, user]);
 
-  if (loading) {
+  if (isLoading) {
     return <Loading />;
   }
 

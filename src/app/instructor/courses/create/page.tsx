@@ -34,11 +34,10 @@ export default function CreateCoursePage() {
   const [qrFileList, setQrFileList] = useState<UploadFile[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [paymentQrFile, setPaymentQrFile] = useState<File | null>(null);
-  
   const [createCourse, { isLoading }] = useCreateCourseMutation();
-  const { data: categoriesResponse, isLoading: categoriesLoading } = useGetAllCategoriesQuery({});
-  const categories = categoriesResponse?.data || [];
-  
+  const { data: categoriesResponse, isLoading: categoriesLoading } = useGetAllCategoriesQuery();
+  const categories = categoriesResponse?.data?.result || [];
+
   const handleSubmit = async (values: CourseFormValues) => {
     try {
       const formData = new FormData();
@@ -184,10 +183,13 @@ export default function CreateCoursePage() {
               >
                 <InputNumber
                   className="w-full"
-                  placeholder="Nhập giá khóa học"
-                  min={0}
+                  placeholder="Nhập giá khóa học"                  min={0}
                   formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={value => value!.replace(/\$\s?|(,*)/g, '')}
+                  parser={(value: string | undefined): 0 | number => {
+                    if (!value) return 0;
+                    const parsed = Number(value.replace(/\$\s?|(,*)/g, ''));
+                    return isNaN(parsed) ? 0 : parsed;
+                  }}
                 />
               </Form.Item>
               

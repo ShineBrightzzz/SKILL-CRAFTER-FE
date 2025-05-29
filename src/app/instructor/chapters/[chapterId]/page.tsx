@@ -155,7 +155,7 @@ export default function ChapterLessonsPage({ params }: { params: { chapterId: st
       cancelText: 'Hủy',
       onOk: async () => {
         try {
-          await deleteLesson(id).unwrap();
+          await deleteLesson({ id, chapterId }).unwrap();
           message.success('Xóa bài học thành công!');
           refetch();
         } catch (error) {

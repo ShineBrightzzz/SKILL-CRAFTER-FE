@@ -36,13 +36,13 @@ export const useLesson = (lessonId: string) => {
   
   // Save lesson to Redux when it's fetched
   useEffect(() => {
-    if (lessonResponse?.data && !lesson) {
-      dispatch(setLesson(lessonResponse.data));
+    if (lessonResponse && !lesson) {
+      dispatch(setLesson(lessonResponse));
     }
   }, [lessonResponse, lesson, dispatch]);
   
   return {
-    lesson: lesson || lessonResponse?.data,
+    lesson: lesson || lessonResponse,
     isLoading: isFetching && !lesson,
     error
   };

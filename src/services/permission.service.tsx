@@ -28,12 +28,13 @@ interface SearchParams extends PaginationParams {
 }
 
 // Define the Permission type
-interface Permission {
+export interface Permission {
   id: string;
   name?: string;
   apiPath?: string;
   method?: string;
   module?: string;
+  active?: boolean;
   // Add other permission properties as needed
 }
 

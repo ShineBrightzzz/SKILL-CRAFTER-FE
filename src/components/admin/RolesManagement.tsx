@@ -9,22 +9,25 @@ import {
   useUpdateRoleMutation,
   useDeleteRoleMutation,
   useGetRolePermissionsQuery,
+  Role, // Import the Role interface
 } from '@/services/role.service';
-import { useGetAllPermissionsQuery } from '@/services/permission.service';
+import { useGetAllPermissionsQuery, Permission } from '@/services/permission.service';
 
 const { Panel } = Collapse;
 
 const RolesManagement = () => {
   const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingRole, setEditingRole] = useState<any>(null);
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   
   const { data: rolesData, isLoading, refetch } = useGetAllRolesQuery({});
   const { data: allPermissions } = useGetAllPermissionsQuery({});
   const [createRole] = useCreateRoleMutation();
   const [updateRole] = useUpdateRoleMutation();
-  const [deleteRole] = useDeleteRoleMutation();  const { data: rolePermissions, refetch: refetchPermissions } = useGetRolePermissionsQuery(
+  const [deleteRole] = useDeleteRoleMutation();
+  
+  const { data: rolePermissions, refetch: refetchPermissions } = useGetRolePermissionsQuery(
     editingRole?.id ?? 'skip', 
     { skip: !editingRole?.id }
   );
@@ -33,7 +36,7 @@ const RolesManagement = () => {
   const groupedPermissions = React.useMemo(() => {
     if (!allPermissions?.data?.result) return {};
     
-    return allPermissions.data.result.reduce((acc: { [key: string]: any[] }, permission) => {
+    return allPermissions.data.result.reduce((acc: { [key: string]: Permission[] }, permission: Permission) => {
       const module = permission.module || 'Other';
       if (!acc[module]) {
         acc[module] = [];
@@ -42,6 +45,7 @@ const RolesManagement = () => {
       return acc;
     }, {});
   }, [allPermissions]);
+
   const showModal = (role?: any) => {
     setEditingRole(role);
     form.setFieldsValue(role ? {
@@ -56,11 +60,10 @@ const RolesManagement = () => {
     }
     setIsModalVisible(true);
   };
-
   // Update selectedPermissions when rolePermissions changes
   useEffect(() => {
-    if (rolePermissions?.data) {
-      setSelectedPermissions(rolePermissions.data.map((p: { id: string }) => p.id));
+    if (rolePermissions) {
+      setSelectedPermissions(rolePermissions.map((p: { id: string }) => p.id));
     }
   }, [rolePermissions]);
 
@@ -143,7 +146,7 @@ const RolesManagement = () => {
     {
       title: 'Thao tác',
       key: 'action',
-      render: (_, record: any) => (
+      render: (_: undefined, record: Role) => (
         <Space size="middle">
           <Button 
             type="primary" 
@@ -287,8 +290,9 @@ const RolesManagement = () => {
           <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '20px' }}>
             <Collapse>
               {Object.entries(groupedPermissions).map(([module, permissions]) => (
-                <Panel header={module} key={module}>                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px' }}>
-                    {permissions.map((permission: any) => (
+                <Panel header={module} key={module}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px' }}>
+                    {permissions.map((permission: Permission) => (
                       <div key={permission.id} style={{ display: 'flex', alignItems: 'center' }}>
                         <Switch
                           size="small"

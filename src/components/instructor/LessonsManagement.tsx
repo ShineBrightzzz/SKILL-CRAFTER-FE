@@ -123,14 +123,20 @@ const LessonsManagement = () => {
     setIsModalVisible(false);
     form.resetFields();
   };
-
   const handleSubmit = async (values: LessonFormValues) => {
     try {
-      // Process quizData if it's a quiz
-      let processedValues = { ...values };
-      if (values.type === 1 && values.quizData) {
+      const formData = new FormData();
+      
+      // Required fields
+      formData.append('title', values.title);
+      formData.append('chapterId', values.chapterId);
+      formData.append('type', values.type.toString());
+      
+      // Optional fields based on lesson type
+      if (values.type === 1 && values.quizData) { // Quiz
         try {
-          processedValues.quizData = JSON.parse(values.quizData);
+          const parsedQuizData = JSON.parse(values.quizData);
+          formData.append('quizData', JSON.stringify(parsedQuizData));
         } catch (error) {
           message.error('Dữ liệu trắc nghiệm không hợp lệ!');
           console.error('JSON parse error:', error);
@@ -138,11 +144,25 @@ const LessonsManagement = () => {
         }
       }
       
+      if (values.type === 2) { // Video
+        if (values.videoUrl) formData.append('videoUrl', values.videoUrl);
+        if (values.duration) formData.append('duration', values.duration.toString());
+      }
+      
+      if (values.type === 3) { // Programming
+        if (values.initialCode) formData.append('initialCode', values.initialCode);
+        if (values.language) formData.append('language', values.language);
+      }
+      
+      if (values.content) {
+        formData.append('content', values.content);
+      }
+      
       if (editingLesson) {
-        await updateLesson({ id: editingLesson.id, body: processedValues }).unwrap();
+        await updateLesson({ id: editingLesson.id, body: formData }).unwrap();
         message.success('Cập nhật bài học thành công!');
       } else {
-        await createLesson({ body: processedValues }).unwrap();
+        await createLesson({ body: formData }).unwrap();
         message.success('Tạo bài học thành công!');
       }
       setIsModalVisible(false);

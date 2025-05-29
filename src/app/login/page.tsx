@@ -76,16 +76,13 @@ export default function Login() {
       return;
     }
     
-    setIsSubmitting(true);
-    const formData = new FormData(event.target as HTMLFormElement);
+    setIsSubmitting(true);    const formData = new FormData(event.target as HTMLFormElement);
     const username = formData.get('username') as string;
-    const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     
     try {
       const response = await login({ 
-        username, 
-        email,
+        username,
         password,
         recaptchaToken: captchaValue
       }).unwrap();
@@ -133,17 +130,6 @@ export default function Login() {
               id="username" 
               name="username"
               placeholder="Nhập tên đăng nhập"
-              required
-            />
-          </div>
-          <div className="mb-3">
-            <label htmlFor="email" className="block mb-1">Email</label>
-            <input 
-              type="email" 
-              className="w-full p-2 border rounded" 
-              id="email" 
-              name="email"
-              placeholder="Nhập địa chỉ email"
               required
             />
           </div>

@@ -3,7 +3,6 @@ import type { User, AuthResponse } from '@/types/auth';
 
 interface LoginCredentials {
   username: string;
-  email: string;
   password: string;
   recaptchaToken?: string | null;
 }

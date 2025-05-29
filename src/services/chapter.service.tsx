@@ -16,10 +16,13 @@ interface CourseParams extends PaginationParams {
 // Define the Chapter type
 interface Chapter {
   id: string;
-  title?: string;
+  name: string;
   description?: string;
-  courseId?: string;
-  // Add other chapter properties as needed
+  courseId: string;
+  courseName?: string;  // Added to match API response
+  order?: number;
+  estimatedTime?: number;
+  lessons?: any[];
 }
 
 // Response type for multiple chapters
@@ -61,8 +64,7 @@ export const chapterApiSlice = apiSlice.injectEndpoints({
             ]
           : [{ type: 'Chapters' as const, id: 'LIST' }],
     }),
-    
-    getChapterById: builder.query<Chapter, string>({
+      getChapterById: builder.query<{ data: Chapter }, string>({
       query: (chapterId) => `/api/chapters/${chapterId}`,
       providesTags: (result, error, id) => [{ type: 'Chapters' as const, id }],
     }),

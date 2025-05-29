@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import ErrorHandler from '@/components/ErrorHandler';
 
 export default function Error({
   error,
@@ -10,18 +11,17 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
+    // Log the error to an error reporting service
     console.error(error);
   }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full mx-auto p-6 bg-white rounded-lg shadow-lg text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">
-          Đã xảy ra lỗi!
-        </h2>
-        <p className="text-gray-600 mb-6">
-          Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.
-        </p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+      <ErrorHandler 
+        status={500} 
+        message="Đã xảy ra lỗi. Vui lòng thử lại sau."
+      />
+      <div className="mt-6">
         <button
           onClick={reset}
           className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition"
