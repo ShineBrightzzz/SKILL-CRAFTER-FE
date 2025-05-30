@@ -92,7 +92,6 @@ const LessonsManagement = () => {
       },
     });
   };
-
   const columns = [
     {
       title: 'ID',
@@ -114,28 +113,6 @@ const LessonsManagement = () => {
         const course = courses.find((c: any) => c.id === courseId);
         return course?.title || courseId;
       }
-    },
-    {
-      title: 'Thao tác',
-      key: 'action',
-      render: (_: any, record: any) => (
-        <Space size="middle">
-          <Button 
-            type="primary" 
-            icon={<EditOutlined />}
-            onClick={() => showModal(record)}
-          >
-            Sửa
-          </Button>
-          <Button 
-            danger 
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record.id)}
-          >
-            Xóa
-          </Button>
-        </Space>
-      ),
     },
   ];
   
@@ -162,18 +139,10 @@ const LessonsManagement = () => {
     setCurrentPage(page);
     if (pageSize) setPageSize(pageSize);
   };
-
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Quản lý bài học</h1>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
-          onClick={() => showModal()}
-        >
-          Tạo bài học mới
-        </Button>
       </div>
       
       <Table 
