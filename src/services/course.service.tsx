@@ -33,11 +33,11 @@ interface Course {
   categoryId: string;
   categoryName?: string;
   price: number;
-  imageUrl?: string;
-  paymentQrUrl?: string;
+  imageUrl?: string;  paymentQrUrl?: string;
   duration: number;
   level: number;
   tags: string[] | null;
+  status?: number; // 0: Draft, 1: Pending, 2: Approved, 3: Rejected
   createdAt: string;
   updatedAt: string | null;
   createdBy: string;
@@ -304,6 +304,16 @@ export const courseApiSlice = apiSlice.injectEndpoints({
         { type: 'Courses' as const, id: `User-${userId}` },
         { type: 'Courses' as const, id: `Course-${courseId}` },
       ],
+    }),    updateCourseStatus: builder.mutation<Course, { courseId: string; status: number }>({
+      query: ({ courseId, status }) => ({
+        url: `/api/courses/${courseId}/status`,
+        method: 'PATCH',
+        body: { status }
+      }),
+      invalidatesTags: (result, error, { courseId }) => [
+        { type: 'Courses' as const, id: courseId },
+        { type: 'Courses' as const, id: 'LIST' },
+      ],
     }),
 
   }),
@@ -319,9 +329,9 @@ export const {
     useDeleteCourseByIdMutation,
     useGetAllCourseByCategoryQuery,
     useGetAllCourseByInstructorQuery,
-    useGetAllLessonsByChapterIdQuery,
-    useGetEnrollmentsByUserIdQuery,
+    useGetAllLessonsByChapterIdQuery,    useGetEnrollmentsByUserIdQuery,
     useEnrollCourseMutation,
     useUnenrollCourseMutation,
     useGetEnrollmentsByCourseIdQuery,
+    useUpdateCourseStatusMutation,
 } = courseApiSlice;

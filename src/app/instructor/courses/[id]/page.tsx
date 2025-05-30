@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, Tabs, Button, List, Typography, Space, Modal, message, Spin, Table } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, FileTextOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, FileTextOutlined, SendOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
-import { useGetCourseByIdQuery, useGetEnrollmentsByCourseIdQuery } from '@/services/course.service';
+import { useGetCourseByIdQuery, useGetEnrollmentsByCourseIdQuery, useUpdateCourseStatusMutation } from '@/services/course.service';
 import { useGetChaptersByCourseIdQuery } from '@/services/chapter.service';
 import { useAuth } from '@/store/hooks';
 
@@ -42,6 +42,8 @@ export default function CourseDetailPage({ params }: CourseDetailProps) {
     page: currentPage,
     pageSize: pageSize
   });
+    // Submit course for approval mutation
+  const [updateCourseStatus, { isLoading: isSubmitting }] = useUpdateCourseStatusMutation();
   
   const enrollments = enrollmentsResponse?.data?.result || [];
   const enrollmentMeta = enrollmentsResponse?.data?.meta || {
@@ -121,6 +123,16 @@ export default function CourseDetailPage({ params }: CourseDetailProps) {
     }
   };
   
+  const getStatusText = (status?: number) => {
+    switch (status) {
+      case 0: return { text: 'Bản nháp', color: 'gray' };
+      case 1: return { text: 'Đang chờ duyệt', color: 'orange' };
+      case 2: return { text: 'Đã duyệt', color: 'green' };
+      case 3: return { text: 'Từ chối', color: 'red' };
+      default: return { text: 'Bản nháp', color: 'gray' };
+    }
+  };
+  
   const handleAddChapter = () => {
     router.push(`/instructor/courses/${courseId}/add-chapter`);
   };
@@ -146,6 +158,23 @@ export default function CourseDetailPage({ params }: CourseDetailProps) {
   const handleManageLessons = (chapterId: string) => {
     router.push(`/instructor/chapters/${chapterId}`);
   };
+    const handleSubmitForApproval = () => {
+    Modal.confirm({
+      title: 'Xác nhận gửi khóa học',
+      content: 'Khóa học sẽ được gửi đi để xét duyệt. Bạn có chắc chắn muốn tiếp tục?',
+      okText: 'Gửi',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          await updateCourseStatus({ courseId, status: 1 }).unwrap();
+          message.success('Đã gửi khóa học để xét duyệt');
+        } catch (error) {
+          message.error('Có lỗi xảy ra khi gửi khóa học');
+          console.error(error);
+        }
+      }
+    });
+  };
   
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -153,20 +182,48 @@ export default function CourseDetailPage({ params }: CourseDetailProps) {
         <div className="flex justify-between items-center mb-6">
           <Button onClick={() => router.push(`/instructor`)} className="mb-4">
             ← Quay lại
-          </Button>
-          <Button 
-            type="primary" 
-            onClick={() => router.push(`/instructor/courses/${courseId}/edit`)}
-          >
-            Chỉnh sửa khóa học
-          </Button>
+          </Button>          <div className="space-x-2">
+            {course.status !== 1 && (
+              <Button 
+                type="primary"
+                icon={<SendOutlined />}
+                onClick={handleSubmitForApproval}
+                loading={isSubmitting}
+                disabled={course.status === 1}
+              >
+                Gửi để duyệt
+              </Button>
+            )}
+            {course.status === 1 && (
+              <Button 
+                type="default"
+                icon={<SendOutlined />}
+                disabled={true}
+              >
+                Đang chờ duyệt
+              </Button>
+            )}
+            <Button 
+              type="primary" 
+              onClick={() => router.push(`/instructor/courses/${courseId}/edit`)}
+            >
+              Chỉnh sửa khóa học
+            </Button>
+          </div>
         </div>
         
-        <Card>
-          <Title level={2}>{course.title}</Title>
+        <Card>          <Title level={2}>{course.title}</Title>
           <div className="flex justify-between mb-4">
-            <Text type="secondary">Danh mục: {course.categoryName || 'Chưa phân loại'}</Text>
-            <Text type="secondary">Cấp độ: {getLevelText(course.level)}</Text>
+            <div>
+              <Text type="secondary">Danh mục: {course.categoryName || 'Chưa phân loại'}</Text>
+              <br />
+              <Text type="secondary">Cấp độ: {getLevelText(course.level)}</Text>
+            </div>
+            <div>
+              <Text style={{ color: getStatusText(course.status).color }}>
+                Trạng thái: {getStatusText(course.status).text}
+              </Text>
+            </div>
           </div>
           <Paragraph>{course.description}</Paragraph>
           

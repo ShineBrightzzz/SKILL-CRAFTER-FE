@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Card, Typography } from 'antd';
+import { Card, Typography, Tag } from 'antd';
 import { useRouter } from 'next/navigation';
 
 const { Title, Text } = Typography;
@@ -14,6 +14,7 @@ interface CourseCardProps {
     imageUrl?: string;
     price: number;
     level: number;
+    status?: number; // 0: Draft, 1: Pending, 2: Approved, 3: Rejected
     categoryName?: string;
     duration?: number;
   };
@@ -25,13 +26,20 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
   const handleClick = () => {
     router.push(`/instructor/courses/${course.id}`);
   };
-
   const getLevelText = (level: number) => {
     switch (level) {
       case 1: return 'Cơ bản';
       case 2: return 'Trung cấp';
       case 3: return 'Nâng cao';
       default: return 'Không xác định';
+    }
+  };  const getStatusInfo = (status?: number) => {
+    switch (status) {
+      case 0: return { text: 'Nháp', color: 'default' }; // Gray
+      case 1: return { text: 'Chờ xét duyệt', color: 'warning' }; // Yellow
+      case 2: return { text: 'Đã phê duyệt', color: 'success' }; // Green
+      case 3: return { text: 'Bị từ chối', color: 'error' }; // Red
+      default: return { text: 'Nháp', color: 'default' }; // Default to Draft
     }
   };
 
@@ -53,8 +61,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
         </div>
       }
       onClick={handleClick}
-    >
-      <div className="flex-1">
+    >      <div className="flex-1">
         <Title level={4} className="mb-2 line-clamp-2" style={{ height: '48px' }}>
           {course.title}
         </Title>
@@ -65,6 +72,10 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
           <Text type="secondary">
             {getLevelText(course.level)}
           </Text>
+        </div>        <div className="mt-2">
+          <Tag color={getStatusInfo(course.status).color}>
+            {getStatusInfo(course.status).text}
+          </Tag>
         </div>
         <div className="mt-4 text-right">
           <Text strong>
