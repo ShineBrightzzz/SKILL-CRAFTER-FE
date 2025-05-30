@@ -190,8 +190,7 @@ export const lessonApiSlice = apiSlice.injectEndpoints({
         { type: 'Lessons' as const, id: `Lesson-Progress-${lessonId}` },
       ],
     }),
-    
-    completeLesson: builder.mutation<LessonProgress, { userId: string, lessonId: string }>({
+      completeLesson: builder.mutation<LessonProgress, { userId: string, lessonId: string }>({
       query: ({ userId, lessonId }) => ({
         url: `/api/progress/mark-complete`,
         method: 'POST',
@@ -202,6 +201,19 @@ export const lessonApiSlice = apiSlice.injectEndpoints({
         { type: 'Lessons' as const, id: `Lesson-Progress-${lessonId}` },
       ],
     }),
+
+    updateLessonStatus: builder.mutation<Lesson, { id: string, status: number }>({
+      query: ({ id, status }) => ({
+        url: `/api/lessons/${id}/status`,
+        method: 'PATCH',
+        body: { status },
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Lessons' as const, id },
+        { type: 'Lessons' as const, id: 'LIST' },
+      ],
+    }),
+
   }),
   overrideExisting: true,
 });
@@ -217,4 +229,5 @@ export const {
   useGetLessonProgressByLessonIdQuery,
   useStartLessonMutation,
   useCompleteLessonMutation,
+  useUpdateLessonStatusMutation,
 } = lessonApiSlice;

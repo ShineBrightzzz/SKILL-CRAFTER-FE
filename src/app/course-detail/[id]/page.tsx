@@ -1,14 +1,19 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircleIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '@/store/hooks';
 import { useGetCourseByIdQuery, useEnrollCourseMutation, useGetEnrollmentsByUserIdQuery } from '@/services/course.service';
 import { useGetChaptersByCourseIdQuery } from '@/services/chapter.service';
+import { useGetLessonProgressByUserIdQuery, useGetLessonByIdQuery, useUpdateLessonStatusMutation } from '@/services/lesson.service';
 import Image from 'next/image';
 import { toast } from 'react-toastify';
 import { skipToken } from '@reduxjs/toolkit/query/react';
+import VideoPlayer from '@/components/VideoPlayer';
+import MarkdownCode from '@/components/MarkdownCode';
+import Quiz from '@/components/Quiz';
+import CodeEditor from '@/components/CodeEditor';
 
 interface PageProps {
   params: {
@@ -35,11 +40,25 @@ export default function CourseDetailPage({ params }: PageProps) {
   const { user: currentUser } = useAuth();
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
   const [isLocalEnrolled, setIsLocalEnrolled] = useState(false);
+  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
+  const [updateLessonStatus, { isLoading: isUpdatingStatus }] = useUpdateLessonStatusMutation();
 
   // Fetch course details
   const { data: courseData, isLoading: courseLoading } = useGetCourseByIdQuery(params.id);
   const course = courseData?.data;
-
+  
+  // Fetch selected lesson details
+  const { data: lessonData, isLoading: lessonLoading } = useGetLessonByIdQuery(
+    selectedLessonId || skipToken
+  );
+  
+  // Log lesson data when it changes
+  useEffect(() => {
+    if (lessonData) {
+      console.log("Lesson data updated:", lessonData);
+    }
+  }, [lessonData]);
+  
   // Check enrollment
   const { data: enrollmentsData, isLoading: enrollmentsLoading } = useGetEnrollmentsByUserIdQuery(
     currentUser?.id ? { userId: currentUser.id } : skipToken
@@ -58,12 +77,68 @@ export default function CourseDetailPage({ params }: PageProps) {
   const { data: chaptersResponse, isLoading: chaptersLoading } = useGetChaptersByCourseIdQuery({
     courseId: params.id
   });
-
+  
+  // Keep track of chapters and their lessons
   const chapters = useMemo(() => {
     const result = chaptersResponse?.data?.result || [];
     // Sort chapters by order if available
     return result;
   }, [chaptersResponse]);
+  
+  // Keep track of lessons for each chapter
+  const [chaptersWithLessons, setChaptersWithLessons] = useState<any[]>([]);
+  
+  // Fetch user's lesson progress
+  const { data: progressData } = useGetLessonProgressByUserIdQuery(
+    currentUser?.id ? currentUser.id : skipToken
+  );
+  
+  // Fetch lessons for expanded chapters
+  useEffect(() => {
+    const fetchLessonsForExpandedChapters = async () => {
+      const updatedChapters = [...chapters];
+      
+      // For each expanded chapter, fetch its lessons if not already loaded
+      for (const chapter of updatedChapters) {
+        if (expandedChapters.has(chapter.id) && !chapter.lessons) {
+          try {
+            // Fetch lessons for this chapter
+            const response = await fetch(`/api/chapters/${chapter.id}/lessons`);
+            const data = await response.json();
+            
+            if (data.data && data.data.result) {
+              // Enhance lessons with completion status if user is logged in
+              let lessons = data.data.result;
+              
+              if (progressData?.data?.result) {
+                const progressMap = new Map(
+                  progressData.data.result.map((progress: any) => [progress.lessonId, progress])
+                );
+                
+                lessons = lessons.map((lesson: any) => ({
+                  ...lesson,
+                  isCompleted: progressMap.has(lesson.id) && progressMap.get(lesson.id).completed
+                }));
+              }
+              
+              // Add lessons to the chapter
+              chapter.lessons = lessons;
+            }
+          } catch (error) {
+            console.error(`Error fetching lessons for chapter ${chapter.id}:`, error);
+          }
+        }
+      }
+      
+      setChaptersWithLessons(updatedChapters);
+    };
+    
+    if (chapters.length > 0 && expandedChapters.size > 0) {
+      fetchLessonsForExpandedChapters();
+    } else {
+      setChaptersWithLessons(chapters);
+    }
+  }, [chapters, expandedChapters, progressData]);
 
   // Course enrollment mutation
   const [enrollCourse, { isLoading: isEnrolling }] = useEnrollCourseMutation();
@@ -72,7 +147,8 @@ export default function CourseDetailPage({ params }: PageProps) {
   const handleEnrollment = async () => {
     if (!currentUser || !course) return;
     
-    try {      const result = await enrollCourse({ 
+    try {
+      const result = await enrollCourse({ 
         courseId: params.id, 
         userId: currentUser.id 
       }).unwrap();
@@ -105,6 +181,334 @@ export default function CourseDetailPage({ params }: PageProps) {
   const handleStartCourse = () => {
     // If enrolled, navigate to learning page
     router.push(`/learning/${params.id}`);
+  };
+  // Helper function to get lesson type description
+  const getLessonTypeText = (type: number) => {
+    switch (type) {
+      case 1:
+        return 'Bài đọc';
+      case 2:
+        return 'Video';
+      case 3:
+        return 'Bài tập lập trình';
+      case 4:
+        return 'Quiz';
+      default:
+        return `Không xác định (${type})`;
+    }
+  };
+  
+  // Helper function to get lesson status description
+  const getLessonStatusText = (status: number) => {
+    switch (status) {
+      case 0:
+        return 'Bản nháp';
+      case 1:
+        return 'Chờ phê duyệt';
+      case 2:
+        return 'Đã phê duyệt';
+      case 3:
+        return 'Đã từ chối';
+      default:
+        return `Không xác định (${status})`;
+    }
+  };
+  
+  // Helper function to get lesson status color class
+  const getLessonStatusColorClass = (status: number) => {
+    switch (status) {
+      case 0:
+        return 'text-gray-500 bg-gray-100';
+      case 1:
+        return 'text-yellow-700 bg-yellow-100';
+      case 2:
+        return 'text-green-700 bg-green-100';
+      case 3:
+        return 'text-red-700 bg-red-100';
+      default:
+        return 'text-gray-700 bg-gray-100';
+    }
+  };
+  // Handle lesson selection
+  const handleLessonClick = (lessonId: string) => {
+    console.log("Lesson clicked:", lessonId);
+    
+    // Fetch lesson data directly for debugging
+    fetch(`/api/lessons/${lessonId}`)
+      .then(response => response.json())
+      .then(data => {
+        console.log("Lesson data from direct fetch:", data);
+        console.log("Lesson type:", data.data?.type, typeof data.data?.type);
+        console.log("Lesson initialCode exists:", !!data.data?.initialCode);
+        console.log("Lesson language:", data.data?.language);
+        
+        // Now set the selected lesson ID to trigger the official data fetch
+        setSelectedLessonId(lessonId);
+      })
+      .catch(error => {
+        console.error("Error fetching lesson directly:", error);
+        setSelectedLessonId(lessonId);
+      });
+  };
+
+  // Handle approving a lesson
+  const handleApproveLesson = async () => {
+    if (!selectedLessonId) return;
+    
+    try {
+      await updateLessonStatus({
+        id: selectedLessonId,
+        status: 2 // Approved
+      }).unwrap();
+      
+      toast.success('Bài học đã được phê duyệt');
+      
+      // Reload lesson data
+      setSelectedLessonId(null);
+      setTimeout(() => setSelectedLessonId(selectedLessonId), 100);
+    } catch (error) {
+      console.error("Error approving lesson:", error);
+      toast.error('Có lỗi xảy ra khi phê duyệt bài học');
+    }
+  };
+  
+  // Handle rejecting a lesson
+  const handleRejectLesson = async () => {
+    if (!selectedLessonId) return;
+    
+    try {
+      await updateLessonStatus({
+        id: selectedLessonId,
+        status: 3 // Rejected
+      }).unwrap();
+      
+      toast.success('Bài học đã bị từ chối');
+      
+      // Reload lesson data
+      setSelectedLessonId(null);
+      setTimeout(() => setSelectedLessonId(selectedLessonId), 100);
+    } catch (error) {
+      console.error("Error rejecting lesson:", error);
+      toast.error('Có lỗi xảy ra khi từ chối bài học');
+    }
+  };
+  // A utility function to normalize lesson data regardless of its structure
+  const normalizeLessonData = (rawData: any) => {
+    if (!rawData) return null;
+    
+    // Extract the lesson object, handling both direct data and nested structures
+    let lesson = rawData;
+    if ('data' in rawData) {
+      lesson = rawData.data;
+    }
+    
+    // Ensure we have a valid lesson object
+    if (!lesson || typeof lesson !== 'object') {
+      console.error("Invalid lesson data structure:", rawData);
+      return null;
+    }
+    
+    // Convert type to a number if it's a string
+    const type = typeof lesson.type === 'string' ? parseInt(lesson.type, 10) : Number(lesson.type);
+    
+    // Create a normalized lesson object with all possible properties
+    const normalizedLesson: any = {
+      id: lesson.id,
+      title: lesson.title || 'Untitled Lesson',
+      type: isNaN(type) ? 0 : type, // Default to 0 if parsing fails
+      content: lesson.content || null,
+      videoUrl: lesson.videoUrl || null,
+      duration: lesson.duration || null,
+      order: lesson.order || 0,
+      initialCode: lesson.initialCode || null,
+      language: lesson.language || 'javascript',
+      quizData: null,
+      chapterId: lesson.chapterId || null,
+      isCompleted: !!lesson.isCompleted,
+      status: typeof lesson.status === 'string' ? parseInt(lesson.status, 10) : Number(lesson.status || 0),
+      // Add any other properties that might be needed
+    };
+    
+    // Process quizData based on its format
+    if (lesson.quizData) {
+      try {
+        normalizedLesson.quizData = typeof lesson.quizData === 'string' 
+          ? JSON.parse(lesson.quizData) 
+          : lesson.quizData;
+      } catch (e) {
+        console.error("Error parsing quizData:", e);
+        normalizedLesson.quizData = { questions: [] };
+      }
+    }
+    
+    // Add default content for specific lesson types
+    if (normalizedLesson.type === 1 && !normalizedLesson.content) {
+      normalizedLesson.content = '_Nội dung bài học chưa được cung cấp_';
+    }
+    
+    if (normalizedLesson.type === 3 && !normalizedLesson.initialCode) {
+      normalizedLesson.initialCode = '// Mã code mẫu chưa được cung cấp\n// Bạn có thể bắt đầu viết code ở đây';
+    }
+    
+    console.log("Normalized lesson:", normalizedLesson);
+    return normalizedLesson;
+  };
+
+  // Render lesson content based on type
+  const renderLessonContent = () => {
+    if (lessonLoading) {
+      return (
+        <div className="flex justify-center items-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-900"></div>
+        </div>
+      );
+    }
+
+    if (!lessonData) {
+      return (
+        <div className="p-6 text-center">
+          <p className="text-gray-500">Chọn một bài học từ sidebar để xem nội dung</p>
+        </div>
+      );
+    }
+    
+    console.log("Lesson data received:", lessonData);
+    
+    // Process the lesson data to ensure it has all required properties
+    const normalizedLesson = normalizeLessonData(lessonData);
+    
+    if (!normalizedLesson) {
+      return (
+        <div className="p-6 text-center">
+          <p className="text-red-500">Không thể xử lý dữ liệu bài học. Vui lòng thử lại.</p>
+        </div>
+      );
+    }
+    
+    // Use the normalized lesson type for the switch statement
+    const lessonType = normalizedLesson.type;
+    
+    console.log("Final lesson type for rendering:", lessonType);
+
+    switch (lessonType) {
+      case 1: // Reading content
+        return (
+          <div className="prose max-w-none">
+            <h2 className="text-xl font-bold mb-4">{normalizedLesson.title}</h2>
+            <MarkdownCode content={normalizedLesson.content || ''} />
+          </div>
+        );
+      case 2: // Video
+        return (
+          <div>
+            <h2 className="text-xl font-bold mb-4">{normalizedLesson.title}</h2>
+            {normalizedLesson.videoUrl ? (
+              <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                <VideoPlayer src={normalizedLesson.videoUrl} />
+              </div>
+            ) : (
+              <p className="text-red-500">Video không khả dụng</p>
+            )}
+          </div>
+        );
+      case 3: // Programming exercise
+        return (
+          <div>
+            <h2 className="text-xl font-bold mb-4">{normalizedLesson.title}</h2>
+            <CodeEditor
+              initialCode={normalizedLesson.initialCode || '// Mã code mẫu chưa được cung cấp'}
+              language={normalizedLesson.language || 'javascript'}
+              useReduxStore={false}
+            />
+          </div>
+        );
+      case 4: // Quiz
+        return (
+          <div>
+            <h2 className="text-xl font-bold mb-4">{normalizedLesson.title}</h2>
+            {normalizedLesson.quizData ? (
+              <Quiz 
+                data={normalizedLesson.quizData} 
+                onComplete={() => {}} 
+              />
+            ) : (
+              <p className="text-red-500">Dữ liệu quiz không khả dụng</p>
+            )}
+          </div>
+        );
+      default:
+        return (
+          <div>
+            <p className="text-red-500 mb-4">Loại bài học không được hỗ trợ (Type: {normalizedLesson.type})</p>
+            <div className="bg-gray-100 p-4 rounded-md">
+              <h3 className="text-lg font-medium mb-2">Thông tin gỡ lỗi:</h3>
+              <div className="flex space-x-2 mb-3">
+                <button
+                  onClick={() => {
+                    // Try reloading the lesson
+                    if (selectedLessonId) {
+                      fetch(`/api/lessons/${selectedLessonId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                          console.log("Reloaded lesson data:", data);
+                          // Force a refresh by temporarily unsetting and resetting the ID
+                          setSelectedLessonId(null);
+                          setTimeout(() => setSelectedLessonId(selectedLessonId), 100);
+                        })
+                        .catch(error => {
+                          console.error("Error reloading lesson:", error);
+                        });
+                    }
+                  }}
+                  className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-md text-sm hover:bg-yellow-200"
+                >
+                  Tải lại dữ liệu
+                </button>
+                <button
+                  onClick={() => {
+                    // Log detailed info for debugging
+                    console.log("Detailed lesson data:", normalizedLesson);
+                    alert("Thông tin chi tiết đã được ghi vào console để gỡ lỗi");
+                  }}
+                  className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm hover:bg-blue-200"
+                >
+                  Xem chi tiết
+                </button>
+              </div>              <div className="mb-2">
+                <p className="text-sm mb-1 font-medium">Mapping type theo tài liệu:</p>
+                <ul className="text-xs list-disc list-inside">
+                  <li>Type 1: Bài đọc</li>
+                  <li>Type 2: Video</li>
+                  <li>Type 3: Bài tập lập trình</li>
+                  <li>Type 4: Quiz</li>
+                </ul>
+              </div>
+              <div className="mb-2">
+                <p className="text-sm mb-1 font-medium">Trạng thái bài học:</p>
+                <ul className="text-xs list-disc list-inside">
+                  <li>Status 0: Bản nháp</li>
+                  <li>Status 1: Chờ phê duyệt</li>
+                  <li>Status 2: Đã phê duyệt</li>
+                  <li>Status 3: Đã từ chối</li>
+                </ul>
+              </div><pre className="text-xs bg-gray-800 text-white p-3 rounded-md overflow-auto">
+                {JSON.stringify({
+                  id: normalizedLesson.id,
+                  title: normalizedLesson.title,
+                  type: normalizedLesson.type,
+                  status: normalizedLesson.status,
+                  statusText: getLessonStatusText(normalizedLesson.status),
+                  initialCode: normalizedLesson.initialCode ? "Có dữ liệu" : null,
+                  language: normalizedLesson.language,
+                  content: normalizedLesson.content ? (normalizedLesson.content.length > 50 ? normalizedLesson.content.substring(0, 50) + "..." : normalizedLesson.content) : null,
+                  videoUrl: normalizedLesson.videoUrl,
+                  quizData: normalizedLesson.quizData ? "Có dữ liệu" : null
+                }, null, 2)}
+              </pre>
+            </div>
+          </div>
+        );
+    }
   };
 
   if (courseLoading) {
@@ -145,130 +549,218 @@ export default function CourseDetailPage({ params }: PageProps) {
           <div className="w-full h-full bg-gradient-to-r from-blue-900 to-blue-600" />
         )}
         <div className="absolute inset-0 bg-black bg-opacity-50" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <h1 className="text-4xl font-bold text-white text-center px-4">{course.title}</h1>
+        </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Course information */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">{course.title}</h1>
-              
-              <div className="flex flex-wrap gap-4 mb-6">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                  {getLevelText(course.level)}
-                </span>
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
-                  {course.duration} giờ học
-                </span>
-                {course.tags?.map((tag, index) => (
-                  <span 
-                    key={index}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
-                  >
-                    {tag}
-                  </span>
-                ))}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
+            {/* Sidebar with course content */}
+            <div className="md:col-span-1 border-r border-gray-200">
+              <div className="p-4 bg-gray-50 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900">Nội dung khóa học</h2>
+                <p className="text-sm text-gray-500 mt-1">{chapters.length} chương • {course.duration} giờ học</p>
               </div>
-
-              <div className="prose max-w-none">
-                <h3 className="text-xl font-semibold mb-3">Mô tả khóa học</h3>
-                <p className="text-gray-600 whitespace-pre-line">{course.description}</p>
-              </div>
-            </div>
-
-            {/* Chapters and lessons */}
-            <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-xl font-semibold mb-4">Nội dung khóa học</h3>
               
-              {chaptersLoading ? (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-900 mx-auto"></div>
-                  <p className="mt-2 text-gray-600">Đang tải nội dung...</p>
-                </div>
-              ) : chapters.length > 0 ? (
-                <div className="space-y-4">
-                  {chapters.map((chapter) => (
-                    <div key={chapter.id} className="border rounded-lg overflow-hidden">
-                      <button
-                        onClick={() => handleChapterClick(chapter.id)}
-                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex items-center space-x-3">
-                          {expandedChapters.has(chapter.id) ? (
-                            <ChevronDownIcon className="h-5 w-5 text-gray-500" />
-                          ) : (
-                            <ChevronRightIcon className="h-5 w-5 text-gray-500" />
-                          )}                          <div className="flex flex-col text-left">
-                            <span className="font-medium text-gray-900">{chapter.name}</span>
-                            <span className="text-sm text-gray-500">
-                              {chapter.estimatedTime} phút
-                            </span>
+              <div className="overflow-y-auto max-h-[calc(100vh-400px)]">
+                {chaptersLoading ? (
+                  <div className="flex justify-center items-center p-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-900"></div>
+                  </div>
+                ) : chaptersWithLessons.length > 0 ? (
+                  <div className="divide-y divide-gray-200">
+                    {chaptersWithLessons.map((chapter) => (
+                      <div key={chapter.id} className="cursor-pointer">
+                        <div 
+                          onClick={() => handleChapterClick(chapter.id)}
+                          className={`p-4 hover:bg-gray-50 transition-colors ${expandedChapters.has(chapter.id) ? 'bg-blue-50' : ''}`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              {expandedChapters.has(chapter.id) ? (
+                                <ChevronDownIcon className="h-5 w-5 text-blue-600" />
+                              ) : (
+                                <ChevronRightIcon className="h-5 w-5 text-gray-600" />
+                              )}
+                              <span className="font-medium text-gray-900">{chapter.name}</span>
+                            </div>
+                            <span className="text-xs text-gray-500">{chapter.estimatedTime || 0} phút</span>
                           </div>
                         </div>
+                        
+                        {/* Lesson list when chapter is expanded */}
+                        {expandedChapters.has(chapter.id) && (
+                          <div className="bg-gray-50 pl-10 pr-4">
+                            {chapter.lessons && chapter.lessons.length > 0 ? (
+                              <ul className="py-2 space-y-1">
+                                {chapter.lessons.map((lesson: any) => (
+                                  <li 
+                                    key={lesson.id} 
+                                    className={`py-2 px-3 rounded-md hover:bg-gray-100 transition-colors flex items-center justify-between cursor-pointer
+                                      ${selectedLessonId === lesson.id ? 'bg-blue-100' : ''}`}
+                                    onClick={() => handleLessonClick(lesson.id)}
+                                  >
+                                    <div className="flex items-center space-x-3">
+                                      <div className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0
+                                        ${lesson.isCompleted ? 'bg-green-100' : 'bg-gray-100'}`}>
+                                        {lesson.isCompleted ? (
+                                          <CheckCircleIcon className="h-4 w-4 text-green-600" />
+                                        ) : (
+                                          <span className="h-2 w-2 rounded-full bg-gray-300"></span>
+                                        )}
+                                      </div>
+                                      <span className="text-sm">{lesson.title}</span>
+                                    </div>                                    
+                                    <div className="text-xs text-gray-500">
+                                      {getLessonTypeText(parseInt(String(lesson.type)))}
+                                    </div>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <div className="py-2 px-4 text-center text-sm text-gray-500">
+                                Chưa có bài học
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-gray-500">
+                    Chưa có nội dung cho khóa học này
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Main content area */}
+            <div className="md:col-span-2 lg:col-span-3 p-6">
+              {selectedLessonId ? (
+                /* Lesson content display */                <div className="p-4 bg-white rounded-lg shadow">                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Chi tiết bài học</h3>                    
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={handleApproveLesson}
+                        disabled={isUpdatingStatus}
+                        className="px-3 py-1 bg-green-100 text-green-700 rounded-md text-sm hover:bg-green-200 disabled:opacity-50"
+                      >
+                        Phê duyệt
+                      </button>
+                      <button
+                        onClick={handleRejectLesson}
+                        disabled={isUpdatingStatus}
+                        className="px-3 py-1 bg-red-100 text-red-700 rounded-md text-sm hover:bg-red-200 disabled:opacity-50"
+                      >
+                        Từ chối
                       </button>
                     </div>
-                  ))}
+                  </div>
+                  {lessonData && (
+                    <div className="mb-4">
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
+                          {getLessonTypeText(normalizeLessonData(lessonData)?.type)}
+                        </span>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${getLessonStatusColorClass(normalizeLessonData(lessonData)?.status)}`}>
+                          Trạng thái: {getLessonStatusText(normalizeLessonData(lessonData)?.status)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  {renderLessonContent()}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-4">Chưa có nội dung</p>
-              )}
-            </div>
-          </div>
+                /* Course overview when no lesson is selected */
+                <div className="space-y-6">
+                  {/* Course overview section */}
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Tổng quan khóa học</h2>
+                    
+                    <div className="flex flex-wrap gap-4 mb-6">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                        {getLevelText(course.level)}
+                      </span>
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                        {course.duration} giờ học
+                      </span>
+                      {course.tags?.map((tag, index) => (
+                        <span 
+                          key={index}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
 
-          {/* Enrollment card */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-4">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-gray-900 mb-4">
-                  {course.price === 0 ? 'Miễn phí' : `${course.price.toLocaleString('vi-VN')} đ`}
+                    <div className="prose max-w-none">
+                      <p className="text-gray-600 whitespace-pre-line">{course.description}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Course enrollment card */}
+                  <div className="bg-blue-50 rounded-lg p-6 mt-8">
+                    <div className="flex flex-col md:flex-row justify-between items-center">
+                      <div>
+                        <h3 className="text-xl font-semibold text-gray-900">
+                          {course.price === 0 ? 'Khóa học miễn phí' : `Giá: ${course.price.toLocaleString('vi-VN')} đ`}
+                        </h3>
+                        <p className="text-gray-600 mt-1">
+                          {effectivelyEnrolled 
+                            ? 'Bạn đã đăng ký khóa học này' 
+                            : 'Đăng ký để học ngay hôm nay'}
+                        </p>
+                      </div>
+                      
+                      <div className="mt-4 md:mt-0">
+                        {effectivelyEnrolled ? (
+                          <button
+                            onClick={handleStartCourse}
+                            className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                          >
+                            Vào học ngay
+                          </button>
+                        ) : (
+                          <button
+                            onClick={handleEnrollment}
+                            disabled={isEnrolling || !currentUser}
+                            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {isEnrolling ? 'Đang xử lý...' : 'Đăng ký khóa học'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* What you'll learn section */}
+                  <div className="mt-8">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">Bạn sẽ học được gì</h3>
+                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <li className="flex items-start">
+                        <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                        <span>Kiến thức cơ bản và nâng cao về chủ đề của khóa học</span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                        <span>Kỹ năng thực hành thông qua các bài tập và quiz</span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                        <span>Áp dụng kiến thức vào các dự án thực tế</span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                        <span>Giấy chứng nhận hoàn thành khóa học</span>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
-
-                {effectivelyEnrolled ? (
-                  <button
-                    onClick={handleStartCourse}
-                    className="w-full py-3 px-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
-                  >
-                    Vào học ngay
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleEnrollment}
-                    disabled={isEnrolling || !currentUser}
-                    className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {isEnrolling ? 'Đang xử lý...' : 'Đăng ký khóa học'}
-                  </button>
-                )}
-
-                {!currentUser && (
-                  <p className="mt-2 text-sm text-gray-500">
-                    Vui lòng đăng nhập để đăng ký khóa học
-                  </p>
-                )}
-              </div>
-
-              <div className="mt-6">
-                <h4 className="font-medium text-gray-900 mb-3">Khóa học bao gồm:</h4>
-                <ul className="space-y-3">
-                  <li className="flex items-center text-sm text-gray-600">
-                    <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2" />
-                    {chapters.length} chương học
-                  </li>
-                  <li className="flex items-center text-sm text-gray-600">
-                    <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2" />
-                    {course.duration} giờ học
-                  </li>
-                  <li className="flex items-center text-sm text-gray-600">
-                    <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2" />
-                    Truy cập không giới hạn
-                  </li>
-                  <li className="flex items-center text-sm text-gray-600">
-                    <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2" />
-                    Giấy chứng nhận hoàn thành
-                  </li>
-                </ul>
-              </div>
+              )}
             </div>
           </div>
         </div>

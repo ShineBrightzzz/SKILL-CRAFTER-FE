@@ -91,8 +91,7 @@ const CoursesManagement = () => {
         }
       },
     });
-  };
-  const columns = [
+  };  const columns = [
     {
       title: 'ID',
       dataIndex: 'id',
@@ -111,6 +110,31 @@ const CoursesManagement = () => {
       key: 'description',
       ellipsis: true,
     },
+    {
+      title: 'Thao tác',
+      key: 'actions',
+      render: (_, record) => (
+        <Space size="middle">
+          <Button 
+            type="primary" 
+            onClick={() => window.location.href = `/course-detail/${record.id}`}
+          >
+            Xem chi tiết
+          </Button>
+          <Button 
+            type="default" 
+            icon={<EditOutlined />} 
+            onClick={() => showModal(record)}
+          />
+          <Button 
+            type="default" 
+            danger 
+            icon={<DeleteOutlined />} 
+            onClick={() => handleDelete(record.id)}
+          />
+        </Space>
+      ),
+    },
   ];
 
   // Handle page change
@@ -118,10 +142,16 @@ const CoursesManagement = () => {
     setCurrentPage(page);
     if (pageSize) setPageSize(pageSize);
   };
-  return (
-    <div className="p-6">
+  return (    <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Quản lý khóa học</h1>
+        <Button 
+          type="primary" 
+          icon={<PlusOutlined />} 
+          onClick={() => showModal()}
+        >
+          Tạo khóa học mới
+        </Button>
       </div>
       
       <Table 
