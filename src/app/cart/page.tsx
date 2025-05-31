@@ -76,16 +76,9 @@ export default function CartPage() {
       console.error('Failed to remove from cart:', error);
       toast.error('Có lỗi xảy ra khi xóa khóa học khỏi giỏ hàng');
     }
-  };
-
-  // Create checkout URL with selected course IDs
-  const getCheckoutUrl = () => {
-    const selectedCourseIds = cartItems
-      .filter(item => selectedItems.has(item.id))
-      .map(item => item.courseId)
-      .join(',');
-    
-    return selectedItems.size > 0 ? `/checkout?courses=${selectedCourseIds}` : '#';
+  };  // Create payment URL with total amount
+  const getPaymentUrl = () => {
+    return selectedItems.size > 0 ? `/payment?total=${totalPrice}` : '#';
   };
 
   if (!user) {
@@ -254,9 +247,8 @@ export default function CartPage() {
                     <span className="text-xl font-bold text-blue-700">{new Intl.NumberFormat('vi-VN').format(totalPrice)}đ</span>
                   </div>
                 </div>
-                <div className="mt-6">
-                  <Link
-                    href={getCheckoutUrl()}
+                <div className="mt-6">                  <Link
+                    href={getPaymentUrl()}
                     className={`w-full block text-center ${selectedItems.size > 0 ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'} text-white py-3 px-4 rounded-md font-medium transition`}
                     onClick={(e) => selectedItems.size === 0 && e.preventDefault()}
                   >

@@ -207,42 +207,43 @@ export default function Login() {
           </div>
           
           <div className="flex justify-center">
-            <GoogleLogin
-              onSuccess={async (credentialResponse) => {                
-                try {
-                  
-                  if (credentialResponse.credential) {
-                    // Send ID token directly to backend
-                    await googleAuth({
-                      idToken: credentialResponse.credential,
-                      // Note: email and name are already included in the JWT, backend will decode them
-                    }).unwrap();
+            <div className="custom-google-button">
+              <GoogleLogin
+                onSuccess={async (credentialResponse) => {                
+                  try {
                     
-                    // Reset failed attempts on successful login
-                    localStorage.removeItem('loginAttempts');
-                    setFailedAttempts(0);
-                    
-                    // Redirect to home page
-                    router.replace('/');
+                    if (credentialResponse.credential) {
+                      // Send ID token directly to backend
+                      await googleAuth({
+                        idToken: credentialResponse.credential,
+                        // Note: email and name are already included in the JWT, backend will decode them
+                      }).unwrap();
+                      
+                      // Reset failed attempts on successful login
+                      localStorage.removeItem('loginAttempts');
+                      setFailedAttempts(0);
+                      
+                      // Redirect to home page
+                      router.replace('/');
+                    }
+                  } catch (err) {
+                    console.error('Google login failed:', err);
+                    toast.error('Đăng nhập với Google thất bại');
                   }
-                } catch (err) {
-                  console.error('Google login failed:', err);
+                }}
+                onError={() => {
+                  console.error('Google login failed');
                   toast.error('Đăng nhập với Google thất bại');
-                }
-              }}
-              onError={() => {
-                console.error('Google login failed');
-                toast.error('Đăng nhập với Google thất bại');
-              }}
-              useOneTap
-              locale="vi"
-              text="signin_with"
-              theme="outline"
-              shape="rectangular"
-              logo_alignment="center"
-              width="240"              
-              className="custom-google-button"
-            />
+                }}
+                useOneTap
+                locale="vi"
+                text="signin_with"
+                theme="outline"
+                shape="rectangular"
+                logo_alignment="center"
+                width="240"
+              />
+            </div>
           </div>
           
           {error && (
