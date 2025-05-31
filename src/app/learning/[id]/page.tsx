@@ -20,7 +20,7 @@ import {
 } from '@/services/lesson.service';
 import { useGetChaptersByCourseIdQuery, useGetChapterByIdQuery } from '@/services/chapter.service';
 import { useGetCourseByIdQuery, useEnrollCourseMutation, useGetEnrollmentsByUserIdQuery } from '@/services/course.service';
-import { useAddToCartMutation } from '@/services/cart.service';
+import { useAddToCartMutation, useGetCartByUserIdQuery } from '@/services/cart.service';
 import { skipToken } from '@reduxjs/toolkit/query/react';
 import { Chapter } from '@/types/chapter';
 
@@ -173,10 +173,19 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   
   // Course enrollment mutation
   const [enrollCourse, { isLoading: isEnrolling }] = useEnrollCourseMutation();
+
+  // Get cart items
+  const { data: cartData } = useGetCartByUserIdQuery(currentUser?.id ?? skipToken);
   
   // Cart mutation
   const [addToCart, { isLoading: isAddingToCart }] = useAddToCartMutation();
-  
+
+  // Check if course is already in cart
+  const isInCart = useMemo(() => {
+    if (!cartData?.data || !params.id) return false;
+    return cartData.data.some((item) => item.courseId === params.id);
+  }, [cartData, params.id]);
+
   // Use RTK Query to fetch data  // Get course data
   const { data: courseData, isLoading: courseLoading } = useGetCourseByIdQuery(params.id);
   const course: Course | undefined = courseData?.data;
@@ -1090,23 +1099,34 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                         className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                       >
                         Mua ngay
-                      </button>
-                      <button
-                        onClick={handleAddToCart}
-                        disabled={isAddingToCart}
-                        className="w-full bg-white border border-blue-600 text-blue-600 py-3 px-6 rounded-lg hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex justify-center items-center"
-                      >
-                        {isAddingToCart ? (
-                          'Đang thêm vào giỏ...'
-                        ) : (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                            Thêm vào giỏ hàng
-                          </>
-                        )}
-                      </button>
+                      </button>                      {isInCart ? (
+                        <button 
+                          onClick={() => router.push('/cart')}
+                          className="w-full border py-3 px-6 rounded-lg bg-white border-blue-600 text-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex justify-center items-center"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          <span>Xem giỏ hàng</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleAddToCart}
+                          disabled={isAddingToCart}
+                          className="w-full border py-3 px-6 rounded-lg bg-white border-blue-600 text-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex justify-center items-center"
+                        >
+                          {isAddingToCart ? (
+                            'Đang thêm vào giỏ...'
+                          ) : (
+                            <>
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                              Thêm vào giỏ hàng
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <button
