@@ -1,76 +1,113 @@
 import apiSlice from './api';
-import type { ListResponse } from '@/types/api';
 
-// Define interfaces for payment service
-export interface PaymentCreateRequest {
-  courseIds: string[];
+// Define types
+interface Payment {
+  id: string;
+  vnpTxnRef: string;
+  vnpTransactionNo: string;
   amount: number;
-  locale: string;
-  returnUrl?: string;
+  vnpAmount: number;
+  status: string;
+  paymentMethod: string | null;
+  vnpBankCode: string;
+  vnpCardType: string;
+  vnpOrderInfo: string;
+  vnpPayDate: string;
+  refundAmount: number | null;
+  refundReason: string | null;
+  refundDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+  paid: boolean;
+  refunded: boolean;
 }
 
-export interface PaymentCreateResponseData {
-  paymentUrl: string;
-  txnRef: string;
-  message: string;
-  success: boolean;
+interface PaginationParams {
+  page?: number;
+  pageSize?: number;
+  searchText?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
-export interface PaymentCreateResponse {
+interface PaymentsResponse {
   success: boolean;
   message: string;
-  data: PaymentCreateResponseData;
+  data: {
+    result: Payment[];
+    meta: {
+      page: number;
+      pageSize: number;
+      pages: number;
+      total: number;
+    };
+  };
   timestamp: string;
 }
 
-export interface VNPayReturnParams {
+interface PaymentCreateRequest {
+  courseId: string;
+}
+
+interface PaymentCreateResponse {
+  success: boolean;
+  message: string;
+  data: {
+    paymentUrl: string;
+  };
+}
+
+interface PaymentQueryResponse {
+  success: boolean;
+  message: string;
+  data: Payment;
+}
+
+interface PaymentRefundRequest {
+  txnRef: string;
+  amount: number;
+  reason: string;
+}
+
+interface PaymentRefundResponse {
+  success: boolean;
+  message: string;
+  data: Payment;
+}
+
+interface VNPayReturnParams {
+  vnp_TxnRef: string;
   vnp_Amount: string;
-  vnp_BankCode: string;
-  vnp_BankTranNo: string;
-  vnp_CardType: string;
+  vnp_ResponseCode: string;
+  vnp_TransactionStatus: string;
   vnp_OrderInfo: string;
   vnp_PayDate: string;
-  vnp_ResponseCode: string;
-  vnp_TmnCode: string;
-  vnp_TransactionNo: string;
-  vnp_TransactionStatus: string;
-  vnp_TxnRef: string;
-  vnp_SecureHash: string;
+  [key: string]: string;
 }
-
-export interface PaymentQueryResponse {
-  success: boolean;
-  message?: string;
-  status?: string;
-}
-
-export interface PaymentRefundRequest {
-  txnRef: string;
-  amount: number;
-  transDate: string;
-}
-
-export interface PaymentRefundResponse {
-  success: boolean;
-  message?: string;
-  status?: string;
-  txnRef?: string;
-}
-
-export interface Payment {
-  id: string;
-  amount: number;
-  status: string;
-  createdAt: string;
-  courseId: string;
-  txnRef: string;
-}
-
-// Response type for multiple payments
-interface PaymentsResponse extends ListResponse<Payment> {}
 
 export const paymentApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    getAllPayments: builder.query<PaymentsResponse, PaginationParams | void>({
+      query: (params = {}) => {
+        if (!params) return '/api/v1/payments/all';
+
+        const queryParams = Object.entries(params)
+          .filter(([_, value]) => value !== undefined)
+          .map(([key, value]) => `${key}=${value}`)
+          .join('&');
+
+        return `/api/v1/payments/all${queryParams ? `?${queryParams}` : ''}`;
+      },
+      providesTags: (result) =>
+        result?.data?.result
+          ? [
+              ...result.data.result.map(({ id }) => ({ type: 'Payment' as const, id })),
+              { type: 'Payment' as const, id: 'LIST' },
+            ]
+          : [{ type: 'Payment' as const, id: 'LIST' }],
+    }),
+
     createPayment: builder.mutation<PaymentCreateResponse, PaymentCreateRequest>({
       query: (request) => ({
         url: '/api/v1/payments/create',
@@ -134,4 +171,5 @@ export const {
   useGetPaymentHistoryQuery,
   useCheckPaymentStatusQuery,
   useHandleVNPayReturnQuery,
+  useGetAllPaymentsQuery,
 } = paymentApiSlice;

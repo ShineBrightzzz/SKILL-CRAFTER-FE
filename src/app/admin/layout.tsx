@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Button, theme, Drawer, Dropdown, Avatar, Tooltip } from 'antd';
 import { 
   BookOutlined, 
-  ReadOutlined, 
   UserOutlined,
   MenuUnfoldOutlined,
   MenuFoldOutlined,
@@ -13,7 +12,8 @@ import {
   SettingOutlined,
   UserSwitchOutlined,
   SafetyCertificateOutlined,
-  DashboardOutlined
+  DashboardOutlined,
+  DollarOutlined
 } from '@ant-design/icons';
 import AuthGuard from '@/components/AuthGuard';
 import { useAuth } from '@/store/hooks';
@@ -38,7 +38,8 @@ export default function AdminLayout({
   const getActiveMenuKey = () => {
     if (pathname === '/admin') return 'dashboard';
     if (pathname.includes('/admin/courses')) return 'courses';
-    if (pathname.includes('/admin/lessons')) return 'lessons';
+    if (pathname.includes('/admin/categories')) return 'categories';
+    if (pathname.includes('/admin/payments')) return 'payments';
     if (pathname.includes('/admin/users')) return 'users';
     if (pathname.includes('/admin/permissions')) return 'permissions';
     if (pathname.includes('/admin/roles')) return 'roles';
@@ -90,11 +91,22 @@ export default function AdminLayout({
       }
     },
     {
-      key: 'lessons',
-      icon: <ReadOutlined />,
-      label: 'Bài học',
+      key: 'categories',
+      icon: <AppstoreOutlined />,
+      label: 'Danh mục',
       onClick: () => {
-        router.push('/admin/lessons');
+        router.push('/admin/categories');
+        if (isMobile) {
+          setMobileMenuVisible(false);
+        }
+      }
+    },
+    {
+      key: 'payments',
+      icon: <DollarOutlined />,
+      label: 'Giao dịch',
+      onClick: () => {
+        router.push('/admin/payments');
         if (isMobile) {
           setMobileMenuVisible(false);
         }
@@ -139,7 +151,8 @@ export default function AdminLayout({
   const getPageTitle = () => {
     if (pathname === '/admin') return 'Dashboard';
     if (pathname.includes('/admin/courses')) return 'Quản lý khóa học';
-    if (pathname.includes('/admin/lessons')) return 'Quản lý bài học';
+    if (pathname.includes('/admin/categories')) return 'Quản lý danh mục';
+    if (pathname.includes('/admin/payments')) return 'Quản lý giao dịch';
     if (pathname.includes('/admin/users')) return 'Quản lý người dùng';
     if (pathname.includes('/admin/permissions')) return 'Quản lý quyền';
     if (pathname.includes('/admin/roles')) return 'Quản lý vai trò';
