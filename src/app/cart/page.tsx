@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/store/hooks';
 import { useGetCartByUserIdQuery, useRemoveFromCartMutation, CartItem } from '@/services/cart.service';
+import { useCreatePaymentMutation } from '@/services/payment.service';
 import { skipToken } from '@reduxjs/toolkit/query';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -14,6 +15,7 @@ export default function CartPage() {
     user?.id ?? skipToken
   );
   const [removeFromCart, { isLoading: isRemoving }] = useRemoveFromCartMutation();
+  const [createPayment, { isLoading: isCreatingPayment }] = useCreatePaymentMutation();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [totalPrice, setTotalPrice] = useState(0);
@@ -77,8 +79,31 @@ export default function CartPage() {
       toast.error('Có lỗi xảy ra khi xóa khóa học khỏi giỏ hàng');
     }
   };  // Create payment URL with total amount
-  const getPaymentUrl = () => {
-    return selectedItems.size > 0 ? `/payment?total=${totalPrice}` : '#';
+  const handlePayment = async () => {
+    if (selectedItems.size === 0) return;
+
+    try {      // Create an array of course IDs from selected items
+      const courseIds = cartItems
+        .filter(item => selectedItems.has(item.id))
+        .map(item => item.courseId);
+      console.log('Selected course IDs:', courseIds);
+      console.log('Total price:', totalPrice);  
+      const response = await createPayment({
+          courseIds: courseIds, // Send array of course IDs
+          amount: totalPrice,
+          locale: 'vn'
+      }).unwrap();
+      
+
+      if (response.success && response.data.paymentUrl) {
+        window.location.href = response.data.paymentUrl;
+      } else {
+        toast.error('Có lỗi xảy ra khi tạo giao dịch thanh toán');
+      }
+    } catch (error) {
+      console.error('Failed to create payment:', error);
+      toast.error('Có lỗi xảy ra khi tạo giao dịch thanh toán');
+    }
   };
 
   if (!user) {
@@ -247,13 +272,22 @@ export default function CartPage() {
                     <span className="text-xl font-bold text-blue-700">{new Intl.NumberFormat('vi-VN').format(totalPrice)}đ</span>
                   </div>
                 </div>
-                <div className="mt-6">                  <Link
-                    href={getPaymentUrl()}
-                    className={`w-full block text-center ${selectedItems.size > 0 ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'} text-white py-3 px-4 rounded-md font-medium transition`}
-                    onClick={(e) => selectedItems.size === 0 && e.preventDefault()}
+                <div className="mt-6">
+                  <button
+                    onClick={handlePayment}
+                    disabled={selectedItems.size === 0 || isCreatingPayment}
+                    className={`w-full block text-center ${
+                      selectedItems.size > 0 && !isCreatingPayment
+                        ? 'bg-blue-600 hover:bg-blue-700'
+                        : 'bg-gray-400 cursor-not-allowed'
+                    } text-white py-3 px-4 rounded-md font-medium transition`}
                   >
-                    {selectedItems.size > 0 ? 'Thanh toán' : 'Vui lòng chọn khóa học'}
-                  </Link>
+                    {isCreatingPayment
+                      ? 'Đang xử lý...'
+                      : selectedItems.size > 0
+                      ? 'Thanh toán'
+                      : 'Vui lòng chọn khóa học'}
+                  </button>
                   <Link
                     href="/learning"
                     className="w-full block text-center mt-4 border border-gray-300 text-gray-700 py-3 px-4 rounded-md font-medium hover:bg-gray-50 transition"

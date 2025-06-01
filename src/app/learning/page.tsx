@@ -19,6 +19,7 @@ interface Course {
   duration: number;
   level: number;
   tags: string[] | null;
+  status: number; // 2 means approved
   createdAt: string;
   updatedAt: string | null;
   createdBy: string;
@@ -71,15 +72,15 @@ export default function LearningPage() {  // State for pagination
   // State for filters and search
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tất cả');
-  const [selectedLevel, setSelectedLevel] = useState('Tất cả');
-  const [filteredCourses, setFilteredCourses] = useState<Course[]>(allCourses);
+  const [selectedLevel, setSelectedLevel] = useState('Tất cả');  const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
   const [filteredTotal, setFilteredTotal] = useState(0);
-    // Filter courses based on search term and filters
+
+  // Filter courses based on search term and filters
   useEffect(() => {
-    // Đảm bảo đã có dữ liệu hoặc khởi tạo một mảng rỗng
     const courses = Array.isArray(allCourses) ? [...allCourses] : [];
     
-    let result = courses;
+    // Filter approved courses first (status = 2)
+    let result = courses.filter(course => course.status === 2);
     
     // Apply search filter
     if (searchTerm.trim() !== '') {
