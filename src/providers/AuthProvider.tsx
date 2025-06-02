@@ -13,7 +13,9 @@ import {
 import { useRouter } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import { setUser, logout } from '@/store/slices/authSlice';
+import { setAbility } from '@/store/slices/abilitySlice';
 import { useLazyGetAccountByIdQuery } from '@/services/user.service';
+import { useLazyGetRolePermissionsQuery } from '@/services/role.service';
 
 interface AuthContextType {
   signIn: (token: string) => Promise<void>;
@@ -44,13 +46,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   const [getUserById] = useLazyGetAccountByIdQuery();
-
+  const [getPermissionByRole] = useLazyGetRolePermissionsQuery();
   const handleAuthFailure = useCallback((shouldRedirect = true) => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('userId');
     tokenRef.current = null;
     setCurrentUserId(null);
     dispatch(logout());
+    dispatch(setAbility([])); // Clear permissions when logged out
     setIsAuthenticated(false);
     
     if (shouldRedirect) {
@@ -68,10 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         const token = localStorage.getItem('accessToken');
         const userId = localStorage.getItem('userId');
-        
-        if (token && userId) {
+          if (token && userId) {
           const userData = await getUserById(userId).unwrap();
-          
+          const permissions = await getPermissionByRole(userData?.data?.role?.id || 'user').unwrap();
+          console.log("User permissions:", permissions);
           tokenRef.current = token;
           setCurrentUserId(userId);
           dispatch(setUser({
@@ -80,6 +83,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             accessToken: token,
             isAuthenticated: true
           }));
+          
+          // Dispatch permissions to ability slice
+          dispatch(setAbility(permissions?.data || []));
+          
           setIsAuthenticated(true);
         } else {
           console.log("No token or userId found");

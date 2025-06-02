@@ -7,6 +7,7 @@ import chapterReducer from './slices/chapterSlice';
 import lessonReducer from './slices/lessonSlice';
 import enrollmentReducer from './slices/enrollmentSlice';
 import authReducer from './slices/authSlice';
+import abilityReducer from './slices/abilitySlice';
 
 export const store = configureStore({
   reducer: {
@@ -16,6 +17,7 @@ export const store = configureStore({
     lessons: lessonReducer,
     enrollments: enrollmentReducer,
     auth: authReducer,
+    ability: abilityReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(apiSlice.middleware),

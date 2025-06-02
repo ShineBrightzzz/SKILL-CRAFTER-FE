@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useGetAllCoursesQuery } from '@/services/course.service';
 import { FiSearch, FiChevronDown, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import withPermission from '@/hocs/withPermission';
+import { Action, Subject } from '@/utils/ability';
 
 // Define Course type
 interface Course {
@@ -49,7 +51,7 @@ const categories = ['Tất cả', 'Frontend', 'Backend', 'Mobile', 'DevOps'];
 const levels = ['Tất cả', 'Cơ bản', 'Trung cấp', 'Nâng cao'];
 const PAGE_SIZE = 9; // Number of courses to display per page
 
-export default function LearningPage() {  // State for pagination
+const LearningPage = () => {  // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoaded, setIsLoaded] = useState(false);
   
@@ -392,3 +394,5 @@ export default function LearningPage() {  // State for pagination
     </main>
   );
 }
+
+export default withPermission(LearningPage, Action.Update, Subject.Course);
