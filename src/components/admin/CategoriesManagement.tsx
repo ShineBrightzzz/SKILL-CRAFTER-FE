@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { Table, Card, Button, Space, Modal, Form, Input, message } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useGetAllCategoriesQuery, useCreateCategoryMutation, useUpdateCategoryMutation, useDeleteCategoryMutation } from '@/services/category.service';
+import withPermission from '@/hocs/withPermission';
+import { Action, Subject } from '@/utils/ability';
 
 const CategoriesManagement = () => {
   const [form] = Form.useForm();
@@ -198,4 +200,4 @@ const CategoriesManagement = () => {
   );
 };
 
-export default CategoriesManagement;
+export default withPermission(CategoriesManagement, Action.Read, Subject.CategoryManagement);

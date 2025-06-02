@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { Table, Button, Space, Modal, Form, Input, message, Pagination } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useGetAllCoursesQuery, useCreateCourseMutation, useUpdateCourseMutation, useDeleteCourseMutation } from '@/services/course.service';
+import withPermission from '@/hocs/withPermission';
+import { Action, Subject } from '@/utils/ability';
 
 const CoursesManagement = () => {
   const [form] = Form.useForm();
@@ -208,4 +210,4 @@ const CoursesManagement = () => {
   );
 };
 
-export default CoursesManagement;
+export default withPermission(CoursesManagement, Action.Read, Subject.CourseManagement);

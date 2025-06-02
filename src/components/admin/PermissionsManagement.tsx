@@ -10,6 +10,8 @@ import {
   useDeletePermissionMutation,
   Permission
 } from '@/services/permission.service';
+import withPermission from '@/hocs/withPermission';
+import { Action, Subject } from '@/utils/ability';
 
 const PermissionsManagement = () => {
   const [form] = Form.useForm();
@@ -288,4 +290,4 @@ const PermissionsManagement = () => {
   );
 };
 
-export default PermissionsManagement;
+export default withPermission(PermissionsManagement, Action.Read, Subject.Permission);

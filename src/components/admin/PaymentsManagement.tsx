@@ -4,7 +4,9 @@ import React, { useState } from 'react';
 import { Table, Card, Tag, DatePicker, Select, Input, Space, Button } from 'antd';
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useGetAllPaymentsQuery } from '@/services/payment.service';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
+import withPermission from '@/hocs/withPermission';
+import { Action, Subject } from '@/utils/ability';
 
 const { RangePicker } = DatePicker;
 
@@ -13,7 +15,7 @@ const PaymentsManagement = () => {
   const [pageSize, setPageSize] = useState(10);
   const [searchText, setSearchText] = useState('');
   const [status, setStatus] = useState('all');
-  const [dateRange, setDateRange] = useState([null, null]);
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null]>([null, null]);
 
   const { data: paymentsResponse, isLoading, refetch } = useGetAllPaymentsQuery({
     page: currentPage,
@@ -149,4 +151,4 @@ const PaymentsManagement = () => {
   );
 };
 
-export default PaymentsManagement;
+export default withPermission(PaymentsManagement, Action.Read, Subject.Payment);

@@ -9,9 +9,11 @@ import {
   useUpdateRoleMutation,
   useDeleteRoleMutation,
   useGetRolePermissionsQuery,
-  Role, // Import the Role interface
+  Role,
 } from '@/services/role.service';
 import { useGetAllPermissionsQuery, Permission } from '@/services/permission.service';
+import withPermission from '@/hocs/withPermission';
+import { Action, Subject } from '@/utils/ability';
 
 const { Panel } = Collapse;
 
@@ -344,4 +346,4 @@ const RolesManagement = () => {
   );
 };
 
-export default RolesManagement;
+export default withPermission(RolesManagement, Action.Read, Subject.RoleManagement);
