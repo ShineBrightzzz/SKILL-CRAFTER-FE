@@ -13,7 +13,6 @@ import { skipToken } from '@reduxjs/toolkit/query';
 const navigation = [
   { name: 'Trang chủ', href: '/' },
   { name: 'Khóa học', href: '/learning' },
-  { name: 'Lộ trình', href: '/paths' },
   { name: 'Blog', href: '/blog' },
 ];
 
@@ -47,15 +46,15 @@ const Navbar: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
-            <Link href="/" className="flex items-center">
-              <Image 
+            <Link href="/" className="flex items-center">              
+            <Image 
                 src="/logo.svg" 
                 alt="Logo" 
                 width={32} 
                 height={32}
                 className="mr-2"
               />
-              <span className="text-xl font-bold text-white">CodeLearn</span>
+              <span className="text-xl font-bold text-white">Skill Crafter</span>
             </Link>
           </div>
           

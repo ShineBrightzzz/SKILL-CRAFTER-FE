@@ -200,4 +200,4 @@ const CategoriesManagement = () => {
   );
 };
 
-export default withPermission(CategoriesManagement, Action.Read, Subject.CategoryManagement);
+export default withPermission(CategoriesManagement, Action.Read, Subject.Category);

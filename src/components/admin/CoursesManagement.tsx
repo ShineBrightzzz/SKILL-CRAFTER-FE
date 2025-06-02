@@ -210,4 +210,4 @@ const CoursesManagement = () => {
   );
 };
 
-export default withPermission(CoursesManagement, Action.Read, Subject.CourseManagement);
+export default withPermission(CoursesManagement, Action.Read, Subject.Course);

@@ -346,4 +346,4 @@ const RolesManagement = () => {
   );
 };
 
-export default withPermission(RolesManagement, Action.Read, Subject.RoleManagement);
+export default withPermission(RolesManagement, Action.Read, Subject.Role);

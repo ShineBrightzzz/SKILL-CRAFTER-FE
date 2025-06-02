@@ -8,6 +8,9 @@ import { useGetChaptersByCourseIdQuery } from '@/services/chapter.service';
 import { useGetLessonsByChapterIdQuery, useCreateLessonMutation, useUpdateLessonMutation, useDeleteLessonMutation } from '@/services/lesson.service';
 import { useAuth } from '@/store/hooks';
 import { useRouter } from 'next/navigation';
+import withPermission from '@/hocs/withPermission';
+import { Action, Subject } from '@/utils/ability';
+import { useAbility } from '@/store/hooks/abilityHooks';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -41,10 +44,17 @@ const LessonsManagement = () => {
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
   const [selectedChapterId, setSelectedChapterId] = useState<string>('');
   const [activeTab, setActiveTab] = useState('1');
-  const [lessonType, setLessonType] = useState<number>(4); // Default to reading lesson
-    const router = useRouter();
+  const [lessonType, setLessonType] = useState<number>(4);
+  const router = useRouter();
   const { user } = useAuth();
+  const ability = useAbility();
   const instructorId = user?.id || '';
+
+  // Check abilities
+  const canCreate = ability.can(Action.Create, Subject.Lesson);
+  const canUpdate = ability.can(Action.Update, Subject.Lesson);
+  const canDelete = ability.can(Action.Delete, Subject.Lesson);
+  const canViewDetails = ability.can(Action.Read, Subject.Lesson);
   
   // Lấy danh sách khóa học của instructor
   const { data: coursesResponse, isLoading: coursesLoading } = useGetAllCourseByInstructorQuery({
@@ -95,6 +105,10 @@ const LessonsManagement = () => {
     }
     
     if (lesson) {
+      if (!canUpdate) {
+        message.error('Bạn không có quyền chỉnh sửa bài học!');
+        return;
+      }
       setEditingLesson(lesson);
       setLessonType(lesson.type);
       form.setFieldsValue({
@@ -108,8 +122,12 @@ const LessonsManagement = () => {
         quizData: lesson.quizData ? JSON.stringify(lesson.quizData, null, 2) : undefined
       });
     } else {
+      if (!canCreate) {
+        message.error('Bạn không có quyền tạo bài học mới!');
+        return;
+      }
       setEditingLesson(null);
-      setLessonType(4); // Default to reading
+      setLessonType(4);
       form.resetFields();
       form.setFieldsValue({
         chapterId: selectedChapterId,
@@ -174,6 +192,11 @@ const LessonsManagement = () => {
   };
 
   const handleDelete = (id: string) => {
+    if (!canDelete) {
+      message.error('Bạn không có quyền xóa bài học!');
+      return;
+    }
+
     Modal.confirm({
       title: 'Bạn có chắc chắn muốn xóa bài học này?',
       content: 'Hành động này không thể hoàn tác.',
@@ -225,6 +248,7 @@ const LessonsManagement = () => {
             type="primary" 
             icon={<EditOutlined />}
             onClick={() => showModal(record)}
+            disabled={!canUpdate}
           >
             Sửa
           </Button>
@@ -232,6 +256,7 @@ const LessonsManagement = () => {
             type="default" 
             icon={<FileTextOutlined />}
             onClick={() => router.push(`/instructor/lessons/${record.id}`)}
+            disabled={!canViewDetails}
           >
             Chi tiết
           </Button>
@@ -239,6 +264,7 @@ const LessonsManagement = () => {
             danger 
             icon={<DeleteOutlined />}
             onClick={() => handleDelete(record.id)}
+            disabled={!canDelete}
           >
             Xóa
           </Button>
@@ -412,6 +438,7 @@ const LessonsManagement = () => {
               type="primary" 
               icon={<PlusOutlined />} 
               onClick={() => showModal()}
+              disabled={!canCreate}
             >
               Thêm bài học mới
             </Button>
@@ -484,4 +511,4 @@ const LessonsManagement = () => {
   );
 };
 
-export default LessonsManagement;
+export default withPermission(LessonsManagement, Action.Manage, Subject.Lesson);

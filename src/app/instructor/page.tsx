@@ -7,10 +7,12 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/store/hooks';
 import { useGetAllCourseByInstructorQuery } from '@/services/course.service';
 import CourseCard from '@/components/instructor/CourseCard';
+import withPermission from '@/hocs/withPermission';
+import { Action, Subject } from '@/utils/ability';
 
 const { Title, Text } = Typography;
 
-export default function InstructorDashboardPage() {
+const InstructorDashboardPage = () => {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -90,3 +92,5 @@ export default function InstructorDashboardPage() {
     </div>
   );
 }
+
+export default withPermission(InstructorDashboardPage, Action.Create, Subject.Course);

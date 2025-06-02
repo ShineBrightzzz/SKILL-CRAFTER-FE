@@ -12,6 +12,9 @@ import {
 } from '@/services/chapter.service';
 import { useAuth } from '@/store/hooks';
 import { useRouter } from 'next/navigation';
+import withPermission from '@/hocs/withPermission';
+import { Action, Subject } from '@/utils/ability';
+import { useAbility } from '@/store/hooks/abilityHooks';
 
 interface Chapter {
   id: string;
@@ -26,13 +29,21 @@ const { Option } = Select;
 const ChaptersManagement = () => {
   const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingChapter, setEditingChapter] = useState<any>(null);  const [currentPage, setCurrentPage] = useState(1);
+  const [editingChapter, setEditingChapter] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { user } = useAuth();
+  const ability = useAbility();
   const instructorId = user?.id || '';
+
+  // Check abilities
+  const canCreate = ability.can(Action.Create, Subject.Chapter);
+  const canUpdate = ability.can(Action.Update, Subject.Chapter);
+  const canDelete = ability.can(Action.Delete, Subject.Chapter);
+  const canManageLessons = ability.can(Action.Manage, Subject.Lesson);
   
   // Lấy danh sách khóa học của instructor
   const { data: coursesResponse, isLoading: coursesLoading } = useGetAllCourseByInstructorQuery({
@@ -71,6 +82,11 @@ const ChaptersManagement = () => {
     }
     
     if (chapter) {
+      // Check update permission before editing
+      if (!canUpdate) {
+        message.error('Bạn không có quyền chỉnh sửa chương học!');
+        return;
+      }
       setEditingChapter(chapter);
       form.setFieldsValue({
         name: chapter.name,
@@ -78,6 +94,11 @@ const ChaptersManagement = () => {
         order: chapter.order
       });
     } else {
+      // Check create permission before adding
+      if (!canCreate) {
+        message.error('Bạn không có quyền tạo chương học mới!');
+        return;
+      }
       setEditingChapter(null);
       form.resetFields();
       form.setFieldsValue({
@@ -115,6 +136,11 @@ const ChaptersManagement = () => {
   };
 
   const handleDelete = (id: string) => {
+    if (!canDelete) {
+      message.error('Bạn không có quyền xóa chương học!');
+      return;
+    }
+
     Modal.confirm({
       title: 'Bạn có chắc chắn muốn xóa chương học này?',
       content: 'Hành động này không thể hoàn tác.',
@@ -134,9 +160,12 @@ const ChaptersManagement = () => {
     });
   };
 
-  const handleManageLessons = (chapterId: string, chapterName: string) => {
+  const handleManageLessons = (chapterId: string) => {
+    if (!canManageLessons) {
+      message.error('Bạn không có quyền quản lý bài học!');
+      return;
+    }
     router.push(`/instructor/chapters/${chapterId}`);
-    // Hoặc có thể lưu thông tin vào state để hiển thị trong tab bài học
   };
 
   const columns = [
@@ -161,27 +190,33 @@ const ChaptersManagement = () => {
       key: 'action',
       render: (_: any, record: any) => (
         <Space size="middle">
-          <Button 
-            type="primary" 
-            icon={<EditOutlined />}
-            onClick={() => showModal(record)}
-          >
-            Sửa
-          </Button>
-          <Button 
-            type="default" 
-            icon={<OrderedListOutlined />}
-            onClick={() => handleManageLessons(record.id, record.name)}
-          >
-            Quản lý bài học
-          </Button>
-          <Button 
-            danger 
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record.id)}
-          >
-            Xóa
-          </Button>
+          {canUpdate && (
+            <Button 
+              type="primary" 
+              icon={<EditOutlined />}
+              onClick={() => showModal(record)}
+            >
+              Sửa
+            </Button>
+          )}
+          {canManageLessons && (
+            <Button 
+              type="default" 
+              icon={<OrderedListOutlined />}
+              onClick={() => handleManageLessons(record.id)}
+            >
+              Quản lý bài học
+            </Button>
+          )}
+          {canDelete && (
+            <Button 
+              danger 
+              icon={<DeleteOutlined />}
+              onClick={() => handleDelete(record.id)}
+            >
+              Xóa
+            </Button>
+          )}
         </Space>
       ),
     },
@@ -220,14 +255,15 @@ const ChaptersManagement = () => {
         <>
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold">Danh sách chương học</h2>
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              onClick={() => showModal()}
-            >
-              Thêm chương mới
-            </Button>
-          </div>
+            {canCreate && (
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                onClick={() => showModal()}
+              >
+                Thêm chương mới
+              </Button>
+            )}
           
           <Table 
             columns={columns} 
@@ -297,4 +333,4 @@ const ChaptersManagement = () => {
   );
 };
 
-export default ChaptersManagement;
+export default withPermission(ChaptersManagement, Action.Manage, Subject.Chapter);
