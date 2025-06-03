@@ -9,6 +9,8 @@ import { Badge } from 'antd';
 import { BellOutlined, QuestionCircleOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { useGetCartByUserIdQuery } from '@/services/cart.service';
 import { skipToken } from '@reduxjs/toolkit/query';
+import { useAbility } from '@/store/hooks/abilityHooks';
+import { Action, Subject } from '@/utils/ability';
 
 const navigation = [
   { name: 'Trang chủ', href: '/' },
@@ -20,6 +22,10 @@ const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const ability = useAbility();
+  
+  // Check if user can create courses
+  const canCreateCourse = ability.can(Action.Create, Subject.Course);
   
   // Fetch cart data to display cart item count
   const { data: cartData } = useGetCartByUserIdQuery(
@@ -69,6 +75,14 @@ const Navbar: React.FC = () => {
                   {item.name}
                 </Link>
               ))}
+                {mounted && user && canCreateCourse && (
+                <Link
+                  href="/instructor"
+                  className="text-white hover:text-blue-200 transition font-medium"
+                >
+                  Quản lí khóa học
+                </Link>
+              )}
             </div>
           </div>
           

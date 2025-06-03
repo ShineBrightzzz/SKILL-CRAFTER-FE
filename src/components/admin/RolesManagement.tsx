@@ -64,8 +64,10 @@ const RolesManagement = () => {
   };
   // Update selectedPermissions when rolePermissions changes
   useEffect(() => {
-    if (rolePermissions) {
-      setSelectedPermissions(rolePermissions.map((p: { id: string }) => p.id));
+    if (Array.isArray(rolePermissions)) {
+      setSelectedPermissions(rolePermissions.map((p: Permission) => p.id));
+    } else {
+      setSelectedPermissions([]);
     }
   }, [rolePermissions]);
 

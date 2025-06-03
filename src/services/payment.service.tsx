@@ -90,14 +90,14 @@ export const paymentApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getAllPayments: builder.query<PaymentsResponse, PaginationParams | void>({
       query: (params = {}) => {
-        if (!params) return '/api/v1/payments/all';
+        if (!params) return '/api/payments/all';
 
         const queryParams = Object.entries(params)
           .filter(([_, value]) => value !== undefined)
           .map(([key, value]) => `${key}=${value}`)
           .join('&');
 
-        return `/api/v1/payments/all${queryParams ? `?${queryParams}` : ''}`;
+        return `/api/payments/all${queryParams ? `?${queryParams}` : ''}`;
       },
       providesTags: (result) =>
         result?.data?.result
@@ -110,7 +110,7 @@ export const paymentApiSlice = apiSlice.injectEndpoints({
 
     createPayment: builder.mutation<PaymentCreateResponse, PaymentCreateRequest>({
       query: (request) => ({
-        url: '/api/v1/payments/create',
+        url: '/api/payments/create',
         method: 'POST',
         body: request,
       }),
@@ -127,7 +127,7 @@ export const paymentApiSlice = apiSlice.injectEndpoints({
 
     refundPayment: builder.mutation<PaymentRefundResponse, PaymentRefundRequest>({
       query: (request) => ({
-        url: '/api/v1/payments/refund',
+        url: '/api/payments/refund',
         method: 'POST',
         body: request,
       }),
@@ -135,7 +135,7 @@ export const paymentApiSlice = apiSlice.injectEndpoints({
     }),
 
     getPaymentHistory: builder.query<PaymentsResponse, void>({
-      query: () => '/api/v1/payments/history',
+      query: () => '/api/payments/history',
       providesTags: (result) =>
         result?.data?.result
           ? [
@@ -147,7 +147,7 @@ export const paymentApiSlice = apiSlice.injectEndpoints({
 
     checkPaymentStatus: builder.query<{ hasPaid: boolean }, string>({
       query: (courseId) => ({
-        url: '/api/v1/payments/check-payment',
+        url: '/api/payments/check-payment',
         params: { courseId },
       }),
       providesTags: (result, error, courseId) => [{ type: 'Payment', id: `status-${courseId}` }],
@@ -155,7 +155,7 @@ export const paymentApiSlice = apiSlice.injectEndpoints({
 
     handleVNPayReturn: builder.query<{ success: boolean; message: string }, VNPayReturnParams>({
       query: (params) => ({
-        url: '/api/v1/payments/vnpay-return',
+        url: '/api/payments/vnpay-return',
         params,
       }),
       providesTags: (result, error, params) => [{ type: 'Payment', id: params.vnp_TxnRef }],

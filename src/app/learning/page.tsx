@@ -395,4 +395,4 @@ const LearningPage = () => {  // State for pagination
   );
 }
 
-export default withPermission(LearningPage, Action.Update, Subject.Course);
+export default withPermission(LearningPage, Action.Read, Subject.Course);

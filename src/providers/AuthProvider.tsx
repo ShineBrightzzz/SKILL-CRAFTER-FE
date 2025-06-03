@@ -137,7 +137,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               
               // Dispatch permissions
               dispatch(setAbility(permissions?.data || []));
-              
               setIsAuthenticated(true);
             } else {
               console.log("Token refresh failed");

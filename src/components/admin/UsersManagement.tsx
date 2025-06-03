@@ -37,12 +37,11 @@ const UsersManagement: React.FC = () => {
 
   const showModal = (user?: User) => {
     if (user) {
-      setEditingUser(user);
-      form.setFieldsValue({
+      setEditingUser(user);      form.setFieldsValue({
         username: user.username,
         email: user.email,
         fullName: user.fullName,
-        role: user.role,
+        role: user.role?.id,
       });
     } else {
       setEditingUser(null);
@@ -124,13 +123,11 @@ const UsersManagement: React.FC = () => {
       dataIndex: 'email',
       key: 'email',
     },
-    {
-      title: 'Vai trò',
+    {      title: 'Vai trò',
       dataIndex: 'role',
       key: 'role',
-      render: (roleId: string) => {
-        const role = rolesData?.data?.result?.find((r: Role) => r.id === roleId);
-        return role?.name || roleId;
+      render: (role: { id: number; name: string; } | null) => {
+        return role?.name || 'Chưa được phân quyền';
       }
     },
     {
