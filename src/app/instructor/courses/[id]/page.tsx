@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, Tabs, Button, List, Typography, Space, Modal, message, Spin, Table } from 'antd';
+import { Card, Tabs, Button, List, Typography, Space, Modal, message, Spin, Table, Tag, Tooltip } from 'antd';
+import { InfoCircleOutlined } from '@ant-design/icons';
 import { PlusOutlined, EditOutlined, DeleteOutlined, FileTextOutlined, SendOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { useGetCourseByIdQuery, useGetEnrollmentsByCourseIdQuery, useUpdateCourseStatusMutation } from '@/services/course.service';
 import { useGetChaptersByCourseIdQuery } from '@/services/chapter.service';
 import { useAuth } from '@/store/hooks';
+import CourseStatusDisplay from '@/components/instructor/CourseStatusDisplay';
 
 const { TabPane } = Tabs;
 const { Title, Paragraph, Text } = Typography;
@@ -182,47 +184,46 @@ export default function CourseDetailPage({ params }: CourseDetailProps) {
         <div className="flex justify-between items-center mb-6">
           <Button onClick={() => router.push(`/instructor`)} className="mb-4">
             ← Quay lại
-          </Button>          <div className="space-x-2">
-            {course.status !== 1 && (
+          </Button>
+          <div className="space-x-2">
+            <div className="flex items-center gap-2">
+              <CourseStatusDisplay status={course.status} message={course.statusMessage} />
+              {course.status !== 1 && course.status !== 2 && (
+                <Button 
+                  type="primary"
+                  icon={<SendOutlined />}
+                  onClick={handleSubmitForApproval}
+                  loading={isSubmitting}
+                >
+                  Gửi để duyệt
+                </Button>
+              )}
+              {course.status === 1 && (
+                <Button 
+                  type="default"
+                  icon={<SendOutlined />}
+                  disabled={true}
+                >
+                  Đang chờ duyệt
+                </Button>
+              )}
               <Button 
-                type="primary"
-                icon={<SendOutlined />}
-                onClick={handleSubmitForApproval}
-                loading={isSubmitting}
-                disabled={course.status === 1}
+                type="primary" 
+                onClick={() => router.push(`/instructor/courses/${courseId}/edit`)}
               >
-                Gửi để duyệt
+                Chỉnh sửa khóa học
               </Button>
-            )}
-            {course.status === 1 && (
-              <Button 
-                type="default"
-                icon={<SendOutlined />}
-                disabled={true}
-              >
-                Đang chờ duyệt
-              </Button>
-            )}
-            <Button 
-              type="primary" 
-              onClick={() => router.push(`/instructor/courses/${courseId}/edit`)}
-            >
-              Chỉnh sửa khóa học
-            </Button>
+            </div>
           </div>
         </div>
         
-        <Card>          <Title level={2}>{course.title}</Title>
+        <Card>
+          <Title level={2}>{course.title}</Title>
           <div className="flex justify-between mb-4">
             <div>
               <Text type="secondary">Danh mục: {course.categoryName || 'Chưa phân loại'}</Text>
               <br />
               <Text type="secondary">Cấp độ: {getLevelText(course.level)}</Text>
-            </div>
-            <div>
-              <Text style={{ color: getStatusText(course.status).color }}>
-                Trạng thái: {getStatusText(course.status).text}
-              </Text>
             </div>
           </div>
           <Paragraph>{course.description}</Paragraph>

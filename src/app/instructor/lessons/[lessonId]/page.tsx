@@ -41,8 +41,9 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
   const [testCases, setTestCases] = useState<TestCaseDTO[]>([]);
   const [activeTestCase, setActiveTestCase] = useState<number | null>(null);
   const [modifiedTestCases, setModifiedTestCases] = useState<Set<number>>(new Set());
-    // Fetch lesson details  
-  const { data: lesson, isLoading: lessonLoading } = useGetLessonByIdQuery(lessonId);
+    // Fetch lesson details    
+  const { data: lessonResponse, isLoading: lessonLoading } = useGetLessonByIdQuery(lessonId);
+  const lesson = lessonResponse?.data;
 
   // Fetch test cases for programming lessons
   const { data: testCasesResponse, isLoading: testCasesLoading } = useGetTestCasesByLessonIdQuery(
@@ -59,26 +60,28 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
   
   // Initialize form with lesson data
   useEffect(() => {
-    if (lesson) {
-      setLessonType(lesson.type);
+    if (lesson?.data) {
+      setLessonType(lesson.data.type);
       form.setFieldsValue({
-        title: lesson.title,
-        type: lesson.type,
-        content: lesson.content,
-        videoUrl: lesson.videoUrl,
-        duration: lesson.duration,
-        initialCode: lesson.initialCode,
-        language: lesson.language
+        title: lesson.data.title,
+        type: lesson.data.type,
+        content: lesson.data.content,
+        videoUrl: lesson.data.videoUrl,
+        duration: lesson.data.duration,
+        initialCode: lesson.data.initialCode,
+        language: lesson.data.language,
+        statusMessage: lesson.data.statusMessage
       });
     }
   }, [lesson, form]);
-    // Initialize questions when lesson data is loaded
+
+  // Initialize quiz questions from lesson data
   useEffect(() => {
-    if (lesson?.quizData) {
+    if (lesson?.data?.quizData) {
       try {
-        const quizData = typeof lesson.quizData === 'string' 
-          ? JSON.parse(lesson.quizData) 
-          : lesson.quizData;
+        const quizData = typeof lesson.data.quizData === 'string' 
+          ? JSON.parse(lesson.data.quizData) 
+          : lesson.data.quizData;
         if (quizData.questions) {
           setQuestions(quizData.questions);
         }

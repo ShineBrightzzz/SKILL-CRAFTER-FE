@@ -200,13 +200,11 @@ export const lessonApiSlice = apiSlice.injectEndpoints({
         { type: 'Lessons' as const, id: `User-Progress-${userId}` },
         { type: 'Lessons' as const, id: `Lesson-Progress-${lessonId}` },
       ],
-    }),
-
-    updateLessonStatus: builder.mutation<Lesson, { id: string, status: number }>({
-      query: ({ id, status }) => ({
+    }),    updateLessonStatus: builder.mutation<Lesson, { id: string, status: number, message?: string }>({
+      query: ({ id, status, message }) => ({
         url: `/api/lessons/${id}/status`,
         method: 'PATCH',
-        body: { status },
+        body: { status, message },
       }),
       invalidatesTags: (result, error, { id }) => [
         { type: 'Lessons' as const, id },

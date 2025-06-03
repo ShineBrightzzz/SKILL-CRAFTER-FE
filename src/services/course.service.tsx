@@ -304,11 +304,11 @@ export const courseApiSlice = apiSlice.injectEndpoints({
         { type: 'Courses' as const, id: `User-${userId}` },
         { type: 'Courses' as const, id: `Course-${courseId}` },
       ],
-    }),    updateCourseStatus: builder.mutation<Course, { courseId: string; status: number }>({
-      query: ({ courseId, status }) => ({
+    }),    updateCourseStatus: builder.mutation<Course, { courseId: string; status: number; message?: string }>({
+      query: ({ courseId, status, message }) => ({
         url: `/api/courses/${courseId}/status`,
         method: 'PATCH',
-        body: { status }
+        body: { status, message }
       }),
       invalidatesTags: (result, error, { courseId }) => [
         { type: 'Courses' as const, id: courseId },

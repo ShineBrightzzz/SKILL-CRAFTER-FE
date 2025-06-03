@@ -13,7 +13,10 @@ import { skipToken } from '@reduxjs/toolkit/query/react';
 import VideoPlayer from '@/components/VideoPlayer';
 import MarkdownCode from '@/components/MarkdownCode';
 import CodeEditor from '@/components/CodeEditor';
-import { Button, Tag, Modal } from 'antd';
+import { Button, Tag, Modal, Input } from 'antd';
+import Quiz from '@/components/Quiz';
+import { CourseStatusDisplay } from '@/components/instructor/CourseStatusDisplay';
+import { LessonStatusDisplay } from '@/components/instructor/LessonStatusDisplay';
 
 
 interface PageProps {
@@ -45,27 +48,37 @@ export default function CourseDetailPage({ params }: PageProps) {
   const [updateLessonStatus, { isLoading: isUpdatingStatus }] = useUpdateLessonStatusMutation();
   const [updateCourseStatus] = useUpdateCourseStatusMutation();
   const [modal, contextHolder] = Modal.useModal();
-  
-  // Handle course approval with confirmation
+    // Handle course approval with confirmation
   const showConfirmModal = (status: number) => {
+    let message = '';
     const type = status === 2 ? "phê duyệt" : "từ chối";
-    modal.confirm({
+    
+    Modal.confirm({
       title: `Xác nhận ${type} khóa học`,
-      content: `Bạn có chắc chắn muốn ${type} khóa học này không?`,
+      content: (
+        <div>
+          <p>{`Bạn có chắc chắn muốn ${type} khóa học này không?`}</p>
+          <Input.TextArea
+            placeholder="Nhập ghi chú (không bắt buộc)"
+            onChange={(e) => message = e.target.value}
+            style={{ marginTop: '10px' }}
+          />
+        </div>
+      ),
       okText: 'Có',
       cancelText: 'Không',
-      onOk: () => handleCourseApproval(status),
+      onOk: () => handleCourseApproval(status, message),
     });
   };
-
   // Handle course approval
-  const handleCourseApproval = async (status: number) => {
+  const handleCourseApproval = async (status: number, message?: string) => {
     if (!course) return;
     
     try {
       await updateCourseStatus({ 
         courseId: params.id,
-        status: status 
+        status: status,
+        message: message
       }).unwrap();
       
       toast.success(status === 2 ? 'Khóa học đã được phê duyệt' : 'Khóa học đã bị từ chối');
@@ -282,48 +295,87 @@ export default function CourseDetailPage({ params }: PageProps) {
         setSelectedLessonId(lessonId);
       });
   };
+  // Handle lesson status update
+  const handleLessonStatusUpdate = (status: number, message?: string) => async () => {
+    if (!selectedLessonId) return;
+    
+    try {
+      await updateLessonStatus({
+        id: selectedLessonId,
+        status: status,
+        message: message
+      }).unwrap();
+      
+      toast.success(status === 2 ? 'Bài học đã được phê duyệt' : 'Bài học đã bị từ chối');
+      
+      // Reload lesson data
+      setSelectedLessonId(null);
+      setTimeout(() => setSelectedLessonId(selectedLessonId), 100);
+    } catch (error) {
+      console.error("Error updating lesson status:", error);
+      toast.error('Có lỗi xảy ra khi cập nhật trạng thái bài học');
+    }
+  };
 
-  // Handle approving a lesson
-  const handleApproveLesson = async () => {
-    if (!selectedLessonId) return;
+  // Handle showing lesson status modal
+  const showLessonStatusModal = (status: number) => {
+    let message = '';
+    const type = status === 2 ? "phê duyệt" : "từ chối";
     
+    Modal.confirm({
+      title: `Xác nhận ${type} bài học`,
+      content: (
+        <div>
+          <p>{`Bạn có chắc chắn muốn ${type} bài học này không?`}</p>
+          <Input.TextArea
+            placeholder="Nhập ghi chú (không bắt buộc)"
+            onChange={(e) => message = e.target.value}
+            style={{ marginTop: '10px' }}
+          />
+        </div>
+      ),
+      okText: 'Có',
+      cancelText: 'Không',
+      onOk: handleLessonStatusUpdate(status, message),
+    });
+  };
+  const showLessonConfirmModal = (lessonId: string, status: number) => {
+    let message = '';
+    const type = status === 2 ? "phê duyệt" : "từ chối";
+    
+    Modal.confirm({
+      title: `Xác nhận ${type} bài học`,
+      content: (
+        <div>
+          <p>{`Bạn có chắc chắn muốn ${type} bài học này không?`}</p>
+          <Input.TextArea
+            placeholder="Nhập ghi chú (không bắt buộc)"
+            onChange={(e) => message = e.target.value}
+            style={{ marginTop: '10px' }}
+          />
+        </div>
+      ),
+      okText: 'Có',
+      cancelText: 'Không',
+      onOk: () => handleLessonApproval(lessonId, status, message),
+    });
+  };
+
+  const handleLessonApproval = async (lessonId: string, status: number, message?: string) => {
     try {
-      await updateLessonStatus({
-        id: selectedLessonId,
-        status: 2 // Approved
+      await updateLessonStatus({ 
+        id: lessonId,
+        status: status,
+        message: message
       }).unwrap();
       
-      toast.success('Bài học đã được phê duyệt');
-      
-      // Reload lesson data
-      setSelectedLessonId(null);
-      setTimeout(() => setSelectedLessonId(selectedLessonId), 100);
+      toast.success(status === 2 ? 'Bài học đã được phê duyệt' : 'Bài học đã bị từ chối');
     } catch (error) {
-      console.error("Error approving lesson:", error);
-      toast.error('Có lỗi xảy ra khi phê duyệt bài học');
+      console.error('Lesson approval error:', error);
+      toast.error('Có lỗi xảy ra khi cập nhật trạng thái bài học');
     }
   };
-  
-  // Handle rejecting a lesson
-  const handleRejectLesson = async () => {
-    if (!selectedLessonId) return;
-    
-    try {
-      await updateLessonStatus({
-        id: selectedLessonId,
-        status: 3 // Rejected
-      }).unwrap();
-      
-      toast.success('Bài học đã bị từ chối');
-      
-      // Reload lesson data
-      setSelectedLessonId(null);
-      setTimeout(() => setSelectedLessonId(selectedLessonId), 100);
-    } catch (error) {
-      console.error("Error rejecting lesson:", error);
-      toast.error('Có lỗi xảy ra khi từ chối bài học');
-    }
-  };
+
   // A utility function to normalize lesson data regardless of its structure
   const normalizeLessonData = (rawData: any) => {
     if (!rawData) return null;
@@ -502,9 +554,8 @@ export default function CourseDetailPage({ params }: PageProps) {
     <div className="min-h-screen bg-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Course status and admin actions */}        <div className="flex justify-end items-center gap-4 mb-4">
-          {contextHolder}          <Tag color={course.status === 2 ? 'success' : course.status === 3 ? 'error' : 'warning'}>
-            {course.status === 2 ? 'Đã phê duyệt' : course.status === 3 ? 'Đã từ chối' : 'Chờ phê duyệt'}
-          </Tag>
+          {contextHolder}          <div className="flex items-center gap-2">              <CourseStatusDisplay status={course.status} message={course.message} />
+          </div>
           {course.status === 1 && (
             <div className="flex gap-2">
               <Button
@@ -609,18 +660,17 @@ export default function CourseDetailPage({ params }: PageProps) {
             <div className="md:col-span-2 lg:col-span-3 p-6">
               {selectedLessonId ? (
                 /* Lesson content display */                <div className="p-4 bg-white rounded-lg shadow">                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Chi tiết bài học</h3>                    
-                    {lessonData && normalizeLessonData(lessonData)?.status !== 2 && normalizeLessonData(lessonData)?.status !== 3 && (
+                    <h3 className="text-lg font-semibold">Chi tiết bài học</h3>                      {lessonData && normalizeLessonData(lessonData)?.status !== 2 && normalizeLessonData(lessonData)?.status !== 3 && (
                       <div className="flex space-x-2">
                         <button
-                          onClick={handleApproveLesson}
+                          onClick={() => showLessonStatusModal(2)}
                           disabled={isUpdatingStatus}
                           className="px-3 py-1 bg-green-100 text-green-700 rounded-md text-sm hover:bg-green-200 disabled:opacity-50"
                         >
                           Phê duyệt
                         </button>
                         <button
-                          onClick={handleRejectLesson}
+                          onClick={() => showLessonStatusModal(3)}
                           disabled={isUpdatingStatus}
                           className="px-3 py-1 bg-red-100 text-red-700 rounded-md text-sm hover:bg-red-200 disabled:opacity-50"
                         >
@@ -634,10 +684,11 @@ export default function CourseDetailPage({ params }: PageProps) {
                       <div className="flex flex-wrap gap-2 mb-2">
                         <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
                           {getLessonTypeText(normalizeLessonData(lessonData)?.type)}
-                        </span>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${getLessonStatusColorClass(normalizeLessonData(lessonData)?.status)}`}>
-                          Trạng thái: {getLessonStatusText(normalizeLessonData(lessonData)?.status)}
-                        </span>
+                        </span>                        <div className="flex items-center gap-2">                          <LessonStatusDisplay 
+                            status={normalizeLessonData(lessonData)?.status} 
+                            message={normalizeLessonData(lessonData)?.message} 
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
