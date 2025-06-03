@@ -1,4 +1,4 @@
-import { setUser, setToken } from '@/store/slices/authSlice';
+import { setUser, setToken, logout } from '@/store/slices/authSlice';
 import apiSlice, { setAccessToken, setDebugRefreshToken } from './api';
 import type { AuthResponse } from '@/types/auth';
 
@@ -12,6 +12,13 @@ export interface User {
   fullName?: string;
   role?: string;
   active?: boolean;
+  pictureUrl?: string | null;
+  isGoogleAccount?: boolean;
+  given_name?: string;
+  family_name?: string;
+  email_verified?: boolean;
+  accessToken?: string;
+  refreshToken?: string;
 }
 
 // Role assignment DTO
@@ -51,155 +58,130 @@ export interface ApiResponse<T> {
 }
 
 export const userApiSlice = apiSlice.injectEndpoints({
-  endpoints: (builder) => ({    login: builder.mutation<AuthResponse, { username: string; password: string; recaptchaToken?: string | null }>({
-      query: (credentials) => ({
+  endpoints: (builder) => ({    
+    login: builder.mutation<AuthResponse, { username: string; password: string; recaptchaToken?: string | null }>({
+      query: (credentials) => ({          
         url: '/login',
         method: 'POST',
         body: credentials,
-        credentials: 'include', // Ensure cookies are sent and received
-      }),      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        credentials: 'include',
+      }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const response = await queryFulfilled;
           const { data } = response.data;
 
-          // Store access token in memory instead of localStorage
+          // Store access token in memory
           setAccessToken(data.accessToken);
           
-          // Store user ID in localStorage (this doesn't need to be secure)
-          localStorage.setItem('userId', data.id);
-            // Remove any old tokens from localStorage if they exist
-          localStorage.removeItem('accessToken');
-            // Store the refresh token in a cookie (this will be done via document.cookie)
-          // Using HttpOnly cookie would be best but can only be set by the server
+          // Store user ID in localStorage
+          localStorage.setItem('userId', data.id);          // Store refresh token for development/debugging only
           if (data.refreshToken) {
-            // Store for development/debugging only
-            localStorage.setItem('refreshTokenForDebug', data.refreshToken);
-            console.log('Debug refresh token set:', data.refreshToken.substring(0, 8) + '...');
-            
-            // Call our proxy endpoint to set the cookie
-            fetch('/api/set-refresh-token', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ refreshToken: data.refreshToken }),
-              credentials: 'include',
-            }).catch(err => {
-              console.error('Error setting refresh token cookie:', err);
-            });
+            setDebugRefreshToken(data.refreshToken);
           }
           
-          // Update Redux store with user data (but not the tokens)
+          // Update Redux store with user data
           dispatch(setUser({
             id: data.id,
             username: data.username,
             email: data.email,
-            // Don't store accessToken in Redux state for security
+            email_verified: data.email_verified,
+            family_name: data.family_name,
+            given_name: data.given_name,
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken
           }));
 
         } catch (error) {
           console.error('Error saving user data:', error);
-          // Clean up any partial data
           setAccessToken(null);
           localStorage.removeItem('userId');
         }
-      },
-      invalidatesTags: [{ type: 'Users' as const, id: 'CURRENT' }],
-    }),    logout: builder.mutation<any, void>({
-      query: () => ({
-        url: '/api/auth/logout',
+      }
+    }),
+
+    logout: builder.mutation<any, void>({
+      query: () => ({          
+        url: '/logout',
         method: 'POST',
-        credentials: 'include', // Ensure cookies are sent
+        credentials: 'include',
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           await queryFulfilled;
-          // Clear in-memory token
           setAccessToken(null);
-          // Remove any localStorage items
           localStorage.removeItem('userId');
-          // Update Redux store
+          setDebugRefreshToken(null);
           dispatch(setUser(null));
         } catch (error) {
           console.error('Error during logout:', error);
         }
       },
       invalidatesTags: [{ type: 'Users' as const, id: 'CURRENT' }],
-    }),    // New endpoint for refreshing tokens
+    }),
+
     refreshToken: builder.mutation<AuthResponse, void>({
-      query: () => ({
-        // Use the dedicated refresh token endpoint
-        url: '/refresh-token',
-        method: 'POST',
-        credentials: 'include', // Ensure cookies are sent
-        // We don't need to include the body here because our proxy will extract the refresh token from cookies
-      }),
+      query: () => {
+        const refreshToken = localStorage.getItem('refreshTokenForDebug');
+        return {
+          url: '/refresh-token',
+          method: 'POST',
+          credentials: 'include',
+          body: refreshToken ? { refreshToken } : {},
+        };
+      },
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
+          // Get the response and extract data
           const response = await queryFulfilled;
-          console.log('Refresh token response:', response);
           
-          // Extract access token and refresh token
-          let accessToken = null;
-          let refreshToken = null;
-          
-          if (response.data && response.data.data) {
+          // Check if the response is successful
+          if (response.data?.success) {
             const data = response.data.data;
+
+            // Store access token in memory and Redux
             if (data.accessToken) {
-              accessToken = data.accessToken;
+              setAccessToken(data.accessToken);
+              dispatch(setToken(data.accessToken));
+              console.log('Access token updated:', data.accessToken.substring(0, 10) + '...');
             }
+
+            // Store new refresh token for development/debugging
             if (data.refreshToken) {
-              refreshToken = data.refreshToken;
+              setDebugRefreshToken(data.refreshToken);
+              console.log('New refresh token saved:', data.refreshToken.substring(0, 8) + '...');
             }
-          }
-          
-          if (accessToken) {
-            console.log('Got new access token from refresh endpoint:', accessToken.substring(0, 10) + '...');
-            
-            // Store new access token in memory
-            setAccessToken(accessToken);
-            
-            // Update Redux store with the new token
-            dispatch(setToken(accessToken));
-            
-            // Handle the refresh token if it's returned
-            if (refreshToken) {
-              console.log('Got new refresh token from refresh endpoint:', refreshToken.substring(0, 8) + '...');
-              
-              // Store for development/debugging
-              setDebugRefreshToken(refreshToken);
-              
-              // Update the HTTP-only cookie
-              fetch('/api/set-refresh-token', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ refreshToken }),
-                credentials: 'include',
-              }).catch(err => {
-                console.error('Error updating refresh token cookie:', err);
-              });
+
+            // Update user data in Redux store
+            if (data.id) {
+              const userData = {
+                id: data.id,
+                username: data.username,
+                email: data.email,
+                email_verified: data.email_verified,
+                family_name: data.family_name,
+                given_name: data.given_name,
+                fullName: `${data.given_name || ''} ${data.family_name || ''}`.trim(),
+                pictureUrl: data.pictureUrl || null,
+                accessToken: data.accessToken,
+                refreshToken: data.refreshToken
+              };
+              dispatch(setUser(userData));
+              console.log('User data updated in Redux store');
             }
-            
-            console.log('Successfully refreshed token');
-            return { success: true };
           } else {
-            console.error('No access token in response data', response);
-            dispatch(setUser(null));
+            console.error('Token refresh failed:', response.data?.message);
             setAccessToken(null);
             localStorage.removeItem('userId');
-            return { success: false };
+            dispatch(logout());
           }
         } catch (error) {
-          console.error('Error refreshing token:', error);
-          // If refresh fails, log the user out
-          dispatch(setUser(null));
+          console.error('Error during token refresh:', error);
           setAccessToken(null);
           localStorage.removeItem('userId');
-          return { success: false };
+          dispatch(logout());
         }
-      },
+      }
     }),
 
 
