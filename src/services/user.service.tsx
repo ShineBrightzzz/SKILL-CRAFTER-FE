@@ -1,5 +1,5 @@
-import { setUser } from '@/store/slices/authSlice';
-import apiSlice, { setAccessToken } from './api';
+import { setUser, setToken } from '@/store/slices/authSlice';
+import apiSlice, { setAccessToken, setDebugRefreshToken } from './api';
 import type { AuthResponse } from '@/types/auth';
 
 // Define types
@@ -57,8 +57,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
         method: 'POST',
         body: credentials,
         credentials: 'include', // Ensure cookies are sent and received
-      }),
-      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+      }),      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const response = await queryFulfilled;
           const { data } = response.data;
@@ -68,9 +67,27 @@ export const userApiSlice = apiSlice.injectEndpoints({
           
           // Store user ID in localStorage (this doesn't need to be secure)
           localStorage.setItem('userId', data.id);
-          
-          // Remove any old tokens from localStorage if they exist
+            // Remove any old tokens from localStorage if they exist
           localStorage.removeItem('accessToken');
+            // Store the refresh token in a cookie (this will be done via document.cookie)
+          // Using HttpOnly cookie would be best but can only be set by the server
+          if (data.refreshToken) {
+            // Store for development/debugging only
+            localStorage.setItem('refreshTokenForDebug', data.refreshToken);
+            console.log('Debug refresh token set:', data.refreshToken.substring(0, 8) + '...');
+            
+            // Call our proxy endpoint to set the cookie
+            fetch('/api/set-refresh-token', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ refreshToken: data.refreshToken }),
+              credentials: 'include',
+            }).catch(err => {
+              console.error('Error setting refresh token cookie:', err);
+            });
+          }
           
           // Update Redux store with user data (but not the tokens)
           dispatch(setUser({
@@ -108,31 +125,79 @@ export const userApiSlice = apiSlice.injectEndpoints({
         }
       },
       invalidatesTags: [{ type: 'Users' as const, id: 'CURRENT' }],
-    }),
-    
-    // New endpoint for refreshing tokens
+    }),    // New endpoint for refreshing tokens
     refreshToken: builder.mutation<AuthResponse, void>({
       query: () => ({
+        // Use the dedicated refresh token endpoint
         url: '/refresh-token',
         method: 'POST',
         credentials: 'include', // Ensure cookies are sent
+        // We don't need to include the body here because our proxy will extract the refresh token from cookies
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const response = await queryFulfilled;
-          const { data } = response.data;
+          console.log('Refresh token response:', response);
           
-          // Store new access token in memory
-          setAccessToken(data.accessToken);
+          // Extract access token and refresh token
+          let accessToken = null;
+          let refreshToken = null;
           
-          // Update Redux store if needed
-          // Note: We don't need to update the user here, just the token
+          if (response.data && response.data.data) {
+            const data = response.data.data;
+            if (data.accessToken) {
+              accessToken = data.accessToken;
+            }
+            if (data.refreshToken) {
+              refreshToken = data.refreshToken;
+            }
+          }
+          
+          if (accessToken) {
+            console.log('Got new access token from refresh endpoint:', accessToken.substring(0, 10) + '...');
+            
+            // Store new access token in memory
+            setAccessToken(accessToken);
+            
+            // Update Redux store with the new token
+            dispatch(setToken(accessToken));
+            
+            // Handle the refresh token if it's returned
+            if (refreshToken) {
+              console.log('Got new refresh token from refresh endpoint:', refreshToken.substring(0, 8) + '...');
+              
+              // Store for development/debugging
+              setDebugRefreshToken(refreshToken);
+              
+              // Update the HTTP-only cookie
+              fetch('/api/set-refresh-token', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ refreshToken }),
+                credentials: 'include',
+              }).catch(err => {
+                console.error('Error updating refresh token cookie:', err);
+              });
+            }
+            
+            console.log('Successfully refreshed token');
+            return { success: true };
+          } else {
+            console.error('No access token in response data', response);
+            dispatch(setUser(null));
+            setAccessToken(null);
+            localStorage.removeItem('userId');
+            return { success: false };
+          }
         } catch (error) {
           console.error('Error refreshing token:', error);
           // If refresh fails, log the user out
           dispatch(setUser(null));
           setAccessToken(null);
           localStorage.removeItem('userId');
+          return { success: false };
         }
       },
     }),

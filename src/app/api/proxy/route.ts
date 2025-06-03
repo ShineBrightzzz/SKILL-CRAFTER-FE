@@ -51,14 +51,15 @@ async function proxyRequest(request: NextRequest, method: string) {
         { error: 'API URL not configured' },
         { status: 500 }
       );
-    }
-
-    // Get the path from the original request (exclude /api/proxy)
+    }    // Get the path from the original request (exclude /api/proxy)
     const pathname = request.nextUrl.pathname;
     const apiPath = pathname.replace('/api/proxy', '');
     
+    // If the path doesn't start with a slash, add one
+    const formattedPath = apiPath.startsWith('/') ? apiPath : `/${apiPath}`;
+    
     // Build the target URL
-    const targetUrl = new URL(apiPath, apiUrl);
+    const targetUrl = new URL(formattedPath, apiUrl);
     
     // Copy query parameters
     request.nextUrl.searchParams.forEach((value, key) => {
@@ -72,15 +73,22 @@ async function proxyRequest(request: NextRequest, method: string) {
       if (key.toLowerCase() !== 'host') {
         headers.append(key, value);
       }
-    });
-
-    // Forward the request to the API server
+    });    // Forward the request to the API server
     const response = await fetch(targetUrl.toString(), {
       method,
       headers,
       body: method !== 'GET' && method !== 'HEAD' ? await request.text() : undefined,
       credentials: 'include',
-    });    // Create a new response with the API response
+    });
+    
+    // Log response status for debugging
+    console.log(`Proxy ${method} ${formattedPath} - Response status:`, response.status);
+    
+    // Get the content type
+    const contentType = response.headers.get('content-type');
+    console.log('Response content-type:', contentType);
+    
+    // Create a new response with the API response
     const newResponse = new NextResponse(response.body, {
       status: response.status,
       statusText: response.statusText,

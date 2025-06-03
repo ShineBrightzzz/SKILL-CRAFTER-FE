@@ -105,16 +105,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Dispatch permissions to ability slice
           dispatch(setAbility(permissions?.data || []));
           
-          setIsAuthenticated(true);
-        } else if (userId) {
+          setIsAuthenticated(true);        } else if (userId) {
           // If no token in memory but we have userId, try to refresh it using the HTTP-only cookie
           try {
+            console.log('Attempting to refresh token in AuthProvider...');
             const result = await refreshToken().unwrap();
+            console.log("Token refresh result:", result);
             
-            if (result.success && result.data?.accessToken) {
+            if (result.data?.data?.accessToken) {
+              const newAccessToken = result.data.data.accessToken;
+              console.log('Got new access token:', newAccessToken.substring(0, 10) + '...');
+              
               // If refresh successful, update in-memory token
-              setAccessToken(result.data.accessToken);
-              tokenRef.current = result.data.accessToken;
+              setAccessToken(newAccessToken);
+              tokenRef.current = newAccessToken;
               
               // Fetch user data with new token
               const userData = await getUserById(userId).unwrap();
