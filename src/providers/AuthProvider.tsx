@@ -14,8 +14,9 @@ import { useRouter } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import { setUser, logout } from '@/store/slices/authSlice';
 import { setAbility } from '@/store/slices/abilitySlice';
-import { useLazyGetAccountByIdQuery } from '@/services/user.service';
+import { useLazyGetAccountByIdQuery, useRefreshTokenMutation } from '@/services/user.service';
 import { useLazyGetRolePermissionsQuery } from '@/services/role.service';
+import { getAccessToken, setAccessToken } from '@/services/api';
 
 interface AuthContextType {
   signIn: (token: string) => Promise<void>;
@@ -44,14 +45,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const dispatch = useDispatch();
   const router = useRouter();
-
   const [getUserById] = useLazyGetAccountByIdQuery();
   const [getPermissionByRole] = useLazyGetRolePermissionsQuery();
+  const [refreshToken] = useRefreshTokenMutation();
+
   const handleAuthFailure = useCallback((shouldRedirect = true) => {
-    localStorage.removeItem('accessToken');
+    // Clear in-memory token
+    setAccessToken(null);
+    // Clear localStorage
     localStorage.removeItem('userId');
+    // Clear tokenRef
     tokenRef.current = null;
     setCurrentUserId(null);
+    // Clear Redux state
     dispatch(logout());
     dispatch(setAbility([])); // Clear permissions when logged out
     setIsAuthenticated(false);
@@ -69,18 +75,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         setIsLoading(true);
         
-        const token = localStorage.getItem('accessToken');
+        // Check for userId in localStorage
         const userId = localStorage.getItem('userId');
-          if (token && userId) {
+        
+        // Check for access token in memory
+        const token = getAccessToken();
+        
+        if (token && userId) {
+          // If we have both access token and userId, fetch user data
           const userData = await getUserById(userId).unwrap();
-          const permissions = await getPermissionByRole(userData?.data?.role?.id || 'user').unwrap();
+          const permissions = await getPermissionByRole(
+            userData?.data?.role?.id || 'user'
+          ).unwrap();
+          
           console.log("User permissions:", permissions);
+          
+          // Store token in ref
           tokenRef.current = token;
           setCurrentUserId(userId);
+          
+          // Update Redux store
           dispatch(setUser({
             id: userId,
             username: userData?.data?.username || '',
-            accessToken: token,
+            // Don't store the token in Redux for security
             isAuthenticated: true
           }));
           
@@ -88,8 +106,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           dispatch(setAbility(permissions?.data || []));
           
           setIsAuthenticated(true);
+        } else if (userId) {
+          // If no token in memory but we have userId, try to refresh it using the HTTP-only cookie
+          try {
+            const result = await refreshToken().unwrap();
+            
+            if (result.success && result.data?.accessToken) {
+              // If refresh successful, update in-memory token
+              setAccessToken(result.data.accessToken);
+              tokenRef.current = result.data.accessToken;
+              
+              // Fetch user data with new token
+              const userData = await getUserById(userId).unwrap();
+              const permissions = await getPermissionByRole(
+                userData?.data?.role?.id || 'user'
+              ).unwrap();
+              
+              // Update Redux store
+              dispatch(setUser({
+                id: userId,
+                username: userData?.data?.username || '',
+                isAuthenticated: true
+              }));
+              
+              // Dispatch permissions
+              dispatch(setAbility(permissions?.data || []));
+              
+              setIsAuthenticated(true);
+            } else {
+              console.log("Token refresh failed");
+              handleAuthFailure(false);
+            }
+          } catch (refreshError) {
+            console.log("Error refreshing token:", refreshError);
+            handleAuthFailure(false);
+          }
         } else {
-          console.log("No token or userId found");
+          console.log("No userId found");
           handleAuthFailure(false);
         }
       } catch (error) {
@@ -99,8 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     })();
-  }, []);
-
+  }, [dispatch, getUserById, getPermissionByRole, refreshToken, handleAuthFailure]);
   const signIn = useCallback(async (token: string) => {
     try {
       const userId = localStorage.getItem('userId');
@@ -108,7 +160,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('No userId found');
       }
 
-      localStorage.setItem('accessToken', token);
+      // Store token in memory instead of localStorage
+      setAccessToken(token);
       tokenRef.current = token;
       setCurrentUserId(userId);
       

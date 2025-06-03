@@ -1,5 +1,5 @@
 import { setUser } from '@/store/slices/authSlice';
-import apiSlice from './api';
+import apiSlice, { setAccessToken } from './api';
 import type { AuthResponse } from '@/types/auth';
 
 // Define types
@@ -51,36 +51,90 @@ export interface ApiResponse<T> {
 }
 
 export const userApiSlice = apiSlice.injectEndpoints({
-  endpoints: (builder) => ({
-    login: builder.mutation<AuthResponse, { username: string; password: string; recaptchaToken?: string | null }>({
+  endpoints: (builder) => ({    login: builder.mutation<AuthResponse, { username: string; password: string; recaptchaToken?: string | null }>({
       query: (credentials) => ({
         url: '/login',
         method: 'POST',
         body: credentials,
+        credentials: 'include', // Ensure cookies are sent and received
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const response = await queryFulfilled;
           const { data } = response.data;
 
+          // Store access token in memory instead of localStorage
+          setAccessToken(data.accessToken);
+          
+          // Store user ID in localStorage (this doesn't need to be secure)
           localStorage.setItem('userId', data.id);
-          localStorage.setItem('accessToken', data.accessToken);
+          
+          // Remove any old tokens from localStorage if they exist
+          localStorage.removeItem('accessToken');
+          
+          // Update Redux store with user data (but not the tokens)
+          dispatch(setUser({
+            id: data.id,
+            username: data.username,
+            email: data.email,
+            // Don't store accessToken in Redux state for security
+          }));
+
         } catch (error) {
           console.error('Error saving user data:', error);
           // Clean up any partial data
+          setAccessToken(null);
           localStorage.removeItem('userId');
-          localStorage.removeItem('accessToken');
+        }
+      },
+      invalidatesTags: [{ type: 'Users' as const, id: 'CURRENT' }],
+    }),    logout: builder.mutation<any, void>({
+      query: () => ({
+        url: '/api/auth/logout',
+        method: 'POST',
+        credentials: 'include', // Ensure cookies are sent
+      }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          // Clear in-memory token
+          setAccessToken(null);
+          // Remove any localStorage items
+          localStorage.removeItem('userId');
+          // Update Redux store
+          dispatch(setUser(null));
+        } catch (error) {
+          console.error('Error during logout:', error);
         }
       },
       invalidatesTags: [{ type: 'Users' as const, id: 'CURRENT' }],
     }),
-
-    logout: builder.mutation<any, void>({
+    
+    // New endpoint for refreshing tokens
+    refreshToken: builder.mutation<AuthResponse, void>({
       query: () => ({
-        url: '/api/auth/logout',
+        url: '/refresh-token',
         method: 'POST',
+        credentials: 'include', // Ensure cookies are sent
       }),
-      invalidatesTags: [{ type: 'Users' as const, id: 'CURRENT' }],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const response = await queryFulfilled;
+          const { data } = response.data;
+          
+          // Store new access token in memory
+          setAccessToken(data.accessToken);
+          
+          // Update Redux store if needed
+          // Note: We don't need to update the user here, just the token
+        } catch (error) {
+          console.error('Error refreshing token:', error);
+          // If refresh fails, log the user out
+          dispatch(setUser(null));
+          setAccessToken(null);
+          localStorage.removeItem('userId');
+        }
+      },
     }),
 
 
@@ -176,6 +230,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
 export const {
   useLoginMutation,
   useLogoutMutation,
+  useRefreshTokenMutation,
 
   // New account management hooks
   useGetAllAccountsQuery,
