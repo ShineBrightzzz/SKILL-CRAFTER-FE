@@ -1,17 +1,16 @@
 'use client'
 
 import { useState } from 'react';
-
-import { QuizData } from '@/types/quiz';
+import { QuizData, QuizQuestion } from '@/types/quiz';
 
 interface QuizProps {
-  data: QuizData;
+  quizData: QuizData;
   onComplete?: (success: boolean) => void;
 }
 
-export default function Quiz({ data, onComplete }: QuizProps) {
+export default function Quiz({ quizData, onComplete }: QuizProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<number[]>(new Array(data.questions.length).fill(-1));
+  const [selectedAnswers, setSelectedAnswers] = useState<number[]>(new Array(quizData.questions.length).fill(-1));
   const [showResults, setShowResults] = useState(false);
 
   const handleAnswerSelect = (optionIndex: number) => {
@@ -19,8 +18,9 @@ export default function Quiz({ data, onComplete }: QuizProps) {
     newAnswers[currentQuestion] = optionIndex;
     setSelectedAnswers(newAnswers);
   };
+
   const handleNext = () => {
-    if (currentQuestion < data.questions.length - 1) {
+    if (currentQuestion < quizData.questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
       const score = calculateScore();
@@ -41,19 +41,20 @@ export default function Quiz({ data, onComplete }: QuizProps) {
 
   const handleRetry = () => {
     setCurrentQuestion(0);
-    setSelectedAnswers(new Array(data.questions.length).fill(-1));
+    setSelectedAnswers(new Array(quizData.questions.length).fill(-1));
     setShowResults(false);
   };
 
   const calculateScore = () => {
     let correct = 0;
     selectedAnswers.forEach((answer, index) => {
-      if (answer === data.questions[index].correctAnswer) {
+      if (answer === quizData.questions[index].correctAnswer) {
         correct++;
       }
     });
-    return Math.round((correct / data.questions.length) * 100);
+    return Math.round((correct / quizData.questions.length) * 100);
   };
+
   if (showResults) {
     const score = calculateScore();
     const allCorrect = score === 100;
@@ -64,7 +65,7 @@ export default function Quiz({ data, onComplete }: QuizProps) {
         <div className="text-center mb-6">
           <div className={`text-4xl font-bold ${allCorrect ? 'text-green-600' : 'text-blue-600'} mb-2`}>{score}%</div>
           <p className="text-gray-600">
-            Bạn trả lời đúng {selectedAnswers.filter((answer, index) => answer === data.questions[index].correctAnswer).length}/{data.questions.length} câu hỏi
+            Bạn trả lời đúng {selectedAnswers.filter((answer, index) => answer === quizData.questions[index].correctAnswer).length}/{quizData.questions.length} câu hỏi
           </p>
           {allCorrect && (
             <p className="mt-2 text-green-600 font-medium">
@@ -72,11 +73,11 @@ export default function Quiz({ data, onComplete }: QuizProps) {
             </p>
           )}
         </div>
-        {data.questions.map((question, index) => (
+        {quizData.questions.map((question: QuizQuestion, index: number) => (
           <div key={index} className="mb-6 p-4 rounded-lg bg-gray-50">
             <p className="font-medium mb-2">{index + 1}. {question.question}</p>
             <div className="space-y-2">
-              {question.options.map((option, optionIndex) => (
+              {question.options.map((option: string, optionIndex: number) => (
                 <div
                   key={optionIndex}
                   className={`p-3 rounded-lg ${
@@ -108,21 +109,21 @@ export default function Quiz({ data, onComplete }: QuizProps) {
     );
   }
 
-  const currentQuestionData = data.questions[currentQuestion];
+  const currentQuestionData = quizData.questions[currentQuestion];
 
   return (
     <div className="bg-white rounded-lg p-6 shadow-lg">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-bold">Câu hỏi {currentQuestion + 1}/{data.questions.length}</h3>
+        <h3 className="text-xl font-bold">Câu hỏi {currentQuestion + 1}/{quizData.questions.length}</h3>
         <div className="text-sm text-gray-500">
-          {selectedAnswers.filter(a => a !== -1).length}/{data.questions.length} câu đã trả lời
+          {selectedAnswers.filter(a => a !== -1).length}/{quizData.questions.length} câu đã trả lời
         </div>
       </div>
       
       <div className="mb-6">
         <p className="text-lg font-medium mb-4">{currentQuestionData.question}</p>
         <div className="space-y-3">
-          {currentQuestionData.options.map((option, index) => (
+          {currentQuestionData.options.map((option: string, index: number) => (
             <button
               key={index}
               className={`w-full p-4 text-left rounded-lg border transition ${
@@ -159,7 +160,7 @@ export default function Quiz({ data, onComplete }: QuizProps) {
               : 'bg-blue-600 text-white hover:bg-blue-700'
           }`}
         >
-          {currentQuestion === data.questions.length - 1 ? 'Nộp bài' : 'Tiếp theo'}
+          {currentQuestion === quizData.questions.length - 1 ? 'Nộp bài' : 'Tiếp theo'}
         </button>
       </div>
     </div>

@@ -1,28 +1,32 @@
-'use client'
+'use client';
 
-import Image from 'next/image';
-import Link from 'next/link';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { ChevronDownIcon, ChevronRightIcon, ChevronLeftIcon } from '@heroicons/react/24/outline';
-import VideoPlayer from '@/components/VideoPlayer';
-import Quiz from '@/components/Quiz';
-import MarkdownCode from '@/components/MarkdownCode';
-import CodeEditor from '@/components/CodeEditor';
+import Link from 'next/link';
 import { toast } from 'react-toastify';
+import { Button, Spin } from 'antd';
+import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronUpIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { skipToken } from '@reduxjs/toolkit/query/react';
+import classNames from 'classnames';
 import { useAuth } from '@/store/hooks';
 import { 
+  useGetCourseByIdQuery, 
+  useEnrollCourseMutation, 
+  useGetEnrollmentsByUserIdQuery 
+} from '@/services/course.service';
+import { useGetChaptersByCourseIdQuery } from '@/services/chapter.service';
+import { 
   useGetLessonsByChapterIdQuery, 
-  useCompleteLessonMutation, 
-  useGetLessonProgressByLessonIdQuery,
   useGetLessonProgressByUserIdQuery,
-  useGetLessonByIdQuery 
+  useGetLessonProgressByLessonIdQuery,
+  useCompleteLessonMutation
 } from '@/services/lesson.service';
-import { useGetChaptersByCourseIdQuery, useGetChapterByIdQuery } from '@/services/chapter.service';
-import { useGetCourseByIdQuery, useEnrollCourseMutation, useGetEnrollmentsByUserIdQuery } from '@/services/course.service';
-import { useAddToCartMutation, useGetCartByUserIdQuery } from '@/services/cart.service';
-import { skipToken } from '@reduxjs/toolkit/query/react';
+import { useGetCartByUserIdQuery, useAddToCartMutation } from '@/services/cart.service';
 import { Chapter } from '@/types/chapter';
+import VideoPlayer from '@/components/VideoPlayer';
+import MarkdownCode from '@/components/MarkdownCode';
+import CodeEditor from '@/components/CodeEditor';
+import Quiz from '@/components/Quiz';
 
 // Define the page props interface
 interface PageProps {
@@ -174,10 +178,8 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   // Course enrollment mutation
   const [enrollCourse, { isLoading: isEnrolling }] = useEnrollCourseMutation();
 
-  // Get cart items
+  // Get cart items and cart mutation
   const { data: cartData } = useGetCartByUserIdQuery(currentUser?.id ?? skipToken);
-  
-  // Cart mutation
   const [addToCart, { isLoading: isAddingToCart }] = useAddToCartMutation();
 
   // Check if course is already in cart
@@ -186,11 +188,10 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
     return cartData.data.some((item) => item.courseId === params.id);
   }, [cartData, params.id]);
 
-  // Use RTK Query to fetch data  // Get course data
+  // Get course data and check enrollment
   const { data: courseData, isLoading: courseLoading } = useGetCourseByIdQuery(params.id);
   const course: Course | undefined = courseData?.data;
-  // course is already defined from the destructuring above
-  // Check enrollment
+  
   const { data: enrollmentsData, isLoading: enrollmentsLoading } = useGetEnrollmentsByUserIdQuery(
     currentUser?.id ? { userId: currentUser.id } : skipToken
   );
@@ -199,7 +200,8 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   const { data: allLessonProgressData } = useGetLessonProgressByUserIdQuery(
     currentUser?.id ? currentUser.id : skipToken
   );
-    // Check if user is enrolled in this course
+
+  // Check if user is enrolled in this course
   const isEnrolled = useMemo(() => {
     if (!enrollmentsData?.data?.result || !params.id) return false;
     return enrollmentsData.data.result.some((enrollment: any) => enrollment.courseId === params.id);
@@ -208,47 +210,201 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   // Get chapters using RTK Query
   const { data: chaptersResponse, isLoading: chaptersLoading } = useGetChaptersByCourseIdQuery({
     courseId: params.id
-  });  const chapters = useMemo(() => {
-    return (chaptersResponse?.data?.result || []) as Chapter[];
-  }, [chaptersResponse]);
+  });
   
-  // State to track which chapter we're currently fetching
-  const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
+  const chapters = useMemo(() => {
+    const result = (chaptersResponse?.data?.result || []) as Chapter[];
+    return result;
+  }, [chaptersResponse]);
 
-  // Add state for managing loaded chapters and lessons
+  // State management
+  const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
   const [loadedLessons, setLoadedLessons] = useState<{[key: string]: Lesson[]}>({});
   const [loadingStates, setLoadingStates] = useState<{[key: string]: boolean}>({});
-  
-  // State for current lesson
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
-  // Local enrollment state
   const [isLocalEnrolled, setIsLocalEnrolled] = useState(false);
-  
+
+  // State management for page mode
+  const [isLearningMode, setIsLearningMode] = useState(false);
   // Combined enrollment status
-  const effectivelyEnrolled = isEnrolled || (isLocalEnrolled && !enrollmentsLoading);  // Function to change current lesson
+  const effectivelyEnrolled = isEnrolled || (isLocalEnrolled && !enrollmentsLoading);
+
+  // Functions to manage lessons and chapters
   const changeLesson = useCallback((lesson: Lesson) => {
     if (!lesson || !lesson.id) {
       console.warn('Attempted to set an invalid lesson:', lesson);
       return;
     }
     
-    // Prevent unnecessary updates if the lesson is the same
-    if (currentLesson && lesson.id === currentLesson.id) {
-      return;
-    }
+    if (currentLesson?.id === lesson.id) return;
     
     setCurrentLesson(lesson);
   }, [currentLesson]);
-  // Function to handle enrollment
+
+  // Functions to switch between overview and learning mode 
+  const switchToOverview = useCallback(() => {
+    setIsLearningMode(false);
+  }, []);
+
+  const switchToLearning = useCallback((selectedLesson?: Lesson) => {
+    if (selectedLesson) {
+      changeLesson(selectedLesson);
+      setExpandedChapters(prev => {
+        const newSet = new Set(prev);
+        if (!newSet.has(selectedLesson.chapterId)) {
+          newSet.add(selectedLesson.chapterId);
+        }
+        return newSet;
+      });
+    }
+    setIsLearningMode(true);
+  }, [changeLesson]);  // Get lessons for chapters
+  const { data: lessonsData } = useGetLessonsByChapterIdQuery(
+    activeChapterId ?? skipToken
+  );
+
+  useEffect(() => {
+    if (!activeChapterId || !lessonsData?.data?.result) return;
+
+    const lessons = lessonsData.data.result;
+    const sortedLessons = [...lessons].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    
+    // Enhance lessons with completion status
+    const enhancedLessons = sortedLessons.map(lesson => {
+      const progressItem = allLessonProgressData?.data?.result?.find(
+        (progress: any) => progress.lessonId === lesson.id && progress.status === "1"
+      );
+      
+      return {
+        ...lesson,
+        isCompleted: !!progressItem
+      };
+    });
+
+    setLoadedLessons(prev => ({
+      ...prev,
+      [activeChapterId]: enhancedLessons
+    }));
+
+    setLoadingStates(prev => ({ ...prev, [activeChapterId]: false }));
+  }, [lessonsData, activeChapterId, allLessonProgressData]);
+
+  const fetchLessonsForChapter = useCallback((chapterId: string) => {
+    if (loadedLessons[chapterId]) return;
+    setLoadingStates(prev => ({ ...prev, [chapterId]: true }));
+    setActiveChapterId(chapterId);
+  }, [loadedLessons]);
+
+  const toggleChapter = useCallback((chapterId: string) => {
+    setExpandedChapters(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(chapterId)) {
+        newSet.delete(chapterId);
+      } else {
+        newSet.add(chapterId);
+        fetchLessonsForChapter(chapterId);
+      }
+      return newSet;
+    });
+  }, [fetchLessonsForChapter]);
+
+  // Initialize first chapter if needed
+  useEffect(() => {
+    if (chaptersLoading || !chapters.length || !effectivelyEnrolled) return;
+    
+    // If no chapters are expanded, expand and load the first one
+    if (expandedChapters.size === 0) {
+      const firstChapterId = chapters[0].id;
+      setExpandedChapters(new Set([firstChapterId]));
+      fetchLessonsForChapter(firstChapterId);
+    }
+  }, [chaptersLoading, chapters, effectivelyEnrolled, expandedChapters.size, fetchLessonsForChapter]);// Track lesson progress
+  const { data: lessonProgressData } = useGetLessonProgressByLessonIdQuery(
+    currentLesson?.id ? currentLesson.id : skipToken
+  );
+
+  // Update lesson completion status based on progress data
+  useEffect(() => {
+    if (!currentLesson || !lessonProgressData?.data?.result?.[0]) return;
+
+    const progress = lessonProgressData.data.result[0];
+    if (progress.status === "1" && !currentLesson.isCompleted) {
+      // Update current lesson completion status
+      setCurrentLesson(prev => prev ? { ...prev, isCompleted: true } : prev);
+
+      // Update lesson in loadedLessons
+      if (currentLesson.chapterId) {
+        setLoadedLessons(prev => {
+          const chapterLessons = prev[currentLesson.chapterId] || [];
+          const updatedLessons = chapterLessons.map(lesson => 
+            lesson.id === currentLesson.id ? { ...lesson, isCompleted: true } : lesson
+          );
+          
+          return {
+            ...prev,
+            [currentLesson.chapterId]: updatedLessons 
+          };
+        });
+      }
+    }
+  }, [lessonProgressData, currentLesson]);
+
+  // Handle lesson completion 
+  const [completingLesson, setCompletingLesson] = useState<boolean>(false);
+  const [completeLesson] = useCompleteLessonMutation();
+
+  const handleCompleteLesson = async () => {
+    if (!currentUser || !currentLesson) return;
+    
+    try {
+      setCompletingLesson(true);
+      await completeLesson({
+        userId: currentUser.id,
+        lessonId: currentLesson.id,
+      }).unwrap();
+
+      // Update completion status in state
+      if (currentLesson.chapterId) {
+        setLoadedLessons(prev => {
+          const chapterLessons = prev[currentLesson.chapterId] || [];
+          const updatedLessons = chapterLessons.map(lesson => 
+            lesson.id === currentLesson.id ? { ...lesson, isCompleted: true } : lesson
+          );
+          
+          return {
+            ...prev,
+            [currentLesson.chapterId]: updatedLessons
+          };
+        });
+      }
+
+      setCurrentLesson(prev => prev ? { ...prev, isCompleted: true } : prev);
+
+      toast.success('Đã hoàn thành bài học!');
+
+      // Navigate to next lesson if available
+      const nextLesson = getNextLesson(chapters, loadedLessons, currentLesson.id);
+      if (nextLesson) {
+        changeLesson(nextLesson);
+      }
+    } catch (error) {
+      console.error('Failed to complete lesson:', error);
+      toast.error('Có lỗi xảy ra khi cập nhật trạng thái bài học');
+    } finally {
+      setCompletingLesson(false);
+    }
+  };
+
+  // Handle enrollment
   const handleEnrollment = async () => {
     if (!currentUser || !course) return;
     
-    try {      const response = await enrollCourse({ 
+    try {
+      const response = await enrollCourse({ 
         courseId: params.id, 
         userId: currentUser.id 
       }).unwrap();
       
-      // If enrollment was successful, update local state immediately
       if (response) {
         setIsLocalEnrolled(true);
         toast.success('Đăng ký khóa học thành công!');
@@ -258,8 +414,8 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
       toast.error('Có lỗi xảy ra khi đăng ký khóa học');
     }
   };
-  
-  // Function to handle adding course to cart
+
+  // Handle adding course to cart
   const handleAddToCart = async () => {
     if (!currentUser || !course) return;
     
@@ -275,1020 +431,307 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
       toast.error('Có lỗi xảy ra khi thêm vào giỏ hàng');
     }
   };
-  
-  // Function to fetch lessons for a chapter
-  const fetchLessonsForChapter = useCallback((chapterId: string) => {
-    // Skip if chapter is already loaded
-    if (loadedLessons[chapterId]) return;
-    
-    // Set loading state and active chapter
-    setLoadingStates(prev => ({ ...prev, [chapterId]: true }));
-    setActiveChapterId(chapterId);
-  }, [loadedLessons]);
-  
-  // Function to toggle chapter expansion
-  const toggleChapter = (chapterId: string) => {
-    setExpandedChapters(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(chapterId)) {
-        newSet.delete(chapterId);
-        return newSet;
-      } else {
-        newSet.add(chapterId);
-        // Only fetch if not already loaded
-        if (!loadedLessons[chapterId]) {
-          fetchLessonsForChapter(chapterId);
-        }
-        return newSet;
-      }
-    });
-  };
-  // Effect to handle first load and pre-load first chapter's lessons
-  useEffect(() => {
-    if (!chaptersLoading && chapters.length > 0 && !activeChapterId && !searchParams.activityId) {
-      // Default to loading first chapter's lessons on first load
-      const firstChapterId = chapters[0].id;
-      if (firstChapterId && !loadedLessons[firstChapterId]) {
-        fetchLessonsForChapter(firstChapterId);
-        setExpandedChapters(prev => new Set([...prev, firstChapterId]));
-      }
-    }
-  }, [chaptersLoading, chapters, activeChapterId, searchParams.activityId, loadedLessons, fetchLessonsForChapter]);
-  
-  // Effect to handle activityId changes
-  useEffect(() => {
-    // Don't run the effect if chapters are still loading
-    if (chaptersLoading || chapters.length === 0) return;
-
-    // Handle activityId changes
-    if (searchParams.activityId) {
-      // Find the chapter containing the lesson
-      for (const chapter of chapters) {
-        // Load lessons for this chapter if not already loaded and activityId matches
-        if (!loadedLessons[chapter.id]) {
-          fetchLessonsForChapter(chapter.id);
-          // Add chapter to expanded set
-          setExpandedChapters(prev => new Set([...prev, chapter.id]));
-        }
-
-        // If lessons are loaded, check if this is the right lesson
-        if (loadedLessons[chapter.id]) {
-          const lesson = loadedLessons[chapter.id].find(l => l.id === searchParams.activityId);
-          if (lesson) {
-            changeLesson(lesson);
-            break;
-          }
-        }
-      }
-    } else if (chapters[0]?.id && !expandedChapters.size) {
-      // Default to first lesson if no activityId and no chapters are expanded yet
-      const firstChapterId = chapters[0].id;
-      if (!loadedLessons[firstChapterId]) {
-        fetchLessonsForChapter(firstChapterId);
-      }
-      setExpandedChapters(prev => new Set([...prev, firstChapterId]));
-    }
-  }, [searchParams.activityId, chapters, chaptersLoading, loadedLessons, changeLesson, expandedChapters, fetchLessonsForChapter]);
-
-  // Fetch lessons for active chapter using RTK Query
-  const { data: lessonsResponse } = useGetLessonsByChapterIdQuery(
-    activeChapterId ?? skipToken
-  );  
-    // Effect to process lessons data when it arrives
-  useEffect(() => {
-    if (activeChapterId && lessonsResponse?.data?.result) {
-      const lessons = lessonsResponse.data.result;
-      const sortedLessons = [...lessons].sort((a, b) => 
-        (a.order ?? 0) - (b.order ?? 0)
-      );
-      
-      // Process lesson progress data
-      const enhancedLessons = sortedLessons.map(lesson => {
-        // Check if we have progress data for this lesson
-        let isCompleted = false;
-        
-        // If we have progress data from the user query, use it
-        if (allLessonProgressData?.data?.result) {
-          const progressItem = allLessonProgressData.data.result.find(
-            (progress: any) => progress.lessonId === lesson.id && progress.status === "1"
-          );
-          isCompleted = !!progressItem;
-        }
-        
-        return {
-          ...lesson,
-          isCompleted
-        };
-      });
-        setLoadedLessons(prev => ({
-        ...prev,
-        [activeChapterId]: enhancedLessons as Lesson[]
-      }));
-
-      // Pre-load the lesson content if it's the current chapter
-      if (searchParams.activityId && currentLesson?.chapterId === activeChapterId) {
-        const lesson = enhancedLessons.find(l => l.id === searchParams.activityId);
-        if (lesson) {
-          changeLesson(lesson);
-        }
-      }
-
-      // Clear loading state
-      setLoadingStates(prev => ({ ...prev, [activeChapterId]: false }));
-      setActiveChapterId(null);
-    }  
-  }, [lessonsResponse, activeChapterId, searchParams.activityId, currentLesson?.chapterId, changeLesson, allLessonProgressData]);
-  // Get progress for current lesson
-  const { data: lessonProgressData } = useGetLessonProgressByLessonIdQuery(
-    currentLesson?.id ? currentLesson.id : skipToken
-  );
-    // Effect to update current lesson completion status when progress data changes
-  useEffect(() => {
-    if (currentLesson && lessonProgressData?.data?.result?.[0]) {
-      const progress = lessonProgressData.data.result[0];
-      // If the lesson status is "1" (completed) and the current lesson is not marked as completed
-      if (progress.status === "1" && !currentLesson.isCompleted) {
-        // Update current lesson to show completed status
-        setCurrentLesson(prev => 
-          prev ? { ...prev, isCompleted: true } : prev
-        );
-        
-        // Also update in the loaded lessons array
-        if (currentLesson.chapterId) {
-          setLoadedLessons(prev => {
-            const chapterLessons = prev[currentLesson.chapterId] || [];
-            const updatedLessons = chapterLessons.map(lesson => 
-              lesson.id === currentLesson.id 
-                ? { ...lesson, isCompleted: true } 
-                : lesson
-            );
-            
-            return {
-              ...prev,
-              [currentLesson.chapterId]: updatedLessons
-            };
-          });
-        }
-      }
-    }
-  }, [lessonProgressData, currentLesson]);
-
-  // Find the first lesson for the course
-  const firstLesson = useMemo(() => {
-    if (chapters.length > 0) {
-      const firstChapter = chapters[0];
-      const firstChapterLessons = loadedLessons[firstChapter.id] || [];
-      if (firstChapterLessons.length > 0) {
-        return firstChapterLessons[0];
-      }
-    }
-    return null;
-  }, [chapters, loadedLessons]);  
-
-  // Effect to redirect to first lesson if needed
-  useEffect(() => {
-    // Only redirect if user is enrolled, first lesson exists, no activityId is provided,
-    // and chapters are loaded
-    if (effectivelyEnrolled && firstLesson && !searchParams.activityId && !chaptersLoading) {
-      const lessonId = firstLesson.id;
-      if (lessonId && typeof changeLesson === 'function') {
-        // Redirect to first lesson URL
-        router.push(`/learning/${params.id}?activityId=${lessonId}`);
-        // Update current lesson state
-        changeLesson(firstLesson);
-      }
-    }
-  }, [effectivelyEnrolled, firstLesson, searchParams.activityId, chaptersLoading, params.id, router, changeLesson]);  // Complete lesson mutation
-  const [completingLesson, setCompletingLesson] = useState<boolean>(false);
-  const [completeLesson] = useCompleteLessonMutation();
-    // Function to handle lesson completion
-  const handleCompleteLesson = async () => {
-    if (!currentUser || !currentLesson) return;
-    
-    try {
-      setCompletingLesson(true);
-      await completeLesson({
-        userId: currentUser.id,
-        lessonId: currentLesson.id,
-      }).unwrap();
-
-      // Update the lesson completion status in local state
-      if (currentLesson.chapterId) {
-        // Mark the current lesson as completed in the local state
-        setLoadedLessons(prev => {
-          const chapterLessons = prev[currentLesson.chapterId] || [];
-          const updatedLessons = chapterLessons.map(lesson => 
-            lesson.id === currentLesson.id 
-              ? { ...lesson, isCompleted: true } 
-              : lesson
-          );
-          
-          return {
-            ...prev,
-            [currentLesson.chapterId]: updatedLessons
-          };
-        });
-        
-        // Update current lesson to show completed status
-        setCurrentLesson(prev => 
-          prev ? { ...prev, isCompleted: true } : prev
-        );
-      }
-
-      toast.success('Bài học đã được đánh dấu là hoàn thành!');
-    } catch (error) {
-      console.error('Failed to complete lesson:', error);
-      toast.error('Có lỗi xảy ra khi hoàn thành bài học');
-    } finally {
-      setCompletingLesson(false);
-    }  
-  };
-
-  // Reset local enrollment state when enrollment data changes
-  useEffect(() => {
-    if (!enrollmentsLoading && !isEnrolled) {
-      // If we've loaded enrollment data and the user is not enrolled according to API
-      // reset the local enrollment state to avoid incorrect display
-      setIsLocalEnrolled(false);
-    }
-  }, [enrollmentsLoading, isEnrolled]);
-  // Helper functions for rendering different lesson types
-
-  // Render the appropriate content based on lesson type
-  const renderLessonContent = (
-    currentLesson: Lesson,
-    chapters: Chapter[],
-    expandedChapters: Set<string>,
-    loadingStates: {[key: string]: boolean},
-    loadedLessons: {[key: string]: Lesson[]},
-    params: { id: string },
-    changeLesson: (lesson: Lesson) => void,
-    router: any,
-    chaptersLoading: boolean,
-    toggleChapter: (chapterId: string) => void,
-    handleCompleteLesson: () => Promise<void>,
-    completingLesson: boolean
-  ) => {
-    switch (currentLesson.type) {
-      case 3:
-        return renderProgrammingExercise(currentLesson);
-      default:
-        return renderNormalLesson(
-          currentLesson,
-          chapters,
-          expandedChapters,
-          loadingStates,
-          loadedLessons,
-          params,
-          changeLesson,
-          router,
-          chaptersLoading,
-          toggleChapter,
-          handleCompleteLesson,
-          completingLesson
-        );
-    }
-  };
-
-  // Render coding/programming exercise (type === 3)
-  const renderProgrammingExercise = (lesson: Lesson) => {
-    return (
-      <div className="grid grid-cols-2 h-[calc(100vh-76px)]">
-        {/* Left side - Content/Description */}
-        <div className="border-r bg-white overflow-y-auto">
-          <div className="p-6">
-            {lesson.content ? (
-              <div className="prose max-w-none">
-                <MarkdownCode content={lesson.content} />
-              </div>
-            ) : (
-              <div className="prose max-w-none">
-                <h3>Bài tập: {lesson.title}</h3>
-                <p>Vui lòng tạo một chương trình Java theo yêu cầu bên dưới:</p>
-                <ul>
-                  <li>Triển khai các yêu cầu của bài tập</li>
-                  <li>Test tất cả các trường hợp có thể</li>
-                  <li>Đảm bảo code rõ ràng và có comment đầy đủ</li>
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right side - Code Editor and Test */}
-        <div className="flex flex-col bg-[#1e1e1e]">
-          <div className="flex-1">
-            <CodeEditor
-              initialCode={lesson.initialCode || '// Write your code here\n// Viết code của bạn ở đây'}
-              language={lesson.language || 'javascript'}
-              lessonId={lesson.id}
-              useReduxStore={true}
-              onComplete={handleCompleteLesson}
-            />
-          </div>
-          <div className="h-[300px] border-t border-gray-700 text-white overflow-y-auto">
-            <div className="p-4">
-              {/* Code testing area */}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-  // Render normal lessons (reading, video, quiz) - types 1, 2, 4
-  const renderNormalLesson = (
-    currentLesson: Lesson,
-    chapters: Chapter[],
-    expandedChapters: Set<string>,
-    loadingStates: {[key: string]: boolean},
-    loadedLessons: {[key: string]: Lesson[]},
-    params: { id: string },
-    changeLesson: (lesson: Lesson) => void,
-    router: any,
-    chaptersLoading: boolean,
-    toggleChapter: (chapterId: string) => void,
-    handleCompleteLesson: () => Promise<void>,
-    completingLesson: boolean
-  ) => {
-    return (
-      <div className="flex">
-        {/* Sidebar */}
-        <div className="w-64 min-h-[calc(100vh-76px)] bg-white border-r">
-          <div className="p-4">
-            <h3 className="text-sm font-medium text-gray-500 mb-4">NỘI DUNG KHÓA HỌC</h3>
-            {renderChapters(
-              chaptersLoading,
-              chapters,
-              expandedChapters,
-              loadingStates,
-              loadedLessons,
-              currentLesson,
-              params,
-              toggleChapter,
-              changeLesson,
-              router
-            )}
-          </div>
-        </div>
-        
-        {/* Main content */}
-        <div className="flex-1 p-6">
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            {renderCompleteLessonButton(currentLesson, handleCompleteLesson, completingLesson)}
-            <div className="prose max-w-none">                    
-              {renderLessonTypeContent(currentLesson)}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-  // Render the chapters list in sidebar
-  const renderChapters = (
-    chaptersLoading: boolean,
-    chapters: Chapter[],
-    expandedChapters: Set<string>,
-    loadingStates: {[key: string]: boolean},
-    loadedLessons: {[key: string]: Lesson[]},
-    currentLesson: Lesson,
-    params: { id: string },
-    toggleChapter: (chapterId: string) => void,
-    changeLesson: (lesson: Lesson) => void,
-    router: any
-  ) => {
-    if (chaptersLoading) {
-      return (
-        <div className="py-4 text-center">
-          <p className="text-gray-500">Đang tải nội dung...</p>
-        </div>
-      );
-    }
-    
-    return chapters.map((chapter: Chapter, chapterIndex: number) => (
-      <div key={chapter.id} className="mb-4">
-        <button
-          onClick={() => toggleChapter(chapter.id)}
-          className="flex items-center w-full text-left mb-2 text-gray-700 hover:text-blue-600"
-        >
-          {expandedChapters.has(chapter.id) ? (
-            <ChevronDownIcon className="h-4 w-4 mr-2" />
-          ) : (
-            <ChevronRightIcon className="h-4 w-4 mr-2" />
-          )}
-          <span className="text-sm font-medium">
-            Chương {chapterIndex + 1}: {chapter.name}
-          </span>
-        </button>                        
-        {expandedChapters.has(chapter.id) && (
-          <div className="ml-6 space-y-2">
-            {loadingStates[chapter.id] ? (
-              <div className="py-2 text-gray-500">Đang tải...</div>
-            ) : renderLessons(
-              loadedLessons,
-              chapter,
-              chapterIndex,
-              currentLesson,
-              params,
-              changeLesson,
-              router
-            )}
-          </div>
-        )}
-      </div>
-    ));
-  };  // Render lessons for each chapter
-  const renderLessons = (
-    loadedLessons: {[key: string]: Lesson[]},
-    chapter: Chapter,
-    chapterIndex: number,
-    currentLesson: Lesson,
-    params: { id: string },
-    changeLesson: (lesson: Lesson) => void,
-    router: any
-  ) => {
-    return (loadedLessons[chapter.id] || [])
-      .filter(lesson => lesson.chapterId === chapter.id)
-      .map((lesson: Lesson, lessonIndex: number) => {
-        // For the current lesson, check if it's completed from the progress data
-        const isCurrentLesson = currentLesson?.id === lesson.id;
-        const lessonProgress = isCurrentLesson ? lessonProgressData?.data?.result?.[0] : null;
-        
-        // Use the isCompleted flag from the lesson object, which is now populated from allLessonProgressData
-        const isCompleted = lesson.isCompleted || (isCurrentLesson && lessonProgress?.status === "1");
-        
-        return (
-          <Link
-            key={lesson.id}
-            href={`/learning/${params.id}?activityId=${lesson.id}`}
-            onClick={(e) => {
-              e.preventDefault();
-              if (typeof changeLesson === 'function') {
-                changeLesson(lesson);
-              }
-              router.push(`/learning/${params.id}?activityId=${lesson.id}`);
-            }}
-            className={`flex justify-between items-center text-sm py-1 px-2 rounded-md ${
-              currentLesson?.id === lesson.id
-                ? 'bg-blue-50 text-blue-600'
-                : 'text-gray-600 hover:text-blue-600'
-            }`}
-          >
-            <div>{chapterIndex + 1}.{lessonIndex + 1} {lesson.title}</div>
-            <div className={`h-4 w-4 border-2 rounded flex-shrink-0 ml-2 
-              ${isCompleted ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>
-              {isCompleted && (
-                <svg xmlns="http://www.w3.org/2000/svg" className="text-white h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              )}
-            </div>
-          </Link>
-        );
-      });
-  };  // Render the complete lesson button for video and reading lessons
-  const renderCompleteLessonButton = (
-    currentLesson: Lesson,
-    handleCompleteLesson: () => Promise<void>,
-    completingLesson: boolean
-  ) => {
-    if (currentLesson.type !== 2 && currentLesson.type !== 4) return null;
-    
-    // Check if lesson is completed based on the lesson object's isCompleted property
-    // or from the current lesson progress data as a fallback
-    const lessonProgress = lessonProgressData?.data?.result?.[0];
-    const isLessonCompleted = currentLesson.isCompleted || lessonProgress?.status === "1";
-    
-    return (
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={handleCompleteLesson}
-          disabled={completingLesson || isLessonCompleted}
-          className={`px-4 py-2 rounded-md text-white font-medium flex items-center space-x-2
-            ${isLessonCompleted 
-              ? 'bg-green-500 hover:bg-green-600' 
-              : 'bg-blue-600 hover:bg-blue-700'} 
-            disabled:opacity-50 disabled:cursor-not-allowed`}
-        >
-          {completingLesson ? (
-            <span>Đang xử lý...</span>
-          ) : isLessonCompleted ? (
-            <>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-              <span>Đã hoàn thành</span>
-            </>
-          ) : (
-            <>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span>Đánh dấu hoàn thành</span>
-            </>
-          )}
-        </button>
-      </div>
-    );
-  };// Render content based on lesson type
-  const renderLessonTypeContent = (lesson: Lesson) => {
-    // Check if lesson is completed based on lesson object's isCompleted property 
-    // which is now populated from allLessonProgressData
-    // or from the current lesson progress data as a fallback
-    const lessonProgress = lessonProgressData?.data?.result?.[0];
-    const isLessonCompleted = lesson.isCompleted || (lessonProgress?.status === "1");
-    
-    switch (lesson.type) {
-      case 1: // Quiz
-        return lesson.quizData && (
-          <Quiz 
-            data={lesson.quizData} 
-            onComplete={(success) => {
-              // Only mark as complete if all answers are correct
-              if (success && !isLessonCompleted) {
-                handleCompleteLesson();
-              }
-            }} 
-          />
-        );
-      case 2: // Video
-        return lesson.videoUrl && (
-          <>
-            <VideoPlayer 
-              src={lesson.videoUrl}
-              className="w-full relative z-10"
-            />
-            <VideoPlayer 
-              src={lesson.videoUrl}
-              backgroundMode={true}
-              className="background-video"
-            />
-          </>
-        );
-      case 4: // Reading
-        return lesson.content && <MarkdownCode content={lesson.content} />;
-      default:
-        return <p>Loại bài học không được hỗ trợ</p>;
-    }
-  };
-
-  // Handle lesson navigation
-  const handlePreviousLesson = (
-    chapters: Chapter[],
-    loadedLessons: {[key: string]: Lesson[]},
-    currentLesson: Lesson,
-    changeLesson: (lesson: Lesson) => void,
-    router: any,
-    params: { id: string }
-  ) => {
-    const prevLesson = getPreviousLesson(chapters, loadedLessons, currentLesson.id);
-    if (prevLesson && typeof changeLesson === 'function') {
-      router.push(`/learning/${params.id}?activityId=${prevLesson.id}`);
-      changeLesson(prevLesson);
-    }
-  };
-
-  const handleNextLesson = (
-    chapters: Chapter[],
-    loadedLessons: {[key: string]: Lesson[]},
-    currentLesson: Lesson,
-    changeLesson: (lesson: Lesson) => void,
-    router: any,
-    params: { id: string }
-  ) => {    const nextLesson = getNextLesson(chapters, loadedLessons, currentLesson.id);
-    if (nextLesson && typeof changeLesson === 'function') {
-      router.push(`/learning/${params.id}?activityId=${nextLesson.id}`);
-      changeLesson(nextLesson);
-    }
-  };
-
-  // Render lesson number buttons
-  const renderLessonNumbers = (
-    chapters: Chapter[],
-    loadedLessons: {[key: string]: Lesson[]},
-    currentLesson: Lesson,
-    changeLesson: (lesson: Lesson) => void,
-    router: any,
-    params: { id: string }
-  ) => {
-    // Check if current lesson is completed from progress data
-    const lessonProgress = lessonProgressData?.data?.result?.[0];
-    const isCurrentLessonCompleted = lessonProgress?.status === "1" || currentLesson.isCompleted;
-    
-    // Create a set to track unique lesson IDs
-    const uniqueLessons = new Set();
-    
-    // First, collect all unique lessons in order
-    const allLessons = chapters.flatMap((chapter) => {
-      const chapterLessons = loadedLessons[chapter.id] || [];
-      return chapterLessons.map(lesson => lesson);
-    });
-    
-    // Now render only unique lessons
-    return allLessons.filter(lesson => {
-      if (uniqueLessons.has(lesson.id)) {
-        return false;
-      }
-      uniqueLessons.add(lesson.id);
-      return true;
-    }).map((lesson, overallIndex) => {
-      const isActive = lesson.id === currentLesson.id;
-      // Use the isCompleted flag from the lesson object, which is now populated from allLessonProgressData
-      const isCompleted = isActive ? isCurrentLessonCompleted : lesson.isCompleted;
-      
-      return (
-        <Link
-          key={lesson.id}
-          onClick={(e) => {
-            e.preventDefault();
-            if (typeof changeLesson === 'function') {
-              changeLesson(lesson);
-            }
-            router.push(`/learning/${params.id}?activityId=${lesson.id}`);
-          }}
-          href={`/learning/${params.id}?activityId=${lesson.id}`}
-          className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium cursor-pointer
-            ${isActive 
-              ? 'bg-white text-blue-900' 
-              : isCompleted
-                ? 'bg-green-500 text-white'
-                : 'text-white hover:bg-blue-800'
-            }`}
-        >
-          {overallIndex + 1}
-        </Link>
-      );
-    });
-  };
 
   if (courseLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
-        <p className="text-xl text-gray-600">Đang tải thông tin khóa học...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <Spin size="large" />
+        <span className="ml-2">Đang tải khóa học...</span>
       </div>
     );
   }
 
   if (!course) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
-        <p className="text-xl text-red-600">Có lỗi xảy ra khi tải thông tin khóa học</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Không tìm thấy khóa học</h1>
+          <Link href="/courses" className="text-blue-600 hover:underline">
+            Quay lại danh sách khóa học
+          </Link>
+        </div>
       </div>
     );
   }
+
+  // Main content render
   return (
     <main className="min-h-screen bg-gray-50">
-      {!searchParams.activityId ? (
+      {!isLearningMode ? (
+        // Course overview page
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Course Overview Section */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Main Content - Left Side */}
-            <div className="md:col-span-2">
-              {/* Course Header */}
-              <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              {/* Course Title and Basic Info */}
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
                 <h1 className="text-3xl font-bold mb-4">{course.title}</h1>
-                
-                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
-                  <div className="flex items-center">
-                    <svg className="w-5 h-5 mr-1 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                    </svg>
-                    <span>4.9</span>
-                  </div>
-                  <div className="flex items-center">
-                    <svg className="w-5 h-5 mr-1 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"></path>
-                    </svg>
-                    <span>{course.duration ? `${course.duration} giờ học` : "Chưa cập nhật"}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <svg className="w-5 h-5 mr-1 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
-                    </svg>
-                    <span>1051 Học viên</span>
-                  </div>
-                  <div className="flex items-center">
-                    <svg className="w-5 h-5 mr-1 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"></path>
-                    </svg>
-                    <span>{getLevelText(course.level)}</span>
-                  </div>
+                <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">
+                  <span>Cấp độ: {getLevelText(course.level)}</span>
+                  <span>•</span>
+                  <span>{course.categoryName || "Chưa phân loại"}</span>
                 </div>
-                
-                <p className="text-gray-600 mb-4">{course.description}</p>
-                
-                {course.tags && course.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {course.tags.map((tag, index) => (
-                      <span key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                        {tag}
-                      </span>
+                <p className="text-gray-700">{course.description}</p>
+              </div>
+
+              {/* Course Content */}
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h2 className="text-xl font-semibold mb-4">Nội dung khóa học</h2>
+                {chaptersLoading ? (
+                  <div className="text-center py-4">
+                    <Spin />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {chapters.map((chapter, index) => (
+                      <div key={chapter.id} className="border rounded-lg">
+                        <button
+                          onClick={() => toggleChapter(chapter.id)}
+                          className="w-full flex items-center justify-between p-4 hover:bg-gray-50"
+                        >
+                          <div className="flex items-center">
+                            <span className="font-medium">
+                              Chương {index + 1}: {chapter.name}
+                            </span>
+                          </div>
+                          {expandedChapters.has(chapter.id) ? (
+                            <ChevronUpIcon className="h-5 w-5" />
+                          ) : (
+                            <ChevronDownIcon className="h-5 w-5" />
+                          )}
+                        </button>
+                        
+                        {expandedChapters.has(chapter.id) && (
+                          <div className="border-t p-4">
+                            {loadingStates[chapter.id] ? (
+                              <div className="text-center py-2">
+                                <Spin size="small" />
+                              </div>
+                            ) : (
+                              <ul className="space-y-2">
+                                {(loadedLessons[chapter.id] || []).map((lesson) => (                                    <button 
+                                    key={lesson.id}
+                                    onClick={() => switchToLearning(lesson)}
+                                    className={classNames(
+                                      'w-full flex items-center justify-between p-2 rounded-md hover:bg-gray-100',
+                                      currentLesson?.id === lesson.id && 'bg-blue-50'
+                                    )}
+                                  >
+                                    <div className="flex items-center space-x-2">
+                                      {lesson.isCompleted ? (
+                                        <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                                      ) : (
+                                        <div className="h-5 w-5 border-2 border-gray-300 rounded-full" />
+                                      )}
+                                      <span>{lesson.title}</span>
+                                    </div>
+                                  </button>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
-              </div>              {/* Course Content */}
-              <div className="bg-white rounded-lg shadow">
-                <div className="p-6">
-                  <h2 className="text-2xl font-semibold mb-4">Nội dung khóa học</h2>
-                  <div className="space-y-4">
-                    {chapters.map((chapter, index) => {
-                      const chapterLessons = loadedLessons[chapter.id] || [];
-                      const totalDuration = chapterLessons.reduce((acc, lesson) => acc + (lesson.duration || 0), 0);
-                      const completedLessons = chapterLessons.filter(lesson => lesson.isCompleted).length;
+              </div>
+            </div>
 
-                      return (
-                        <div key={chapter.id} className="border rounded-lg">
-                          <div className="flex justify-between items-center p-4 bg-gray-50">
-                            <div>
-                              <h3 className="text-lg font-medium">
-                                Chương {index + 1}: {chapter.name}
-                              </h3>
-                              <p className="text-sm text-gray-500 mt-1">
-                                {chapterLessons.length} bài học • {totalDuration} phút
-                              </p>
-                            </div>
-                            {effectivelyEnrolled && (
-                              <div className="text-sm text-gray-600">
-                                {completedLessons}/{chapterLessons.length} bài học hoàn thành
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="divide-y">
-                            {chapterLessons.map((lesson, lessonIndex) => (
-                              <div key={lesson.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
-                                <div className="flex items-center space-x-3">
-                                  {lesson.isCompleted && (
-                                    <div className="text-green-500">
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                      </svg>
-                                    </div>
-                                  )}
-                                  <div>
-                                    <p className="font-medium">{index + 1}.{lessonIndex + 1} {lesson.title}</p>
-                                    {lesson.duration && (
-                                      <p className="text-sm text-gray-500">{lesson.duration} phút</p>
-                                    )}
-                                  </div>
-                                </div>
-                                {!effectivelyEnrolled && (
-                                  <div className="text-sm text-gray-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                    </svg>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
+            {/* Course Actions Card */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-lg shadow-lg p-6 sticky top-4">
+                {/* Course Actions */}
+                <div className="text-center mb-6">
+                  <div className="text-3xl font-bold mb-4">
+                    {new Intl.NumberFormat('vi-VN').format(course.price || 0)} VNĐ
                   </div>
-                </div>
-              </div>            </div>
-
-            {/* Course Info - Right Side */}
-            <div className="space-y-6">
-              {/* Price Card with Purchase Button */}
-              <div className="bg-white rounded-lg shadow overflow-hidden">
-                {course.imageUrl && (
-                  <div className="relative w-full h-48">
-                    <Image 
-                      src={course.imageUrl}
-                      alt={course.title}
-                      fill
-                      style={{objectFit: "cover"}}
-                      className="w-full"
-                    />
-                  </div>
-                )}
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-2xl font-bold text-blue-900">
-                      {new Intl.NumberFormat('vi-VN').format(course.price || 0)}đ
-                    </h3>
-                    {course.price > 0 && (
-                      <span className="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded">
-                        31% Giảm giá
-                      </span>
-                    )}
-                  </div>
-                  
-                  {course.price > 0 && (
-                    <p className="text-gray-500 line-through mb-6">
-                      {new Intl.NumberFormat('vi-VN').format(course.price * 1.45)}đ
-                    </p>
-                  )}
-                    {effectivelyEnrolled ? (
-                    <button
-                      onClick={() => {
-                        if (firstLesson) {
-                          router.push(`/learning/${params.id}?activityId=${firstLesson.id}`);
-                        }
-                      }}
-                      disabled={isEnrolling || !firstLesson}
-                      className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors mb-4"
+                  {effectivelyEnrolled ? (
+                    <Button
+                      type="primary"
+                      size="large" 
+                      block
+                      onClick={switchToLearning}
+                      disabled={isEnrolling || !chapters.length}
                     >
-                      {isEnrolling ? 'Đang xử lý...' : 'Vào học ngay'}
-                    </button>
-                  ) : course.price && course.price > 0 ? (
-                    <div className="space-y-3 mb-4">
-                      <button
-                        onClick={() => router.push(`/checkout/${params.id}`)}
-                        className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-                      >
-                        Mua ngay
-                      </button>                      {isInCart ? (
-                        <button 
-                          onClick={() => router.push('/cart')}
-                          className="w-full border py-3 px-6 rounded-lg bg-white border-blue-600 text-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex justify-center items-center"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                          <span>Xem giỏ hàng</span>
-                        </button>
-                      ) : (
-                        <button
-                          onClick={handleAddToCart}
-                          disabled={isAddingToCart}
-                          className="w-full border py-3 px-6 rounded-lg bg-white border-blue-600 text-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex justify-center items-center"
-                        >
-                          {isAddingToCart ? (
-                            'Đang thêm vào giỏ...'
-                          ) : (
-                            <>
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                              </svg>
-                              Thêm vào giỏ hàng
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </div>
+                      Tiếp tục học
+                    </Button>
                   ) : (
-                    <button
-                      onClick={handleEnrollment} 
-                      disabled={isEnrolling}
-                      className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors mb-4"
-                    >
-                      {isEnrolling ? 'Đang xử lý...' : 'Đăng ký khóa học'}
-                    </button>
+                    <div className="space-y-4">
+                      <Button
+                        type="primary"
+                        size="large"
+                        block
+                        loading={isAddingToCart}
+                        disabled={isInCart}
+                        onClick={handleAddToCart}
+                      >
+                        {isInCart ? 'Đã thêm vào giỏ' : 'Thêm vào giỏ hàng'}
+                      </Button>
+                      <Button
+                        type="default"
+                        size="large"
+                        block
+                        loading={isEnrolling}
+                        onClick={handleEnrollment}
+                      >
+                        Đăng ký ngay
+                      </Button>
+                    </div>
                   )}
-                  
-                  <h4 className="font-semibold text-lg mb-4">Khóa học này bao gồm:</h4>
-                  <ul className="space-y-2">
-                    <li className="flex items-center">
-                      <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
-                      </svg>
-                      <span>{course.duration ? `${course.duration} giờ học` : "Video bài giảng"}</span>
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
-                      </svg>
-                      <span>28 bài đọc</span>
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
-                      </svg>
-                      <span>37 video</span>
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
-                      </svg>
-                      <span>6 tài liệu tham khảo</span>
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
-                      </svg>
-                      <span>6 bài tập thực hành</span>
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
-                      </svg>
-                      <span>Truy cập mọi lúc mọi nơi</span>
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
-                      </svg>
-                      <span>Giấy chứng nhận hoàn thành</span>
-                    </li>
-                  </ul>
                 </div>
-              </div>
-              
-              {/* Course Details Card */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-medium mb-4">Thông tin khóa học</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Cấp độ</span>
-                    <span className="font-medium">{getLevelText(course.level)}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Thời lượng</span>
-                    <span className="font-medium">{course.duration ? `${course.duration} giờ` : "Chưa cập nhật"}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Số chương</span>
-                    <span className="font-medium">{chapters.length} chương</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Số bài học</span>
-                    <span className="font-medium">
-                      {Object.values(loadedLessons).reduce((acc, lessons) => acc + lessons.length, 0)} bài
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Danh mục</span>
-                    <span className="font-medium">{course.categoryName || "Chưa phân loại"}</span>
-                  </div>
-                </div>
-              </div>
 
-              {/* Progress Card (Only show if enrolled) */}
-              {effectivelyEnrolled && (
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h3 className="text-lg font-medium mb-4">Tiến độ học tập</h3>
-                  <div className="space-y-4">
-                    {chapters.map((chapter, index) => {
-                      const chapterLessons = loadedLessons[chapter.id] || [];
-                      const completedLessons = chapterLessons.filter(lesson => lesson.isCompleted).length;
-                      const progress = chapterLessons.length > 0 
-                        ? (completedLessons / chapterLessons.length) * 100 
-                        : 0;
-
-                      return (
-                        <div key={chapter.id}>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span>Chương {index + 1}</span>
-                            <span>{Math.round(progress)}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-green-600 h-2 rounded-full" 
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                {/* Back to course button */}
+                <button
+                  onClick={switchToOverview} 
+                  className="flex items-center text-gray-600 hover:text-gray-900"
+                >
+                  <ChevronLeftIcon className="h-5 w-5 mr-1" />
+                  <span>Quay lại khóa học</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       ) : (
-        // ... existing code for lesson view
-        <div className="min-h-screen">
-          {currentLesson ? (
-            <>              {/* Navigation header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b bg-blue-900">
-                <div className="flex items-center space-x-4">
-                  <Link
-                    href={`/learning/${params.id}`}
-                    className="flex items-center text-white hover:text-blue-200 transition"
-                  >
-                    <ChevronLeftIcon className="h-5 w-5 mr-1" />
-                    <span>Trở về khóa học</span>
-                  </Link>
-                  <h2 className="text-2xl font-bold text-white">{currentLesson.title}</h2>
+        // Learning page with lesson content
+        <div className="flex h-[calc(100vh-64px)]">
+          {/* Sidebar */}
+          <div className="w-64 bg-white border-r overflow-y-auto">
+            <div className="p-4">
+              <h3 className="text-sm font-medium text-gray-500 mb-4">NỘI DUNG KHÓA HỌC</h3>
+              {chaptersLoading ? (
+                <div className="text-center py-4">
+                  <Spin />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <button                    onClick={() => currentLesson && handlePreviousLesson(chapters, loadedLessons, currentLesson, changeLesson, router, params)}
-                    className="p-2 rounded-md bg-blue-800 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-white"
-                    disabled={!currentLesson || !getPreviousLesson(chapters, loadedLessons, currentLesson.id)}
-                  >
-                    <ChevronLeftIcon className="h-5 w-5" />
-                  </button>
-                  {/* Display lesson number */}
-                  {renderLessonNumbers(chapters, loadedLessons, currentLesson, changeLesson, router, params)}
-                  <button
-                    onClick={() => handleNextLesson(chapters, loadedLessons, currentLesson, changeLesson, router, params)}
-                    className="p-2 rounded-md bg-blue-800 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-white"
-                    disabled={!getNextLesson(chapters, loadedLessons, currentLesson.id)}
-                  >
-                    <ChevronRightIcon className="h-5 w-5" />
-                  </button>
-                </div>              
-                </div>              
-                {renderLessonContent(currentLesson, chapters, expandedChapters, loadingStates, loadedLessons, params, changeLesson, router, chaptersLoading, toggleChapter, handleCompleteLesson, completingLesson)}
-            </>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-500">Chọn một bài học để bắt đầu</p>
+              ) : (
+                <div className="space-y-4">
+                  {chapters.map((chapter, index) => (
+                    <div key={chapter.id}>
+                      <button
+                        onClick={() => toggleChapter(chapter.id)}
+                        className="flex items-center w-full text-left mb-2"
+                      >
+                        {expandedChapters.has(chapter.id) ? (
+                          <ChevronDownIcon className="h-4 w-4 mr-2" />
+                        ) : (
+                          <ChevronRightIcon className="h-4 w-4 mr-2" />
+                        )}
+                        <span className="text-sm font-medium">
+                          Chương {index + 1}: {chapter.name}
+                        </span>
+                      </button>
+                      
+                      {expandedChapters.has(chapter.id) && (
+                        <div className="ml-6">
+                          {loadingStates[chapter.id] ? (
+                            <div className="py-2 text-gray-500">
+                              <Spin size="small" />
+                            </div>
+                          ) : (
+                            <ul className="space-y-2">
+                              {(loadedLessons[chapter.id] || []).map((lesson) => (                                <li key={lesson.id}>
+                                  <button
+                                    onClick={() => {
+                                      changeLesson(lesson);
+                                      switchToLearning();
+                                    }}
+                                    className={classNames(
+                                      'flex items-center w-full text-left px-2 py-1 rounded text-sm',
+                                      currentLesson?.id === lesson.id
+                                        ? 'bg-blue-50 text-blue-600'
+                                        : 'hover:bg-gray-50'
+                                    )}
+                                  >
+                                    {lesson.isCompleted ? (
+                                      <CheckCircleIcon className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
+                                    ) : (
+                                      <div className="h-4 w-4 border border-gray-300 rounded-full mr-2 flex-shrink-0" />
+                                    )}
+                                    <span className="truncate">{lesson.title}</span>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
+          {/* Main content */}
+          <div className="flex-1 overflow-y-auto bg-white">
+            {currentLesson ? (
+              <div>
+                {/* Navigation header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b">
+                  <div className="flex items-center space-x-4">                    <button
+                      onClick={switchToOverview}
+                      className="flex items-center text-gray-600 hover:text-gray-900"
+                    >
+                      <ChevronLeftIcon className="h-5 w-5 mr-1" />
+                      <span>Quay lại khóa học</span>
+                    </button>
+                  </div>
+                    {/* Lesson title */}
+                  <div className="flex-1 text-center">
+                    <h2 className="text-xl font-bold truncate">
+                      {currentLesson?.title}
+                    </h2>
+                  </div>
+                </div>
+
+                {/* Lesson content */}
+                <div className="p-6">
+                  {currentLesson.type === 1 && currentLesson.quizData && (
+                    <Quiz
+                      quizData={currentLesson.quizData}
+                      onComplete={handleCompleteLesson}
+                    />
+                  )}
+                  
+                  {currentLesson.type === 2 && currentLesson.videoUrl && (
+                    <div className="aspect-w-16 aspect-h-9">
+                      <VideoPlayer src={currentLesson.videoUrl} />
+                    </div>
+                  )}
+                  
+                  {currentLesson.type === 3 && (
+                    <CodeEditor
+                      initialCode={currentLesson.initialCode}
+                      language={currentLesson.language}
+                      onComplete={handleCompleteLesson}
+                    />
+                  )}
+                  
+                  {currentLesson.type === 4 && currentLesson.content && (
+                    <MarkdownCode content={currentLesson.content} />
+                  )}
+
+                  {/* Complete lesson button for video and reading lessons */}
+                  {(currentLesson.type === 2 || currentLesson.type === 4) && (
+                    <div className="mt-6">
+                      <Button
+                        type="primary"
+                        onClick={handleCompleteLesson}
+                        loading={completingLesson}
+                        disabled={currentLesson.isCompleted}
+                      >
+                        {currentLesson.isCompleted ? 'Đã hoàn thành' : 'Đánh dấu đã học xong'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-gray-500">Chọn một bài học để bắt đầu</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </main>
