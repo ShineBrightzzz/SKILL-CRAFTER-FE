@@ -68,6 +68,7 @@ const LearningPage = () => {
       name: cat.name
     })) || [])
   ];
+  console.log('Categories:', categories);
   // Fetch courses data from API with filters
   const { data: coursesResponse, isLoading, error } = useGetAllCoursesQuery({
     page: currentPage,

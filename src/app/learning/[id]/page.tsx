@@ -15,6 +15,7 @@ import {
   useGetEnrollmentsByUserIdQuery 
 } from '@/services/course.service';
 import { useGetChaptersByCourseIdQuery } from '@/services/chapter.service';
+import { useGetCategoryByIdQuery } from '@/services/category.service';
 import { 
   useGetLessonsByChapterIdQuery, 
   useGetLessonProgressByUserIdQuery,
@@ -100,79 +101,6 @@ const getLevelText = (level: number) => {
   }
 };
 
-// Helper function to find a lesson in an array of chapters and lessons
-const findLessonInChapters = (
-  chapters: Chapter[],
-  chapterLessons: { [chapterId: string]: Lesson[] },
-  lessonId: string
-) => {
-  for (let chapterIndex = 0; chapterIndex < chapters.length; chapterIndex++) {
-    const chapter = chapters[chapterIndex];
-    const lessons = chapterLessons[chapter.id] || [];
-    
-    const lessonIndex = lessons.findIndex(l => l.id === lessonId);
-    if (lessonIndex !== -1) {
-      return { chapterIndex, lessonIndex, chapter, lesson: lessons[lessonIndex] };
-    }
-  }
-  return null;
-};
-
-// Helper function to get the next lesson
-const getNextLesson = (
-  chapters: Chapter[],
-  chapterLessons: { [chapterId: string]: Lesson[] },
-  currentLessonId: string
-) => {
-  const result = findLessonInChapters(chapters, chapterLessons, currentLessonId);
-  if (!result) return null;
-
-  const { chapterIndex, lessonIndex, chapter } = result;
-  const lessons = chapterLessons[chapter.id] || [];
-
-  // Try next lesson in current chapter
-  if (lessonIndex < lessons.length - 1) {
-    return lessons[lessonIndex + 1];
-  }
-
-  // Try first lesson of next chapter
-  if (chapterIndex < chapters.length - 1) {
-    const nextChapter = chapters[chapterIndex + 1];
-    const nextChapterLessons = chapterLessons[nextChapter.id] || [];
-    return nextChapterLessons.length > 0 ? nextChapterLessons[0] : null;
-  }
-
-  return null;
-};
-
-// Helper function to get the previous lesson
-const getPreviousLesson = (
-  chapters: Chapter[],
-  chapterLessons: { [chapterId: string]: Lesson[] },
-  currentLessonId: string
-) => {
-  const result = findLessonInChapters(chapters, chapterLessons, currentLessonId);
-  if (!result) return null;
-
-  const { chapterIndex, lessonIndex, chapter } = result;
-  const lessons = chapterLessons[chapter.id] || [];
-
-  // Try previous lesson in current chapter
-  if (lessonIndex > 0) {
-    return lessons[lessonIndex - 1];
-  }
-
-  // Try last lesson of previous chapter
-  if (chapterIndex > 0) {
-    const previousChapter = chapters[chapterIndex - 1];
-    const previousChapterLessons = chapterLessons[previousChapter.id] || [];
-    return previousChapterLessons.length > 0 ? 
-      previousChapterLessons[previousChapterLessons.length - 1] : null;
-  }
-
-  return null;
-};
-
 export default function CourseLearningPage({ params, searchParams }: PageProps) {
   const router = useRouter();
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
@@ -190,10 +118,14 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
     if (!cartData?.data || !params.id) return false;
     return cartData.data.some((item) => item.courseId === params.id);
   }, [cartData, params.id]);
-
   // Get course data and check enrollment
   const { data: courseData, isLoading: courseLoading } = useGetCourseByIdQuery(params.id);
   const course: Course | undefined = courseData?.data;
+  
+  // Fetch category data if course has categoryId
+  const { data: categoryData } = useGetCategoryByIdQuery(
+    course?.categoryId ?? skipToken
+  );
   
   const { data: enrollmentsData, isLoading: enrollmentsLoading } = useGetEnrollmentsByUserIdQuery(
     currentUser?.id ? { userId: currentUser.id } : skipToken
@@ -408,14 +340,6 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
       setCurrentLesson(prev => prev ? { ...prev, isCompleted: true } : prev);
 
       toast.success('Đã hoàn thành bài học!');
-
-      // Navigate to next lesson if available
-      if (currentLesson.id) {
-        const nextLesson = getNextLesson(chapters, loadedLessons, currentLesson.id);
-        if (nextLesson) {
-          changeLesson(nextLesson);
-        }
-      }
     } catch (error) {
       console.error('Failed to complete lesson:', error);
       toast.error('Có lỗi xảy ra khi cập nhật trạng thái bài học');
@@ -494,10 +418,9 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
               {/* Course Title and Basic Info */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
                 <h1 className="text-3xl font-bold mb-4">{course.title}</h1>
-                <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">
-                  <span>Cấp độ: {getLevelText(course.level)}</span>
+                <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">                  <span>Cấp độ: {getLevelText(course.level)}</span>
                   <span>•</span>
-                  <span>{course.categoryName || "Chưa phân loại"}</span>
+                  <span>{categoryData?.name}</span>
                   {course.rating !== undefined && (
                     <>
                       <span>•</span>
@@ -634,10 +557,9 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                     <li className="flex justify-between">
                       <span className="text-gray-600">Số bài học:</span>
                       <span className="font-medium">{course.duration}</span>
-                    </li>
-                    <li className="flex justify-between">
+                    </li>                    <li className="flex justify-between">
                       <span className="text-gray-600">Danh mục:</span>
-                      <span className="font-medium">{course.categoryName}</span>
+                      <span className="font-medium">{categoryData?.name}</span>
                     </li>
                     {course.rating !== undefined && (
                       <li className="flex justify-between items-center">
@@ -744,19 +666,6 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                       {currentLesson.title}
                     </h2>
                   </div>
-                  {currentLesson.id && (
-                    <div className="flex items-center space-x-4">
-                      <LessonNavigation
-                        getPrevious={() =>
-                          getPreviousLesson(chapters, loadedLessons, currentLesson.id)
-                        }
-                        getNext={() =>
-                          getNextLesson(chapters, loadedLessons, currentLesson.id)
-                        }
-                        onNavigate={changeLesson}
-                      />
-                    </div>
-                  )}
                 </div>
 
                 {/* Lesson content */}

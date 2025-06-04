@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, Typography, Space, Avatar, Button, Form, Input, Divider, Spin, message } from 'antd';
-import { UserOutlined, CalendarOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { UserOutlined, CalendarOutlined, EditOutlined, DeleteOutlined, CommentOutlined } from '@ant-design/icons';
 import CommentReplyForm from '@/components/blog/CommentReplyForm';
 import { useGetBlogByIdQuery } from '@/services/blog.service';
 import { 
@@ -247,23 +247,23 @@ const BlogDetailPage: React.FC<PageProps> = ({ params }) => {
                               />
                             </>
                           )}
-                          {user && !editingCommentId && (
-                            <Button
-                              type="link"
-                              size="small"
-                              onClick={() => {
-                                setReplyToCommentId(comment.id);
-                                setEditingCommentId(null);
-                                form.resetFields();
-                              }}
-                            >
-                              Trả lời
-                            </Button>
-                          )}
                         </Space>
-                      </div>
-                      <Paragraph>{comment.content}</Paragraph>
-                        {/* Hiển thị form trả lời ngay dưới comment */}
+                      </div>                      <Paragraph>{comment.content}</Paragraph>
+                      {user && !editingCommentId && (
+                        <Button
+                          type="text"
+                          icon={<CommentOutlined style={{ fontSize: '18px' }} />}
+                          className="px-4 py-2 text-base"
+                          onClick={() => {
+                            setReplyToCommentId(comment.id);
+                            setEditingCommentId(null);
+                            form.resetFields();
+                          }}
+                        >
+                          Trả lời
+                        </Button>
+                      )}
+                      {/* Hiển thị form trả lời ngay dưới comment */}
                       {replyToCommentId === comment.id && (
                         <CommentReplyForm
                           onSubmit={handleReplySubmit}

@@ -92,13 +92,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = getAccessToken();
         
         if (token && userId) {
-          // If we have both access token and userId, fetch user data
-          const userData = await getUserById(userId).unwrap();
+          // If we have both access token and userId, fetch user data          const userData = await getUserById(userId).unwrap();
           // Type assertion to match the actual API response structure
           const userInfo = userData?.data as unknown as User;
+          
+          // Update user in Redux store with complete data
+          dispatch(setUser({
+            id: userInfo.id,
+            username: userInfo.username,
+            email: userInfo.email,
+            familyName: userInfo.familyName || userInfo.family_name,
+            givenName: userInfo.givenName || userInfo.given_name,
+            email_verified: userInfo.email_verified,
+            avatar_url: userInfo.avatar_url,
+            role: userInfo.role
+          }));
+
+          // Handle permissions
           const roleId = userInfo?.role?.id ? String(userInfo.role.id) : 'user';            
           const permissions = await getPermissionByRole(roleId).unwrap();
-            console.log("User permissions:", permissions);
+          console.log("User permissions:", permissions);
           
           // Store token in ref
           tokenRef.current = token;

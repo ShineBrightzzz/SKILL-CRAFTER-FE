@@ -26,6 +26,8 @@ export interface User {
   updatedAt?: string;
   createdBy?: string;
   updatedBy?: string;
+  avatar_url?: string;
+  phone?: string;
 }
 
 // Role assignment DTO
@@ -80,6 +82,13 @@ export interface PaginationParams {
   search?: string;
 }
 
+// Profile update DTO
+export interface ProfileUpdateDTO {
+  givenName?: string;
+  familyName?: string;
+  avatar?: File;
+}
+
 export const userApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({    
     login: builder.mutation<AuthResponse, { username: string; password: string; recaptchaToken?: string | null }>({
@@ -102,17 +111,16 @@ export const userApiSlice = apiSlice.injectEndpoints({
           if (data.refreshToken) {
             setDebugRefreshToken(data.refreshToken);
           }
-          
-          // Update Redux store with user data
+            // Update Redux store with user data
           dispatch(setUser({
             id: data.id,
             username: data.username,
             email: data.email,
             email_verified: data.email_verified,
-            family_name: data.family_name,
-            given_name: data.given_name,
-            accessToken: data.accessToken,
-            refreshToken: data.refreshToken
+            familyName: data.familyName || data.family_name,
+            givenName: data.givenName || data.given_name,
+            avatar_url: data.avatar_url,
+            role: data.role
           }));
 
         } catch (error) {
@@ -306,6 +314,15 @@ export const userApiSlice = apiSlice.injectEndpoints({
         { type: 'Users' as const, id: 'LIST' },
       ],
     }),
+
+    updateUser: builder.mutation<User, { id: string, body: FormData }>({
+      query: ({ id, body }) => ({
+        url: `/api/users/${id}`,
+        method: 'PATCH',
+        body
+      }),
+      invalidatesTags: (result, error, { id }) => [{ type: 'Users', id }]
+    }),
   }),
   overrideExisting: true,
 });
@@ -328,4 +345,6 @@ export const {
   useAssignRoleMutation,
   useUpdateRoleMutation,
   useRemoveRoleMutation,
+
+  useUpdateUserMutation,
 } = userApiSlice;
