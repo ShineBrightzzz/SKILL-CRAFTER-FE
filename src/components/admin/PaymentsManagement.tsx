@@ -19,7 +19,7 @@ const PaymentsManagement = () => {
 
   const { data: paymentsResponse, isLoading, refetch } = useGetAllPaymentsQuery({
     page: currentPage,
-    pageSize: pageSize,
+    size: pageSize,
     searchText,
     status,
     startDate: dateRange[0]?.format('YYYY-MM-DD'),

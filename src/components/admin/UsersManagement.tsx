@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Table, Button, Space, Modal, Form, Input, Select, message } from 'antd';
+import { Table, Button, Space, Modal, Form, Input, Select, message, Pagination } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { 
   useGetAllAccountsQuery, 
@@ -29,11 +29,26 @@ const UsersManagement: React.FC = () => {
   const [form] = Form.useForm<UserFormData>();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const { data: usersData, isLoading, refetch } = useGetAllAccountsQuery();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const { data: usersResponse, isLoading, refetch } = useGetAllAccountsQuery({
+    page: currentPage,
+    size: pageSize
+  });
   const { data: rolesData } = useGetAllRolesQuery({} as PaginationParams);
   const [createUser] = useCreateAccountMutation();
   const [updateUser] = useUpdateAccountMutation();
   const [deleteUser] = useDeleteAccountMutation();
+
+  // Extract users and pagination metadata
+  const users = usersResponse?.data?.result || [];
+  const paginationMeta = usersResponse?.data?.meta || { 
+    page: 1, 
+    pageSize: 10, 
+    pages: 1, 
+    total: 0 
+  };
 
   const showModal = (user?: User) => {
     if (user) {
@@ -203,6 +218,12 @@ const UsersManagement: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Handle page change
+  const handlePageChange = (page: number, pageSize?: number) => {
+    setCurrentPage(page);
+    if (pageSize) setPageSize(pageSize);
+  };
+
   return (
     <div>
       <div style={{ 
@@ -224,12 +245,23 @@ const UsersManagement: React.FC = () => {
 
       <Table 
         columns={responsiveColumns} 
-        dataSource={usersData?.data || []} 
+        dataSource={users} 
         rowKey="username" 
         loading={isLoading}
-        pagination={{ pageSize: 10 }}
+        pagination={false}
         scroll={{ x: 'max-content' }}
-      />      <Modal
+      />      <div className="mt-4 flex justify-end">
+        <Pagination 
+          current={currentPage}
+          pageSize={pageSize}
+          total={paginationMeta.total}
+          showSizeChanger
+          onChange={handlePageChange}
+          showTotal={(total) => `Tổng cộng ${total} người dùng`}
+        />
+      </div>
+
+      <Modal
         title={editingUser ? "Chỉnh sửa người dùng" : "Thêm người dùng mới"}
         open={isModalVisible}
         onCancel={handleCancel}
@@ -315,4 +347,3 @@ const UsersManagement: React.FC = () => {
 };
 
 export default UsersManagement;
-   

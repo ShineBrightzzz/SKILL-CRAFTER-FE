@@ -22,8 +22,22 @@ const RolesManagement = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   
-  const { data: rolesData, isLoading, refetch } = useGetAllRolesQuery({});
+  const { data: rolesResponse, isLoading, refetch } = useGetAllRolesQuery({
+    page: currentPage,
+    size: pageSize
+  });
+
+  const roles = rolesResponse?.data?.result || [];
+  const paginationMeta = rolesResponse?.data?.meta || { 
+    page: 1, 
+    size: 10, 
+    pages: 1, 
+    total: 0 
+  };
+
   const { data: allPermissions } = useGetAllPermissionsQuery({});
   const [createRole] = useCreateRoleMutation();
   const [updateRole] = useUpdateRoleMutation();
@@ -240,10 +254,20 @@ const RolesManagement = () => {
 
       <Table 
         columns={responsiveColumns} 
-        dataSource={rolesData?.data?.result || []} 
+        dataSource={roles} 
         rowKey="id" 
         loading={isLoading}
-        pagination={{ pageSize: 10 }}
+        pagination={{ 
+          current: paginationMeta.page, 
+          pageSize: paginationMeta.size,
+          total: paginationMeta.total,
+          onChange: (page, size) => {
+            setCurrentPage(page);
+            setPageSize(size);
+          },
+          showSizeChanger: true,
+          pageSizeOptions: ['10', '20', '50'],
+        }}
         scroll={{ x: 'max-content' }}
       />
 

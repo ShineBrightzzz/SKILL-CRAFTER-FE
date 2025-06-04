@@ -3,7 +3,7 @@ import apiSlice from './api';
 // Define types for pagination parameters
 interface PaginationParams {
   page?: number;
-  pageSize?: number;
+  size?: number;  // Changed from pageSize to size
   sort?: string;
   order?: 'asc' | 'desc';
 }
@@ -43,11 +43,11 @@ export const chapterApiSlice = apiSlice.injectEndpoints({
     getAllChapters: builder.query<ChaptersResponse, PaginationParams>({
       query: (params: PaginationParams = {}) => {
         // Build query string for pagination
-        const { page, pageSize, sort, order } = params;
+        const { page, size, sort, order } = params;
         const queryParams = [];
         
         if (page) queryParams.push(`page=${page}`);
-        if (pageSize) queryParams.push(`pageSize=${pageSize}`);
+        if (size) queryParams.push(`size=${size}`);
         if (sort) queryParams.push(`sort=${sort}`);
         if (order) queryParams.push(`order=${order}`);
         
@@ -71,11 +71,11 @@ export const chapterApiSlice = apiSlice.injectEndpoints({
     
     getChaptersByCourseId: builder.query<ChaptersResponse, CourseParams>({
       query: (params: CourseParams) => {
-        const { courseId, page, pageSize, sort, order } = params;
+        const { courseId, page, size, sort, order } = params;
         const queryParams = [];
         
         if (page) queryParams.push(`page=${page}`);
-        if (pageSize) queryParams.push(`pageSize=${pageSize}`);
+        if (size) queryParams.push(`size=${size}`);
         if (sort) queryParams.push(`sort=${sort}`);
         if (order) queryParams.push(`order=${order}`);
         

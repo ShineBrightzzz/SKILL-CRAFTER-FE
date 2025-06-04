@@ -4,7 +4,7 @@ import { Permission } from './permission.service';
 // Define types for pagination parameters
 export interface PaginationParams {
   page?: number;
-  pageSize?: number;
+  size?: number;  // Changed from pageSize to size
   sort?: string;
   order?: 'asc' | 'desc';
 }
@@ -36,11 +36,11 @@ export const roleApiSlice = apiSlice.injectEndpoints({
     getAllRoles: builder.query<RolesResponse, PaginationParams>({
       query: (params: PaginationParams = {}) => {
         // Build query string for pagination
-        const { page, pageSize, sort, order } = params;
+        const { page, size, sort, order } = params;
         const queryParams = [];
         
         if (page) queryParams.push(`page=${page}`);
-        if (pageSize) queryParams.push(`pageSize=${pageSize}`);
+        if (size) queryParams.push(`pageSize=${size}`);
         if (sort) queryParams.push(`sort=${sort}`);
         if (order) queryParams.push(`order=${order}`);
         

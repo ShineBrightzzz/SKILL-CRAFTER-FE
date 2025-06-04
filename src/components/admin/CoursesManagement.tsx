@@ -13,10 +13,12 @@ const CoursesManagement = () => {
   const [editingCourse, setEditingCourse] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  
+  const [searchTerm, setSearchTerm] = useState('');
+    
   const { data: coursesResponse, isLoading, refetch } = useGetAllCoursesQuery({
     page: currentPage,
-    pageSize: pageSize
+    size: pageSize,
+    search: searchTerm
   });
 
   // Extract courses and pagination metadata from the new API response format
@@ -153,6 +155,23 @@ const CoursesManagement = () => {
           onClick={() => showModal()}
         >
           Tạo khóa học mới
+        </Button>
+      </div>
+      
+      <div className="flex justify-between items-center mb-4">
+        <Input.Search
+          placeholder="Tìm kiếm khóa học..."
+          allowClear
+          enterButton
+          className="max-w-xs"
+          value={searchTerm}
+          onChange={e => {
+            setSearchTerm(e.target.value);
+            setCurrentPage(1); // Reset to first page on search
+          }}
+        />
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => showModal()}>
+          Thêm khóa học
         </Button>
       </div>
       

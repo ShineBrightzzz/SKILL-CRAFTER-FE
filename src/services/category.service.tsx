@@ -31,11 +31,32 @@ interface CategoriesResponse {
   };
 }
 
+// Define types for pagination parameters
+interface PaginationParams {
+  page?: number;
+  size?: number;  // Changed from pageSize to size
+  sort?: string;
+  order?: 'asc' | 'desc';
+}
+
 // Define API endpoints
 export const categoryApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getAllCategories: builder.query<CategoriesResponse, void>({
-      query: () => '/api/categories',      providesTags: (result) =>
+    getAllCategories: builder.query<CategoriesResponse, PaginationParams | void>({
+      query: (params: PaginationParams = {}) => {
+        if (!params) return '/api/categories';
+
+        const { page, size, sort, order } = params;
+        const queryParams = [];
+        
+        if (page) queryParams.push(`page=${page}`);
+        if (size) queryParams.push(`size=${size}`);
+        if (sort) queryParams.push(`sort=${sort}`);
+        if (order) queryParams.push(`order=${order}`);
+        
+        return `/api/categories${queryParams.length > 0 ? `?${queryParams.join('&')}` : ''}`;
+      },
+      providesTags: (result) =>
         result?.data?.result
           ? [
               ...result.data.result.map(({ id }) => ({ type: 'Categories' as const, id })),
@@ -70,12 +91,12 @@ export const categoryApiSlice = apiSlice.injectEndpoints({
       ],
     }),
 
-    deleteCategory: builder.mutation<void, string>({
-      query: (id: string) => ({
+    deleteCategory: builder.mutation<void, { id: string }>({
+      query: ({ id }: { id: string }) => ({
         url: `/api/categories/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (result, error, id) => [
+      invalidatesTags: (result, error, { id }) => [
         { type: 'Categories' as const, id },
         { type: 'Categories' as const, id: 'LIST' },
         // Also invalidate courses related to this category

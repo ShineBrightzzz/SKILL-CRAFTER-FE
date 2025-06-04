@@ -3,7 +3,7 @@ import apiSlice from './api';
 // Define types for pagination parameters
 interface PaginationParams {
   page?: number;
-  pageSize?: number;
+  size?: number;  // Changed from pageSize to size
   sort?: string;
   order?: 'asc' | 'desc';
 }
@@ -56,11 +56,11 @@ export const permissionApiSlice = apiSlice.injectEndpoints({
     getAllPermissions: builder.query<PermissionsResponse, PaginationParams>({
       query: (params: PaginationParams = {}) => {
         // Build query string for pagination
-        const { page, pageSize, sort, order } = params;
+        const { page, size, sort, order } = params;
         const queryParams = [];
         
         if (page) queryParams.push(`page=${page}`);
-        if (pageSize) queryParams.push(`pageSize=${pageSize}`);
+        if (size) queryParams.push(`size=${size}`);
         if (sort) queryParams.push(`sort=${sort}`);
         if (order) queryParams.push(`order=${order}`);
         
@@ -86,11 +86,11 @@ export const permissionApiSlice = apiSlice.injectEndpoints({
 
     searchPermissions: builder.query<PermissionsResponse, SearchParams>({
       query: (params: SearchParams) => {
-        const { page, pageSize, sort, order, name, apiPath, method, module } = params;
+        const { page, size, sort, order, name, apiPath, method, module } = params;
         const queryParams = [];
         
         if (page) queryParams.push(`page=${page}`);
-        if (pageSize) queryParams.push(`pageSize=${pageSize}`);
+        if (size) queryParams.push(`size=${size}`);
         if (sort) queryParams.push(`sort=${sort}`);
         if (order) queryParams.push(`order=${order}`);
         if (name) queryParams.push(`name=${encodeURIComponent(name)}`);

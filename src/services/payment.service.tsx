@@ -24,7 +24,7 @@ interface Payment {
 
 interface PaginationParams {
   page?: number;
-  pageSize?: number;
+  size?: number;  // Changed from pageSize to size
   searchText?: string;
   status?: string;
   startDate?: string;

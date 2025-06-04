@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Table, Button, Space, Modal, Form, Input, Select, message } from 'antd';
+import { Table, Button, Space, Modal, Form, Input, Select, message, Pagination } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { 
   useGetAllPermissionsQuery,
@@ -17,11 +17,21 @@ const PermissionsManagement = () => {
   const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingPermission, setEditingPermission] = useState<Permission | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   
-  const { data: permissionsData, isLoading, refetch } = useGetAllPermissionsQuery({});
-  const [createPermission] = useCreatePermissionMutation();
-  const [updatePermission] = useUpdatePermissionMutation();
-  const [deletePermission] = useDeletePermissionMutation();
+  const { data: permissionsResponse, isLoading, refetch } = useGetAllPermissionsQuery({
+    page: currentPage,
+    size: pageSize
+  });
+  
+  const permissions = permissionsResponse?.data?.result || [];
+  const paginationMeta = permissionsResponse?.data?.meta || { 
+    page: 1, 
+    pageSize: 10, 
+    pages: 1, 
+    total: 0 
+  };
 
   const showModal = (permission?: Permission) => {
     if (permission) {
@@ -173,6 +183,12 @@ const PermissionsManagement = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Handle page change
+  const handlePageChange = (page: number, pageSize?: number) => {
+    setCurrentPage(page);
+    if (pageSize) setPageSize(pageSize);
+  };
+
   return (
     <div>
       <div style={{ 
@@ -194,12 +210,24 @@ const PermissionsManagement = () => {
 
       <Table 
         columns={responsiveColumns} 
-        dataSource={permissionsData?.data?.result || []} 
+        dataSource={permissions} 
         rowKey="id" 
         loading={isLoading}
-        pagination={{ pageSize: 10 }}
+        pagination={false}
         scroll={{ x: 'max-content' }}
       />
+
+      {/* Custom pagination */}
+      <div className="mt-4 flex justify-end">
+        <Pagination 
+          current={currentPage}
+          pageSize={pageSize}
+          total={paginationMeta.total}
+          showSizeChanger
+          onChange={handlePageChange}
+          showTotal={(total) => `Tổng cộng ${total} quyền`}
+        />
+      </div>
 
       <Modal
         title={editingPermission ? "Chỉnh sửa quyền" : "Thêm quyền mới"}

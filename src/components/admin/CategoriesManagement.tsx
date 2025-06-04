@@ -13,10 +13,12 @@ const CategoriesManagement = () => {
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('');
   
   const { data: categoriesResponse, isLoading, refetch } = useGetAllCategoriesQuery({
     page: currentPage,
-    pageSize: pageSize
+    size: pageSize,
+    search: searchTerm
   });
 
   const categories = categoriesResponse?.data?.result || [];
@@ -142,6 +144,20 @@ const CategoriesManagement = () => {
       >
         Thêm danh mục mới
       </Button>
+
+      <div className="mb-4">
+        <Input.Search
+          placeholder="Tìm kiếm danh mục..."
+          allowClear
+          enterButton
+          className="max-w-xs"
+          value={searchTerm}
+          onChange={e => {
+            setSearchTerm(e.target.value);
+            setCurrentPage(1); // Reset to first page on search
+          }}
+        />
+      </div>
 
       <Table
         columns={columns}
