@@ -1,24 +1,22 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Space, Modal, Form, Input, message, Pagination } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import { useGetAllCoursesQuery, useCreateCourseMutation, useUpdateCourseMutation, useDeleteCourseMutation } from '@/services/course.service';
+import { Table, Space, message, Pagination, Select, Input, Button } from 'antd';
+import { useGetAllCoursesQuery } from '@/services/course.service';
 import withPermission from '@/hocs/withPermission';
 import { Action, Subject } from '@/utils/ability';
 
 const CoursesManagement = () => {
-  const [form] = Form.useForm();
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingCourse, setEditingCourse] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
+  const [status, setStatus] = useState<number | null>(null);
     
   const { data: coursesResponse, isLoading, error, refetch } = useGetAllCoursesQuery({
     page: currentPage,
     size: pageSize,
-    search: searchTerm.trim() // Ensure we trim whitespace
+    search: searchTerm.trim(),
+    status: status === null ? undefined : status
   });
 
   // Add error handling
@@ -42,73 +40,6 @@ const CoursesManagement = () => {
     pages: 1, 
     total: 0 
   };
-  
-  const [createCourse] = useCreateCourseMutation();
-  const [updateCourse] = useUpdateCourseMutation();
-  const [deleteCourse] = useDeleteCourseMutation();
-
-  const showModal = (course?: any) => {
-    if (course) {
-      setEditingCourse(course);
-      form.setFieldsValue({
-        title: course.title,
-        description: course.description,
-        // Add other fields as needed
-      });
-    } else {
-      setEditingCourse(null);
-      form.resetFields();
-    }
-    setIsModalVisible(true);
-  };
-
-  const handleCancel = () => {
-    setIsModalVisible(false);
-    form.resetFields();
-  };
-
-  const handleSubmit = async (values: any) => {
-    try {      if (editingCourse) {
-        const formData = new FormData();
-        Object.entries(values).forEach(([key, value]) => {
-          formData.append(key, value as string);
-        });
-        await updateCourse({ id: editingCourse.id, body: formData }).unwrap();
-        message.success('Cập nhật khóa học thành công!');
-      } else {
-        const formData = new FormData();
-        Object.entries(values).forEach(([key, value]) => {
-          formData.append(key, value as string);
-        });
-        await createCourse(formData).unwrap();
-        message.success('Tạo khóa học thành công!');
-      }
-      setIsModalVisible(false);
-      refetch();
-    } catch (error) {
-      message.error('Có lỗi xảy ra!');
-      console.error(error);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    Modal.confirm({
-      title: 'Bạn có chắc chắn muốn xóa khóa học này?',
-      content: 'Hành động này không thể hoàn tác.',
-      okText: 'Xóa',
-      okType: 'danger',
-      cancelText: 'Hủy',      onOk: async () => {
-        try {
-          await deleteCourse({ courseId: id }).unwrap();
-          message.success('Xóa khóa học thành công!');
-          refetch();
-        } catch (error) {
-          message.error('Có lỗi xảy ra khi xóa khóa học!');
-          console.error(error);
-        }
-      },
-    });
-  };  
   
   const columns = [
     {
@@ -140,17 +71,6 @@ const CoursesManagement = () => {
           >
             Xem chi tiết
           </Button>
-          <Button 
-            type="default" 
-            icon={<EditOutlined />} 
-            onClick={() => showModal(record)}
-          />
-          <Button 
-            type="default" 
-            danger 
-            icon={<DeleteOutlined />} 
-            onClick={() => handleDelete(record.id)}
-          />
         </Space>
       ),
     },
@@ -163,27 +83,37 @@ const CoursesManagement = () => {
   };
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold">Quản lý khóa học</h1>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
-          onClick={() => showModal()}
-        >
-          Tạo khóa học mới
-        </Button>
       </div>
       
       <div className="flex justify-between items-center mb-4">
-        <Input.Search
-          placeholder="Tìm kiếm khóa học..."
-          allowClear
-          enterButton
-          className="max-w-xs"
-          value={searchTerm}
-          onChange={(e) => handleSearch(e.target.value)}
-          onSearch={handleSearch}
-        />
+        <div className="flex gap-4 items-center">
+          <Input.Search
+            placeholder="Tìm kiếm khóa học..."
+            allowClear
+            enterButton
+            className="max-w-xs"
+            value={searchTerm}
+            onChange={(e) => handleSearch(e.target.value)}
+            onSearch={handleSearch}
+          />
+          <Select
+            placeholder="Lọc theo trạng thái"
+            allowClear
+            style={{ width: 200 }}
+            onChange={(value: number | null) => {
+              setStatus(value);
+              setCurrentPage(1);
+            }}
+            value={status ?? undefined}
+          >
+            <Select.Option value={0}>Nháp</Select.Option>
+            <Select.Option value={1}>Chờ duyệt</Select.Option>
+            <Select.Option value={2}>Đã xuất bản</Select.Option>
+            <Select.Option value={3}>Từ chối</Select.Option>
+          </Select>
+        </div>
       </div>
 
       {error ? (
@@ -218,37 +148,6 @@ const CoursesManagement = () => {
           )}
         </>
       )}
-
-      <Modal
-        title={editingCourse ? 'Chỉnh sửa khóa học' : 'Tạo khóa học mới'}
-        open={isModalVisible}
-        onCancel={handleCancel}
-        footer={null}
-      >
-        <Form form={form} layout="vertical" onFinish={handleSubmit}>
-          <Form.Item
-            name="title"
-            label="Tên khóa học"
-            rules={[{ required: true, message: 'Vui lòng nhập tên khóa học!' }]}
-          >
-            <Input placeholder="Nhập tên khóa học" />
-          </Form.Item>
-          <Form.Item
-            name="description"
-            label="Mô tả"
-          >
-            <Input.TextArea rows={4} placeholder="Nhập mô tả khóa học" />
-          </Form.Item>
-          <Form.Item className="mb-0 flex justify-end">
-            <Button className="mr-2" onClick={handleCancel}>
-              Hủy
-            </Button>
-            <Button type="primary" htmlType="submit">
-              {editingCourse ? 'Cập nhật' : 'Tạo mới'}
-            </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   );
 };

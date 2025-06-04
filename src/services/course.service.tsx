@@ -11,7 +11,7 @@ interface PaginationParams {
   search?: string;
   categoryId?: string;
   level?: number;
-  status?: number;
+  status?: string | number;
 }
 
 // Extend with category and instructor specific params
