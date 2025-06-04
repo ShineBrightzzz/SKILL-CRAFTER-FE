@@ -269,15 +269,17 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
     const lessons = lessonsData.data.result;
     const sortedLessons = [...lessons].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     
-    // Enhance lessons with completion status
+    // Enhance lessons with completion status based on progress data
     const enhancedLessons = sortedLessons.map(lesson => {
+      // Find the progress for this lesson
       const progressItem = allLessonProgressData?.data?.result?.find(
-        (progress: any) => progress.lessonId === lesson.id && progress.status === "1"
+        (progress: any) => progress.lessonId === lesson.id
       );
       
       return {
         ...lesson,
-        isCompleted: !!progressItem
+        isCompleted: progressItem?.status === "1", // Check if status is "1"
+        progress: progressItem // Store the full progress data
       };
     });
 
@@ -318,7 +320,7 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
       setExpandedChapters(new Set([firstChapterId]));
       fetchLessonsForChapter(firstChapterId);
     }
-  }, [chaptersLoading, chapters, effectivelyEnrolled, expandedChapters.size, fetchLessonsForChapter]);// Track lesson progress
+  }, [chaptersLoading, chapters, effectivelyEnrolled, expandedChapters.size, fetchLessonsForChapter]);  // Track lesson progress
   const { data: lessonProgressData } = useGetLessonProgressByLessonIdQuery(
     currentLesson?.id ? currentLesson.id : skipToken
   );
@@ -328,16 +330,25 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
     if (!currentLesson || !lessonProgressData?.data?.result?.[0]) return;
 
     const progress = lessonProgressData.data.result[0];
-    if (progress.status === "1" && !currentLesson.isCompleted) {
+    const isCompleted = progress.status === "1";
+    if (isCompleted !== currentLesson.isCompleted) {
       // Update current lesson completion status
-      setCurrentLesson(prev => prev ? { ...prev, isCompleted: true } : prev);
+      setCurrentLesson(prev => prev ? { 
+        ...prev, 
+        isCompleted,
+        progress // Store the full progress data
+      } : prev);
 
       // Update lesson in loadedLessons
       if (currentLesson.chapterId) {
         setLoadedLessons(prev => {
           const chapterLessons = prev[currentLesson.chapterId] || [];
           const updatedLessons = chapterLessons.map(lesson => 
-            lesson.id === currentLesson.id ? { ...lesson, isCompleted: true } : lesson
+            lesson.id === currentLesson.id ? { 
+              ...lesson, 
+              isCompleted,
+              progress // Store the full progress data
+            } : lesson
           );
           
           return {

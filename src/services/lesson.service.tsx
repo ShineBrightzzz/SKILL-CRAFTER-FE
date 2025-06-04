@@ -191,7 +191,7 @@ export const lessonApiSlice = apiSlice.injectEndpoints({
       completeLesson: builder.mutation<LessonProgress, { userId: string, lessonId: string }>({
       query: ({ userId, lessonId }) => ({
         url: `/api/progress/mark-complete`,
-        method: 'POST',
+        method: 'PATCH',
         body: { userId, lessonId },
       }),
       invalidatesTags: (result, error, { userId, lessonId }) => [
