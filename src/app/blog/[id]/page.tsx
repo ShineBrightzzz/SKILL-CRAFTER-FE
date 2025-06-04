@@ -6,8 +6,13 @@ import { Card, Typography, Space, Avatar, Button, Form, Input, Divider, Spin, me
 import { UserOutlined, CalendarOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import CommentReplyForm from '@/components/blog/CommentReplyForm';
 import { useGetBlogByIdQuery } from '@/services/blog.service';
-import { useGetCommentsByBlogIdQuery, useCreateCommentMutation, useUpdateCommentMutation, useDeleteCommentMutation } from '@/services/blog-comment.service';
-import { BlogComment } from '@/services/blog-comment.service';
+import { 
+  useGetCommentsByBlogIdQuery, 
+  useCreateCommentMutation, 
+  useUpdateCommentMutation, 
+  useDeleteCommentMutation,
+  BlogComment 
+} from '@/services/blog-comment.service';
 import { useAuth } from '@/store/hooks';
 import dayjs from 'dayjs';
 

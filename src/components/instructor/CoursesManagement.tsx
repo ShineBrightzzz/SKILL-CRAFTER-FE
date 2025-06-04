@@ -32,7 +32,7 @@ const CoursesManagement = () => {
   const { data: coursesResponse, isLoading, refetch } = useGetAllCourseByInstructorQuery({
     instructorId,
     page: currentPage,
-    pageSize: pageSize
+    size: pageSize
   });
 
   // Fetch categories

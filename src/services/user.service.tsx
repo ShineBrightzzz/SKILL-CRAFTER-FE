@@ -185,7 +185,6 @@ export const userApiSlice = apiSlice.injectEndpoints({
                 family_name: data.family_name,
                 given_name: data.given_name,
                 fullName: `${data.given_name || ''} ${data.family_name || ''}`.trim(),
-                pictureUrl: data.pictureUrl || null,
                 accessToken: data.accessToken,
                 refreshToken: data.refreshToken
               };

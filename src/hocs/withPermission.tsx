@@ -14,6 +14,11 @@ const withPermission = (WrappedComponent: React.ComponentType<any>, action: Acti
       return <Loading message="Đang kiểm tra quyền truy cập..." />;
     }
 
+    // Bypass permission check if NEXT_PUBLIC_ENABLE_PERMISSIONS is false
+    if (process.env.NEXT_PUBLIC_ENABLE_PERMISSIONS === 'FALSE') {
+      return <WrappedComponent {...props} />;
+    }
+
     const isAllowed = ability.can(action, subject);
     
     if (!isAllowed) {

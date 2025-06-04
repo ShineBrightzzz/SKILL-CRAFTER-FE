@@ -40,7 +40,7 @@ export interface Permission {
 }
 
 // Response type for multiple permissions
-interface PermissionsResponse {
+export interface PermissionsResponse {
   data: {
     result: Permission[];
     meta?: {

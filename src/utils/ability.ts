@@ -56,23 +56,26 @@ export enum Module {
 
 export type AppAbility = PureAbility<[Action, Subject]>;
 
-export const createAbility = (permissions: any[]) => {
+export const createAbility = (permissions: any[] | null | undefined) => {
   const builder = new AbilityBuilder<AppAbility>(PureAbility as AbilityClass<AppAbility>);
   const { can, build } = builder;
 
   // Give a default ability to read auth-related subjects
   can(Action.Read, Subject.Auth);
 
-  permissions.forEach(permission => {
-    if (!permission.apiPath || !permission.method) return;
-    
-    const action = mapApiMethodToAction(permission.method, permission.apiPath);
-    const subject = mapApiPathToSubject(permission.apiPath);
-    
-    if (action && subject) {
-      can(action, subject);
-    }
-  });
+  // Ensure permissions is an array before using forEach
+  if (Array.isArray(permissions)) {
+    permissions.forEach(permission => {
+      if (!permission?.apiPath || !permission?.method) return;
+      
+      const action = mapApiMethodToAction(permission.method, permission.apiPath);
+      const subject = mapApiPathToSubject(permission.apiPath);
+      console.log(`Mapping permission: ${permission.apiPath} with method: ${permission.method} to action: ${action} and subject: ${subject}`);
+      if (action && subject) {
+        can(action, subject);
+      }
+    });
+  }
 
   return build();
 };

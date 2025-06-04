@@ -1,6 +1,5 @@
 import apiSlice from './api';
-import { Permission } from './permission.service';
-
+import { Permission, PermissionsResponse } from './permission.service';
 // Define types for pagination parameters
 export interface PaginationParams {
   page?: number;
@@ -34,7 +33,8 @@ export interface RolesResponse {
 export const roleApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // Role endpoints
-    getAllRoles: builder.query<RolesResponse, PaginationParams>({      query: (params: PaginationParams = {}) => {
+    getAllRoles: builder.query<RolesResponse, PaginationParams>({
+      query: (params: PaginationParams = {}) => {
         // Build query string for pagination
         const { page, size, sort, order, search } = params;
         const queryParams = [];
@@ -74,9 +74,7 @@ export const roleApiSlice = apiSlice.injectEndpoints({
               { type: 'Roles' as const, id: 'ACTIVE' },
             ]
           : [{ type: 'Roles' as const, id: 'ACTIVE' }],
-    }),
-
-    getRolePermissions: builder.query<Permission[], string>({
+    }),    getRolePermissions: builder.query<{ data: Permission[] }, string>({
       query: (roleId) => `/api/roles/${roleId}/permissions`,
       providesTags: (result, error, roleId) => [
         { type: 'Roles' as const, id: `${roleId}-permissions` },

@@ -50,19 +50,12 @@ export default function Home() {
             <p className="text-xl md:text-2xl mb-10 text-gray-200 animate-fade-in-up">
               Khám phá thế giới lập trình với các khóa học chất lượng cao <br/>
               được thiết kế bởi các chuyên gia hàng đầu
-            </p>
-            <div className="flex gap-4 justify-center">
+            </p>            <div className="flex justify-center">
               <Link
                 href="/learning"
                 className="bg-white text-blue-600 px-8 py-4 rounded-full font-semibold hover:bg-blue-50 transition transform hover:scale-105 shadow-lg"
               >
                 Bắt đầu học ngay
-              </Link>
-              <Link
-                href="/paths"
-                className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-full font-semibold hover:bg-white/10 transition transform hover:scale-105"
-              >
-                Xem lộ trình
               </Link>
             </div>
             <div className="mt-12 flex justify-center gap-8 text-gray-200">

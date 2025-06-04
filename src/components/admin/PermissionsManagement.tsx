@@ -20,13 +20,22 @@ const PermissionsManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
-    const { data: permissionsResponse, isLoading, refetch } = useGetAllPermissionsQuery({
+  
+  const [createPermission] = useCreatePermissionMutation();
+  const [updatePermission] = useUpdatePermissionMutation();
+  const [deletePermission] = useDeletePermissionMutation();
+  
+  const { data: permissionsResponse, isLoading, refetch } = useGetAllPermissionsQuery({
     page: currentPage,
     size: pageSize,
     search: searchTerm
   });
   
-  const permissions = permissionsResponse?.data?.result || [];
+  // Ensure we have an array even if data is undefined
+  const permissions = Array.isArray(permissionsResponse?.data?.result) 
+    ? permissionsResponse.data.result 
+    : [];
+    
   const paginationMeta = permissionsResponse?.data?.meta || { 
     page: 1, 
     pageSize: 10, 

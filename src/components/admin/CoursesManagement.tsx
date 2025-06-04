@@ -108,7 +108,9 @@ const CoursesManagement = () => {
         }
       },
     });
-  };  const columns = [
+  };  
+  
+  const columns = [
     {
       title: 'ID',
       dataIndex: 'id',
@@ -130,7 +132,7 @@ const CoursesManagement = () => {
     {
       title: 'Thao tác',
       key: 'actions',
-      render: (_, record) => (
+      render: (_: any, record: any) => (
         <Space size="middle">
           <Button 
             type="primary" 

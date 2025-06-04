@@ -131,7 +131,7 @@ const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
 const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: customBaseQuery,
-  tagTypes: ['Permission', 'Roles', 'Chapters', 'Courses', 'Lessons', 'Categories', 'Users', 'CodeSubmits', 'TestCases', 'Cart', 'Payment', 'BlogComments', 'Blogs'],
+  tagTypes: ['Permission', 'Roles', 'Chapters', 'Courses', 'Lessons', 'Categories', 'Users', 'CodeSubmits', 'TestCases', 'Cart', 'Payment', 'BlogComments', 'Blogs', 'Notifications'],
   endpoints: builder => ({}),
 });
 

@@ -47,7 +47,10 @@ interface PaymentsResponse {
 }
 
 interface PaymentCreateRequest {
-  courseId: string;
+  courseId?: string;
+  courseIds?: string[];
+  amount?: number;
+  locale?: string;
 }
 
 interface PaymentCreateResponse {

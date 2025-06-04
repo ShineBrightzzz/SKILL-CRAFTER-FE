@@ -539,10 +539,9 @@ export default function CourseDetailPage({ params }: PageProps) {
       </div>
     );
   }  return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gray-100">      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Course status and admin actions */}        <div className="flex justify-end items-center gap-4 mb-4">
-          {contextHolder}          <div className="flex items-center gap-2">              <CourseStatusDisplay status={course.status} message={course.message} />
+          {contextHolder}          <div className="flex items-center gap-2">              <CourseStatusDisplay status={Number(course.status)} />
           </div>
           {course.status === 1 && (
             <div className="flex gap-2">

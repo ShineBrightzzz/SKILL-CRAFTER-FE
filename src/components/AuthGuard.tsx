@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/store/hooks';
 import Loading from './Loading';
 
-const publicRoutes = ['/login', '/register', '/', '/course', '/api', '/instructor'];
+const publicRoutes = ['/login', '/register', '/', '/course', '/api', 'blog', 'learning'];
 
 interface AuthGuardProps {
   children: React.ReactNode;

@@ -14,9 +14,19 @@ import { useRouter } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import { setUser, logout } from '@/store/slices/authSlice';
 import { setAbility } from '@/store/slices/abilitySlice';
-import { useLazyGetAccountByIdQuery, useRefreshTokenMutation } from '@/services/user.service';
+import { useLazyGetAccountByIdQuery, useRefreshTokenMutation, User } from '@/services/user.service';
 import { useLazyGetRolePermissionsQuery } from '@/services/role.service';
+import { Permission } from '@/services/permission.service';
 import { getAccessToken, setAccessToken } from '@/services/api';
+
+interface PermissionResponse {
+  result: Permission[];
+  meta?: {
+    page: number;
+    pageSize: number;
+    total: number;
+  };
+}
 
 interface AuthContextType {
   signIn: (token: string) => Promise<void>;
@@ -84,11 +94,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (token && userId) {
           // If we have both access token and userId, fetch user data
           const userData = await getUserById(userId).unwrap();
-          const permissions = await getPermissionByRole(
-            userData?.data?.role?.id || 'user'
-          ).unwrap();
-          
-          console.log("User permissions:", permissions);
+          // Type assertion to match the actual API response structure
+          const userInfo = userData?.data as unknown as User;
+          const roleId = userInfo?.role?.id ? String(userInfo.role.id) : 'user';            
+          const permissions = await getPermissionByRole(roleId).unwrap();
+            console.log("User permissions:", permissions);
           
           // Store token in ref
           tokenRef.current = token;
@@ -97,15 +107,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Update Redux store
           dispatch(setUser({
             id: userId,
-            username: userData?.data?.username || '',
+            username: userInfo?.username || '',
             // Don't store the token in Redux for security
             isAuthenticated: true
-          }));
-          
-          // Dispatch permissions to ability slice
+          }));          // Dispatch permissions to ability slice
           dispatch(setAbility(permissions?.data || []));
-          
-          setIsAuthenticated(true);        
+
+          setIsAuthenticated(true);
         } 
           else if (userId) {
           // If no token in memory but we have userId, try to refresh it using the HTTP-only cookie
@@ -124,18 +132,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               
               // Fetch user data with new token
               const userData = await getUserById(userId).unwrap();
-              const permissions = await getPermissionByRole(
-                userData?.data?.role?.id || 'user'
-              ).unwrap();
-              
-              // Update Redux store
+              // Type assertion to match the actual API response structure
+              const userInfo = userData?.data as unknown as User;
+              const roleId = userInfo?.role?.id ? String(userInfo.role.id) : 'user';
+              const permissions = await getPermissionByRole(roleId).unwrap();                // Update Redux store
               dispatch(setUser({
                 id: userId,
-                username: userData?.data?.username || '',
+                username: userInfo?.username || '',
                 isAuthenticated: true
-              }));
-              
-              // Dispatch permissions
+              }));                // Dispatch permissions
               dispatch(setAbility(permissions?.data || []));
               setIsAuthenticated(true);
             } else {

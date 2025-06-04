@@ -1,7 +1,6 @@
 import apiSlice from './api';
 import { useAuth } from '@/store/hooks';
-import { ApiResponse } from '@/types/api';
-import { Page } from '@/types/pagination';
+import { APIResponse } from '@/types/api';
 
 // Define types
 export interface NotificationDTO {
@@ -15,17 +14,10 @@ export interface NotificationDTO {
   createdAt: string;
 }
 
-interface BaseResponse<T> {
-  success: boolean;
-  message: string;
-  data: T;
-  timestamp: string;
-}
-
 export const notificationApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // Notification endpoints
-    getUserNotifications: builder.query<BaseResponse<NotificationDTO[]>, void>({
+    getUserNotifications: builder.query<APIResponse<NotificationDTO[]>, void>({
       query: () => {
         const userId = localStorage.getItem('userId');
         return {
@@ -43,10 +35,8 @@ export const notificationApiSlice = apiSlice.injectEndpoints({
               { type: 'Notifications' as const, id: 'LIST' }
             ]
           : [{ type: 'Notifications' as const, id: 'LIST' }],
-    }),
-
-    getUserNotificationsPaginated: builder.query<
-      BaseResponse<{
+    }),    getUserNotificationsPaginated: builder.query<
+      APIResponse<{
         content: NotificationDTO[];
         totalPages: number;
         totalElements: number;
@@ -75,7 +65,7 @@ export const notificationApiSlice = apiSlice.injectEndpoints({
           : [{ type: 'Notifications' as const, id: 'LIST' }],
     }),
 
-    getUnreadCount: builder.query<BaseResponse<number>, void>({
+    getUnreadCount: builder.query<APIResponse<number>, void>({
       query: () => {
         const userId = localStorage.getItem('userId');
         return {
@@ -86,7 +76,7 @@ export const notificationApiSlice = apiSlice.injectEndpoints({
       providesTags: [{ type: 'Notifications', id: 'COUNT' }],
     }),
 
-    markAsRead: builder.mutation<BaseResponse<NotificationDTO>, string>({
+    markAsRead: builder.mutation<APIResponse<NotificationDTO>, string>({
       query: (id) => ({
         url: `/api/notifications/${id}/mark-read`,
         method: 'PATCH'
@@ -98,7 +88,7 @@ export const notificationApiSlice = apiSlice.injectEndpoints({
       ],
     }),
 
-    markAllAsRead: builder.mutation<BaseResponse<void>, void>({
+    markAllAsRead: builder.mutation<APIResponse<void>, void>({
       query: () => {
         const userId = localStorage.getItem('userId');
         return {

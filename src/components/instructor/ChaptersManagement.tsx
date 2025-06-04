@@ -252,8 +252,7 @@ const ChaptersManagement = () => {
       </div>
       
       {selectedCourseId && (
-        <>
-          <div className="flex justify-between items-center mb-6">
+        <>          <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold">Danh sách chương học</h2>
             {canCreate && (
               <Button 
@@ -264,6 +263,7 @@ const ChaptersManagement = () => {
                 Thêm chương mới
               </Button>
             )}
+          </div>
           
           <Table 
             columns={columns} 

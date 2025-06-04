@@ -40,18 +40,18 @@ const AdminPage = () => {
     if (payments.length > 0) {
       // Calculate total revenue
       const total = payments
-        .filter((p: Payment) => p.status === 'completed')
-        .reduce((sum: number, payment: Payment) => sum + (payment.amount || 0), 0);
+        .filter((p) => p.status === 'completed')
+        .reduce((sum, payment) => sum + (payment.amount || 0), 0);
       setTotalRevenue(total);
 
       // Calculate revenue change (compare with last month)
       const currentMonth = new Date().getMonth();
       const currentMonthRevenue = payments
-        .filter((p: Payment) => p.status === 'completed' && new Date(p.createdAt).getMonth() === currentMonth)
-        .reduce((sum: number, payment: Payment) => sum + (payment.amount || 0), 0);
+        .filter((p) => p.status === 'completed' && new Date(p.createdAt).getMonth() === currentMonth)
+        .reduce((sum, payment) => sum + (payment.amount || 0), 0);
       const lastMonthRevenue = payments
-        .filter((p: Payment) => p.status === 'completed' && new Date(p.createdAt).getMonth() === currentMonth - 1)
-        .reduce((sum: number, payment: Payment) => sum + (payment.amount || 0), 0);
+        .filter((p) => p.status === 'completed' && new Date(p.createdAt).getMonth() === currentMonth - 1)
+        .reduce((sum, payment) => sum + (payment.amount || 0), 0);
       
       const change = lastMonthRevenue ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0;
       setRevenueChange(change);
@@ -143,11 +143,10 @@ const AdminPage = () => {
       </Row>
 
       <Row gutter={[16, 16]}>
-        <Col xs={24} lg={12}>
-          <Card title="Khóa học gần đây">
+        <Col xs={24} lg={12}>          <Card title="Khóa học gần đây">
             <Table 
               columns={recentCoursesColumns}
-              dataSource={courses.slice(0, 5)}
+              dataSource={courses.slice(0, 5) as any}
               pagination={false}
               rowKey="id"
             />
@@ -159,11 +158,10 @@ const AdminPage = () => {
           </Card>
         </Col>
 
-        <Col xs={24} lg={12}>
-          <Card title="Giao dịch gần đây">
+        <Col xs={24} lg={12}>          <Card title="Giao dịch gần đây">
             <Table 
               columns={recentTransactionsColumns}
-              dataSource={payments.slice(0, 5)}
+              dataSource={payments.slice(0, 5) as any}
               pagination={false}
               rowKey="id"
             />

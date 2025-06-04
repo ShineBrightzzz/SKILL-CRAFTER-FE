@@ -36,12 +36,11 @@ export default function CourseDetailPage({ params }: CourseDetailProps) {
     courseId
   });
   const chapters = chaptersResponse?.data?.result || [];
-  
-  // Fetch enrollments
+    // Fetch enrollments
   const { data: enrollmentsResponse, isLoading: enrollmentsLoading } = useGetEnrollmentsByCourseIdQuery({
     courseId,
     page: currentPage,
-    pageSize: pageSize
+    size: pageSize
   });
     // Submit course for approval mutation
   const [updateCourseStatus, { isLoading: isSubmitting }] = useUpdateCourseStatusMutation();
@@ -183,10 +182,9 @@ export default function CourseDetailPage({ params }: CourseDetailProps) {
         <div className="flex justify-between items-center mb-6">
           <Button onClick={() => router.push(`/instructor`)} className="mb-4">
             ← Quay lại
-          </Button>
-          <div className="space-x-2">
+          </Button>          <div className="space-x-2">
             <div className="flex items-center gap-2">
-              <CourseStatusDisplay status={course.status} message={course.statusMessage} />
+              <CourseStatusDisplay status={Number(course.status) || 0} />
               {course.status !== 1 && course.status !== 2 && (
                 <Button 
                   type="primary"

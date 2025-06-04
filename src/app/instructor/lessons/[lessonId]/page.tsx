@@ -40,11 +40,10 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
   const [lessonType, setLessonType] = useState<number>(4);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [testCases, setTestCases] = useState<TestCaseDTO[]>([]);
-  const [activeTestCase, setActiveTestCase] = useState<number | null>(null);
-  const [modifiedTestCases, setModifiedTestCases] = useState<Set<number>>(new Set());
-    // Fetch lesson details    
+  const [activeTestCase, setActiveTestCase] = useState<number | null>(null);  const [modifiedTestCases, setModifiedTestCases] = useState<Set<number>>(new Set());
+  // Fetch lesson details    
   const { data: lessonResponse, isLoading: lessonLoading } = useGetLessonByIdQuery(lessonId);
-  const lesson = lessonResponse?.data;
+  const lesson = lessonResponse;
 
   // Fetch test cases for programming lessons
   const { data: testCasesResponse, isLoading: testCasesLoading } = useGetTestCasesByLessonIdQuery(
@@ -58,31 +57,29 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
   const [createTestCase] = useCreateTestCaseMutation();
   const [updateTestCase] = useUpdateTestCaseMutation();
   const [deleteTestCase] = useDeleteTestCaseMutation();
-  
-  // Initialize form with lesson data
+    // Initialize form with lesson data
   useEffect(() => {
-    if (lesson?.data) {
-      setLessonType(lesson.data.type);
+    if (lesson) {
+      setLessonType(lesson.type);
       form.setFieldsValue({
-        title: lesson.data.title,
-        type: lesson.data.type,
-        content: lesson.data.content,
-        videoUrl: lesson.data.videoUrl,
-        duration: lesson.data.duration,
-        initialCode: lesson.data.initialCode,
-        language: lesson.data.language,
-        statusMessage: lesson.data.statusMessage
+        title: lesson.title,
+        type: lesson.type,
+        content: lesson.content,
+        videoUrl: lesson.videoUrl,
+        duration: lesson.duration,
+        initialCode: lesson.initialCode,
+        language: lesson.language,
+        statusMessage: lesson.statusMessage
       });
     }
   }, [lesson, form]);
-
   // Initialize quiz questions from lesson data
   useEffect(() => {
-    if (lesson?.data?.quizData) {
+    if (lesson?.quizData) {
       try {
-        const quizData = typeof lesson.data.quizData === 'string' 
-          ? JSON.parse(lesson.data.quizData) 
-          : lesson.data.quizData;
+        const quizData = typeof lesson.quizData === 'string' 
+          ? JSON.parse(lesson.quizData) 
+          : lesson.quizData;
         if (quizData.questions) {
           setQuestions(quizData.questions);
         }
@@ -90,7 +87,7 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
         console.error('Error parsing quiz data:', error);
       }
     }
-  }, [lesson]);  // Initialize test cases when data is loaded
+  }, [lesson]);// Initialize test cases when data is loaded
   useEffect(() => {
     if (testCasesResponse) {
       // Ensure testCasesResponse is an array
@@ -191,9 +188,15 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
           formData.append('quizData', '');
           if (values.content) formData.append('content', values.content.trim());
           break;
+      }      // Send the update
+      // Preserve the status if it exists
+      if (lesson && lesson.status !== undefined) {
+        formData.append('status', String(lesson.status));
       }
-
-      // Send the update
+      if (lesson && lesson.statusMessage) {
+        formData.append('statusMessage', lesson.statusMessage);
+      }
+      
       await updateLesson({
         id: lessonId,
         body: formData
@@ -743,9 +746,8 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
           <div className="mb-4 flex flex-wrap gap-4">
             <Text type="secondary">Chương: {lesson.chapterName}</Text>
             <Text type="secondary">Loại: {getLessonTypeName(lesson.type)}</Text>
-            {lesson.duration && <Text type="secondary">Thời lượng: {lesson.duration} phút</Text>}
-            <LessonStatusDisplay 
-              status={lesson.status} 
+            {lesson.duration && <Text type="secondary">Thời lượng: {lesson.duration} phút</Text>}            <LessonStatusDisplay 
+              status={Number(lesson.status) || 0} 
               message={lesson.statusMessage} 
             />
           </div>

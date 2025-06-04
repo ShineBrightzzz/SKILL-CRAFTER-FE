@@ -2,7 +2,7 @@ import apiSlice from './api';
 import { ListResponse } from '@/types/api';
 
 // Define types
-interface BlogComment {
+export interface BlogComment {
   id: string;
   content: string;
   blogId: string;
@@ -29,7 +29,7 @@ interface BlogCommentUpdateDTO {
 }
 
 // Response type for multiple comments
-interface BlogCommentsResponse extends ListResponse<BlogComment> {}
+type BlogCommentsResponse = ListResponse<BlogComment>;
 
 // Define types for pagination parameters
 interface PaginationParams {
