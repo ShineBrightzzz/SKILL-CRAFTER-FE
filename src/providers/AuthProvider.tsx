@@ -102,8 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: userInfo.id,
             username: userInfo.username,
             email: userInfo.email,
-            familyName: userInfo.familyName || userInfo.family_name,            givenName: userInfo.givenName || userInfo.given_name,
-            email_verified: userInfo.email_verified,
+            familyName: userInfo.familyName,            
+            givenName: userInfo.givenName,
             pictureUrl: userInfo.pictureUrl,
             role: userInfo.role
           }));
@@ -141,11 +141,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               // Type assertion to match the actual API response structure
               const userInfo = userData?.data as unknown as User;
               const roleId = userInfo?.role?.id ? String(userInfo.role.id) : 'user';
-              const permissions = await getPermissionByRole(roleId).unwrap();                // Update Redux store
+              const permissions = await getPermissionByRole(roleId).unwrap();              // Update Redux store
               dispatch(setUser({
                 id: userId,
                 username: userInfo?.username || '',
-                isAuthenticated: true
+                email: userInfo?.email,
+                familyName: userInfo?.familyName,
+                givenName: userInfo?.givenName,
+                pictureUrl: userInfo?.pictureUrl,
+                role: userInfo?.role
               }));                // Dispatch permissions
               dispatch(setAbility(permissions?.data || []));
               setIsAuthenticated(true);

@@ -3,7 +3,7 @@ export interface CourseComment {
   courseId: string;
   userId: string;
   userName: string;
-  userAvatar?: string;
+  avatar_url?: string;
   content: string;
   createdAt: string;
   updatedAt?: string;

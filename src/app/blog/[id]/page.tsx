@@ -215,9 +215,7 @@ const BlogDetailPage: React.FC<PageProps> = ({ params }) => {
             <Space direction="vertical" className="w-full" size="large">
               {comments.map((comment) => (
                 <div key={comment.id} className="mb-4">
-                  <div className="flex space-x-4">
-                    <Avatar 
-                      src={comment.userPictureUrl} 
+                  <div className="flex space-x-4">                    <Avatar                      src={comment.userPictureUrl} 
                       icon={!comment.userPictureUrl && <UserOutlined />} 
                     />
                     <div className="flex-1">
@@ -276,9 +274,7 @@ const BlogDetailPage: React.FC<PageProps> = ({ params }) => {
                           <div className="space-y-4">
                             {comment.replies.map((reply: BlogComment) => (
                               <div key={reply.id}>
-                                <div className="flex space-x-4">
-                                  <Avatar 
-                                    src={reply.userPictureUrl} 
+                                <div className="flex space-x-4">                                  <Avatar                                    src={reply.userPictureUrl} 
                                     icon={!reply.userPictureUrl && <UserOutlined />}
                                     size="small" 
                                   />

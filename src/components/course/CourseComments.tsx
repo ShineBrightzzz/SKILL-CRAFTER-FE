@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Rate, Input, Button, Space, Avatar, Spin } from 'antd';
-import { useCreateCommentMutation, useGetCommentsByCourseIdQuery } from '@/services/course-comment.service';
+import { useCreateCommentMutation, useGetCommentsByCourseIdQuery, CourseComment } from '@/services/course-comment.service';
 import { useGetCourseRatingByUserQuery } from '@/services/course.service';
 import { toast } from 'react-toastify';
 
@@ -9,16 +9,6 @@ const { TextArea } = Input;
 interface CourseCommentsProps {
   courseId: string;
   userId: string;
-}
-
-interface Comment {
-  id: string;
-  userId: string;
-  userName: string;
-  userAvatar?: string;
-  content: string;
-  rating: number;
-  createdAt: string;
 }
 
 export default function CourseComments({ courseId, userId }: CourseCommentsProps) {
@@ -147,19 +137,19 @@ export default function CourseComments({ courseId, userId }: CourseCommentsProps
       {/* Comments list */}
       <div className="space-y-4 mt-6">
         <h3 className="text-lg font-semibold">Các đánh giá khác</h3>
-        {commentsData?.data?.result?.map((comment: Comment) => (
+        {commentsData?.data?.result?.map((comment: CourseComment) => (
           <div key={comment.id} className="bg-white p-4 rounded-lg shadow-sm">
             <div className="flex items-start space-x-4">
               <Avatar 
-                src={comment.userAvatar}
-                alt={comment.userName}
+                src={comment.userPictureUrl || undefined}
+                alt={comment.username}
               >
-                {comment.userName[0]}
+                {comment.username[0]}
               </Avatar>
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-2">
                   <div>
-                    <h4 className="font-medium">{comment.userName}</h4>
+                    <h4 className="font-medium">{comment.username}</h4>
                     <Rate value={comment.rating} disabled className="text-sm" />
                   </div>
                   <span className="text-sm text-gray-500">

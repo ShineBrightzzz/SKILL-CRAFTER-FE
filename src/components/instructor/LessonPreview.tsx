@@ -49,7 +49,7 @@ export default function LessonPreview({ lesson }: LessonPreviewProps) {
             />
           );
         }
-        return <Quiz data={quizData} />;
+        return <Quiz quizData={quizData} />;
 
       case 2: // Video
         if (!lesson.videoUrl) {

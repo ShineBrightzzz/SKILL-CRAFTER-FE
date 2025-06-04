@@ -17,6 +17,7 @@ import { Button, Tag, Modal, Input } from 'antd';
 import Quiz from '@/components/Quiz';
 import { CourseStatusDisplay } from '@/components/instructor/CourseStatusDisplay';
 import { LessonStatusDisplay } from '@/components/instructor/LessonStatusDisplay';
+import { validateAndProcessQuizData } from '@/utils/quiz';
 
 
 interface PageProps {
@@ -459,17 +460,22 @@ export default function CourseDetailPage({ params }: PageProps) {
     
     switch (lessonType) {
       case 1: // Quiz (type 1)
+        const validatedQuizData = validateAndProcessQuizData(normalizedLesson.quizData);
+        if (!validatedQuizData.isValid || !validatedQuizData.data) {
+          return (
+            <div>
+              <h2 className="text-xl font-bold mb-4">{normalizedLesson.title}</h2>
+              <p className="text-red-500">Dữ liệu quiz không hợp lệ</p>
+            </div>
+          );
+        }
         return (
           <div>
             <h2 className="text-xl font-bold mb-4">{normalizedLesson.title}</h2>
-            {normalizedLesson.quizData ? (
-              <Quiz 
-                data={normalizedLesson.quizData} 
-                onComplete={() => {}} 
-              />
-            ) : (
-              <p className="text-red-500">Dữ liệu quiz không khả dụng</p>
-            )}
+            <Quiz
+              quizData={validatedQuizData.data}
+              onComplete={() => {}}
+            />
           </div>
         );
       case 2: // Video
@@ -679,7 +685,8 @@ export default function CourseDetailPage({ params }: PageProps) {
                       </div>
                     </div>
                   )}
-                  {renderLessonContent()}
+                  {renderLessonContent()
+}
                 </div>
               ) : (
                 /* Course overview when no lesson is selected */

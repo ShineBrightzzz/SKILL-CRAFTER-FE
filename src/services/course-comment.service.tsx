@@ -67,17 +67,16 @@ export const courseCommentApiSlice = apiSlice.injectEndpoints({
           : '';
           
         return `/api/comments/course/${courseId}${queryString}`;
-      },
-      providesTags: (result, error, params) => 
+      },      providesTags: (result, error, params) => 
         result?.data?.result
           ? [
-              ...result.data.result.map(({ id }) => ({ type: 'CourseComments' as const, id })),
-              { type: 'CourseComments' as const, id: 'LIST' },
-              { type: 'CourseComments' as const, id: `Course-${params.courseId}` },
+              ...result.data.result.map(({ id }) => ({ type: 'Courses' as const, id })),
+              { type: 'Courses' as const, id: 'LIST' },
+              { type: 'Courses' as const, id: `Course-${params.courseId}` },
             ]
           : [
-              { type: 'CourseComments' as const, id: 'LIST' },
-              { type: 'CourseComments' as const, id: `Course-${params.courseId}` },
+              { type: 'Courses' as const, id: 'LIST' },
+              { type: 'Courses' as const, id: `Course-${params.courseId}` },
             ],
     }),
 
@@ -97,17 +96,16 @@ export const courseCommentApiSlice = apiSlice.injectEndpoints({
           : '';
           
         return `/api/comments/user/${userId}${queryString}`;
-      },
-      providesTags: (result, error, params) => 
+      },      providesTags: (result, error, params) => 
         result?.data?.result
           ? [
-              ...result.data.result.map(({ id }) => ({ type: 'CourseComments' as const, id })),
-              { type: 'CourseComments' as const, id: 'LIST' },
-              { type: 'CourseComments' as const, id: `User-${params.userId}` },
+              ...result.data.result.map(({ id }) => ({ type: 'Courses' as const, id })),
+              { type: 'Courses' as const, id: 'LIST' },
+              { type: 'Courses' as const, id: `User-${params.userId}` },
             ]
           : [
-              { type: 'CourseComments' as const, id: 'LIST' },
-              { type: 'CourseComments' as const, id: `User-${params.userId}` },
+              { type: 'Courses' as const, id: 'LIST' },
+              { type: 'Courses' as const, id: `User-${params.userId}` },
             ],
     }),
 
@@ -119,8 +117,8 @@ export const courseCommentApiSlice = apiSlice.injectEndpoints({
         body,
       }),
       invalidatesTags: (result, error, { courseId }) => [
-        { type: 'CourseComments' as const, id: 'LIST' },
-        { type: 'CourseComments' as const, id: `Course-${courseId}` },
+        { type: 'Courses' as const, id: 'LIST' },
+        { type: 'Courses' as const, id: `Course-${courseId}` },
       ],
     }),
 
@@ -132,8 +130,8 @@ export const courseCommentApiSlice = apiSlice.injectEndpoints({
         body: { content, rating },
       }),
       invalidatesTags: (result, error, { id }) => [
-        { type: 'CourseComments' as const, id },
-        { type: 'CourseComments' as const, id: 'LIST' },
+        { type: 'Courses' as const, id },
+        { type: 'Courses' as const, id: 'LIST' },
       ],
     }),
 
@@ -144,8 +142,8 @@ export const courseCommentApiSlice = apiSlice.injectEndpoints({
         method: 'DELETE',
       }),
       invalidatesTags: (result, error, id) => [
-        { type: 'CourseComments' as const, id },
-        { type: 'CourseComments' as const, id: 'LIST' },
+        { type: 'Courses' as const, id },
+        { type: 'Courses' as const, id: 'LIST' },
       ],
     }),
   }),

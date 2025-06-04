@@ -42,8 +42,8 @@ const Navbar: React.FC = () => {
 
   // Function to get display name
   const getDisplayName = () => {
-    if (user?.family_name && user?.given_name) {
-      return `${user.family_name} ${user.given_name}`;
+    if (user?.familyName && user?.givenName) {
+      return `${user.familyName} ${user.givenName}`;
     }
     return user?.username || '';
   };
@@ -119,11 +119,9 @@ const Navbar: React.FC = () => {
                 <QuestionCircleOutlined 
                   className="text-white text-xl cursor-pointer hover:text-blue-200"
                 />
-                <div className="relative">
-                  <button
+                <div className="relative">                  <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center space-x-2 text-white hover:text-blue-200 transition"
-                  >                    {user.pictureUrl ? (
+                    className="flex items-center space-x-2 text-white hover:text-blue-200 transition"                  >                    {user.pictureUrl ? (
                       <Image
                         src={user.pictureUrl}
                         alt={getDisplayName()}

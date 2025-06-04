@@ -22,8 +22,8 @@ export default function MobileNav() {
 
   // Function to get display name
   const getDisplayName = () => {
-    if (user?.family_name && user?.given_name) {
-      return `${user.family_name} ${user.given_name}`;
+    if (user?.familyName && user?.givenName) {
+      return `${user.familyName} ${user.givenName}`;
     }
     return user?.username || '';
   };

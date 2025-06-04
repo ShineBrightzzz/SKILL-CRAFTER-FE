@@ -10,9 +10,10 @@ const ProfilePage = () => {
   const { user } = useAuth();
   const [form] = Form.useForm();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [updateAccount, { isLoading: isUpdating }] = useUpdateAccountMutation();useEffect(() => {
+  const [updateAccount, { isLoading: isUpdating }] = useUpdateAccountMutation();
+
+  useEffect(() => {
     if (user) {
-      console.log('Current user data:', user); // Debug log
       form.setFieldsValue({
         username: user.username,
         email: user.email,
@@ -21,7 +22,9 @@ const ProfilePage = () => {
       });
       setAvatarUrl(user.pictureUrl || null);
     }
-  }, [user, form]);  const handleSubmit = async (values: any) => {
+  }, [user, form]);
+
+  const handleSubmit = async (values: any) => {
     if (!user?.id) return;
 
     try {
@@ -31,7 +34,7 @@ const ProfilePage = () => {
           familyName: values.familyName,
           givenName: values.givenName,
           email: values.email,
-          password: values.password, // nếu có thay đổi mật khẩu
+          password: values.password,
         }
       }).unwrap();
       
@@ -45,16 +48,19 @@ const ProfilePage = () => {
   const customUploadRequest = async ({ file, onSuccess, onError }: any) => {
     if (!user?.id) return;
 
-    try {      const response = await updateAccount({
+    try {
+      const response = await updateAccount({
         id: user.id,
         body: {
           pictureFile: file
         }
       }).unwrap();
       
-      // Cập nhật avatar URL từ response của server
-      if (response.data?.pictureUrl) {
-        setAvatarUrl(response.data.pictureUrl);
+      // Update avatar URL from server response
+      const updatedUser = Array.isArray(response.data?.result) 
+        ? response.data?.result[0] 
+        : response.data?.result;      if (updatedUser?.pictureUrl) {
+        setAvatarUrl(updatedUser.pictureUrl);
       }
       
       message.success('Cập nhật ảnh đại diện thành công!');

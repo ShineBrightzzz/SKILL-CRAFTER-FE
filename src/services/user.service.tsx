@@ -3,8 +3,7 @@ import apiSlice, { setAccessToken, setDebugRefreshToken } from './api';
 import type { AuthResponse } from '@/types/auth';
 
 // Define types
-export interface User {
-  id: string;
+export interface User {  id: string;
   username: string;
   email?: string;
   familyName?: string;
@@ -23,8 +22,9 @@ export interface User {
   } | null;
   refreshToken?: string;
   createdAt?: string;
-  updatedAt?: string;  createdBy?: string;
-  updatedBy?: string;
+  updatedAt?: string;  
+  createdBy?: string;
+  updatedBy?: string;  
   pictureUrl?: string;
   phone?: string;
 }
@@ -107,19 +107,21 @@ export const userApiSlice = apiSlice.injectEndpoints({
           setAccessToken(data.accessToken);
           
           // Store user ID in localStorage
-          localStorage.setItem('userId', data.id);          // Store refresh token for development/debugging only
+          localStorage.setItem('userId', data.id);
+          
+          // Store refresh token for development/debugging only
           if (data.refreshToken) {
             setDebugRefreshToken(data.refreshToken);
           }
-            // Update Redux store with user data
+          
+          // Update Redux store with user data
           dispatch(setUser({
             id: data.id,
             username: data.username,
             email: data.email,
-            email_verified: data.email_verified,
-            familyName: data.familyName || data.family_name,
-            givenName: data.givenName || data.given_name,
-            avatar_url: data.avatar_url,
+            familyName: data.familyName,
+            givenName: data.givenName,
+            pictureUrl: data.pictureUrl,
             role: data.role
           }));
 
@@ -184,17 +186,16 @@ export const userApiSlice = apiSlice.injectEndpoints({
             }
 
             // Update user data in Redux store
-            if (data.id) {
+            if (data.id) {              
               const userData = {
                 id: data.id,
                 username: data.username,
                 email: data.email,
                 email_verified: data.email_verified,
-                family_name: data.family_name,
-                given_name: data.given_name,
-                fullName: `${data.given_name || ''} ${data.family_name || ''}`.trim(),
-                accessToken: data.accessToken,
-                refreshToken: data.refreshToken
+                familyName: data.familyName,
+                givenName: data.givenName,
+                pictureUrl: data.pictureUrl || undefined,
+                role: data.role || null
               };
               dispatch(setUser(userData));
               console.log('User data updated in Redux store');
