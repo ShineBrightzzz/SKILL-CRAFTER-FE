@@ -41,6 +41,8 @@ interface Course {
   duration: number;
   level: number;
   tags: string[] | null;
+  rating?: number;
+  totalRatings?: number;
   status?: number; // 0: Draft, 1: Pending, 2: Approved, 3: Rejected
   createdAt: string;
   updatedAt: string | null;
@@ -324,6 +326,33 @@ export const courseApiSlice = apiSlice.injectEndpoints({
       ],
     }),
 
+    // Get user's rating for a course
+    getCourseRatingByUser: builder.query<
+      { data: { rating: number } }, 
+      { courseId: string; userId: string }
+    >({
+      query: ({ courseId, userId }) => 
+        `/api/courses/${courseId}/ratings/user/${userId}`,
+      providesTags: (result, error, { courseId, userId }) => [
+        { type: 'Courses' as const, id: `Rating-${courseId}-${userId}` }
+      ],
+    }),
+
+    // Add or update course rating
+    addCourseRating: builder.mutation<
+      void,
+      { courseId: string; userId: string; rating: number }
+    >({
+      query: ({ courseId, userId, rating }) => ({
+        url: `/api/courses/${courseId}/ratings`,
+        method: 'POST',
+        body: { userId, rating },
+      }),
+      invalidatesTags: (result, error, { courseId, userId }) => [
+        { type: 'Courses' as const, id: courseId },
+        { type: 'Courses' as const, id: `Rating-${courseId}-${userId}` },
+      ],
+    }),
   }),
   overrideExisting: true,
 });
@@ -337,9 +366,12 @@ export const {
     useDeleteCourseByIdMutation,
     useGetAllCourseByCategoryQuery,
     useGetAllCourseByInstructorQuery,
-    useGetAllLessonsByChapterIdQuery,    useGetEnrollmentsByUserIdQuery,
+    useGetAllLessonsByChapterIdQuery,
+    useGetEnrollmentsByUserIdQuery,
     useEnrollCourseMutation,
     useUnenrollCourseMutation,
     useGetEnrollmentsByCourseIdQuery,
     useUpdateCourseStatusMutation,
+    useGetCourseRatingByUserQuery,
+    useAddCourseRatingMutation,
 } = courseApiSlice;

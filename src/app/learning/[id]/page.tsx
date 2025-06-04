@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
-import { Button, Spin } from 'antd';
+import { Button, Spin, Rate } from 'antd';
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronUpIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { skipToken } from '@reduxjs/toolkit/query/react';
 import classNames from 'classnames';
@@ -27,6 +27,7 @@ import VideoPlayer from '@/components/VideoPlayer';
 import MarkdownCode from '@/components/MarkdownCode';
 import CodeEditor from '@/components/CodeEditor';
 import Quiz from '@/components/Quiz';
+import CourseComments from '@/components/course/CourseComments';
 
 // Define the page props interface
 interface PageProps {
@@ -78,6 +79,8 @@ interface Course {
   duration: number;
   level: number;
   tags: string[] | null;
+  rating?: number;
+  totalRatings?: number;
   createdAt: string;
   updatedAt: string | null;
   createdBy: string;
@@ -230,8 +233,8 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   const effectivelyEnrolled = isEnrolled || (isLocalEnrolled && !enrollmentsLoading);
 
   // Functions to manage lessons and chapters
-  const changeLesson = useCallback((lesson: Lesson) => {
-    if (!lesson || !lesson.id) {
+  const changeLesson = useCallback((lesson: Lesson | null) => {
+    if (!lesson?.id) {
       console.warn('Attempted to set an invalid lesson:', lesson);
       return;
     }
@@ -239,6 +242,15 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
     if (currentLesson?.id === lesson.id) return;
     
     setCurrentLesson(lesson);
+    
+    // Ensure the chapter is expanded
+    if (lesson.chapterId) {
+      setExpandedChapters(prev => {
+        const newSet = new Set(prev);
+        newSet.add(lesson.chapterId);
+        return newSet;
+      });
+    }
   }, [currentLesson]);
 
   // Functions to switch between overview and learning mode 
@@ -247,15 +259,15 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   }, []);
 
   const switchToLearning = useCallback((selectedLesson?: Lesson) => {
-    if (selectedLesson) {
+    if (selectedLesson?.id) {
       changeLesson(selectedLesson);
-      setExpandedChapters(prev => {
-        const newSet = new Set(prev);
-        if (!newSet.has(selectedLesson.chapterId)) {
+      if (selectedLesson.chapterId) {
+        setExpandedChapters(prev => {
+          const newSet = new Set(prev);
           newSet.add(selectedLesson.chapterId);
-        }
-        return newSet;
-      });
+          return newSet;
+        });
+      }
     }
     setIsLearningMode(true);
   }, [changeLesson]);  // Get lessons for chapters
@@ -365,7 +377,10 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   const [completeLesson] = useCompleteLessonMutation();
 
   const handleCompleteLesson = async () => {
-    if (!currentUser || !currentLesson) return;
+    if (!currentUser?.id || !currentLesson?.id) {
+      console.warn('Cannot complete lesson: missing user or lesson ID');
+      return;
+    }
     
     try {
       setCompletingLesson(true);
@@ -389,14 +404,17 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
         });
       }
 
+      // Update current lesson completion status
       setCurrentLesson(prev => prev ? { ...prev, isCompleted: true } : prev);
 
       toast.success('Đã hoàn thành bài học!');
 
       // Navigate to next lesson if available
-      const nextLesson = getNextLesson(chapters, loadedLessons, currentLesson.id);
-      if (nextLesson) {
-        changeLesson(nextLesson);
+      if (currentLesson.id) {
+        const nextLesson = getNextLesson(chapters, loadedLessons, currentLesson.id);
+        if (nextLesson) {
+          changeLesson(nextLesson);
+        }
       }
     } catch (error) {
       console.error('Failed to complete lesson:', error);
@@ -480,12 +498,26 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                   <span>Cấp độ: {getLevelText(course.level)}</span>
                   <span>•</span>
                   <span>{course.categoryName || "Chưa phân loại"}</span>
+                  {course.rating !== undefined && (
+                    <>
+                      <span>•</span>
+                      <span className="flex items-center">
+                        <Rate 
+                          disabled 
+                          defaultValue={course.rating} 
+                          className="text-sm"
+                          allowHalf
+                        />
+                        <span className="ml-1">({course.totalRatings || 0} đánh giá)</span>
+                      </span>
+                    </>
+                  )}
                 </div>
                 <p className="text-gray-700">{course.description}</p>
               </div>
 
               {/* Course Content */}
-              <div className="bg-white rounded-lg shadow-lg p-6">
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
                 <h2 className="text-xl font-semibold mb-4">Nội dung khóa học</h2>
                 {chaptersLoading ? (
                   <div className="text-center py-4">
@@ -546,59 +578,78 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                   </div>
                 )}
               </div>
+
+              {/* Course Comments */}
+              {effectivelyEnrolled && currentUser && (
+                <div className="bg-white rounded-lg shadow-lg p-6">
+                  <CourseComments 
+                    courseId={params.id}
+                    userId={currentUser.id}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Course Actions Card */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow-lg p-6 sticky top-4">
-                {/* Course Actions */}
                 <div className="text-center mb-6">
-                  <div className="text-3xl font-bold mb-4">
-                    {new Intl.NumberFormat('vi-VN').format(course.price || 0)} VNĐ
-                  </div>
                   {effectivelyEnrolled ? (
                     <Button
                       type="primary"
-                      size="large" 
-                      block
-                      onClick={switchToLearning}
-                      disabled={isEnrolling || !chapters.length}
+                      onClick={() => switchToLearning()}
+                      className="w-full mb-4 text-lg h-12 flex items-center justify-center"
                     >
-                      Tiếp tục học
+                      Vào học ngay
                     </Button>
                   ) : (
-                    <div className="space-y-4">
-                      <Button
-                        type="primary"
-                        size="large"
-                        block
-                        loading={isAddingToCart}
-                        disabled={isInCart}
-                        onClick={handleAddToCart}
-                      >
-                        {isInCart ? 'Đã thêm vào giỏ' : 'Thêm vào giỏ hàng'}
-                      </Button>
-                      <Button
-                        type="default"
-                        size="large"
-                        block
-                        loading={isEnrolling}
-                        onClick={handleEnrollment}
-                      >
-                        Đăng ký ngay
-                      </Button>
-                    </div>
+                    <>
+                      {!isInCart && (
+                        <Button
+                          type="primary"
+                          onClick={handleAddToCart}
+                          loading={isAddingToCart}
+                          className="w-full mb-4 text-lg h-12 flex items-center justify-center"
+                        >
+                          Thêm vào giỏ hàng
+                        </Button>
+                      )}
+
+                      {isInCart && (
+                        <p className="text-blue-600 mb-4 text-lg">
+                          Khóa học này đã có trong giỏ hàng
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
 
-                {/* Back to course button */}
-                <button
-                  onClick={switchToOverview} 
-                  className="flex items-center text-gray-600 hover:text-gray-900"
-                >
-                  <ChevronLeftIcon className="h-5 w-5 mr-1" />
-                  <span>Quay lại khóa học</span>
-                </button>
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-semibold mb-4">Thông tin khóa học</h3>
+                  <ul className="space-y-3">
+                    <li className="flex justify-between">
+                      <span className="text-gray-600">Cấp độ:</span>
+                      <span className="font-medium">{getLevelText(course.level)}</span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span className="text-gray-600">Số bài học:</span>
+                      <span className="font-medium">{course.duration}</span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span className="text-gray-600">Danh mục:</span>
+                      <span className="font-medium">{course.categoryName}</span>
+                    </li>
+                    {course.rating !== undefined && (
+                      <li className="flex justify-between items-center">
+                        <span className="text-gray-600">Đánh giá:</span>
+                        <div className="flex items-center">
+                          <Rate disabled defaultValue={course.rating} /> 
+                          <span className="ml-2">({course.totalRatings})</span>
+                        </div>
+                      </li>
+                    )}
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
@@ -679,7 +730,8 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
               <div>
                 {/* Navigation header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b">
-                  <div className="flex items-center space-x-4">                    <button
+                  <div className="flex items-center space-x-4">
+                    <button
                       onClick={switchToOverview}
                       className="flex items-center text-gray-600 hover:text-gray-900"
                     >
@@ -687,12 +739,24 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                       <span>Quay lại khóa học</span>
                     </button>
                   </div>
-                    {/* Lesson title */}
                   <div className="flex-1 text-center">
                     <h2 className="text-xl font-bold truncate">
-                      {currentLesson?.title}
+                      {currentLesson.title}
                     </h2>
                   </div>
+                  {currentLesson.id && (
+                    <div className="flex items-center space-x-4">
+                      <LessonNavigation
+                        getPrevious={() =>
+                          getPreviousLesson(chapters, loadedLessons, currentLesson.id)
+                        }
+                        getNext={() =>
+                          getNextLesson(chapters, loadedLessons, currentLesson.id)
+                        }
+                        onNavigate={changeLesson}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Lesson content */}
@@ -712,8 +776,8 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                   
                   {currentLesson.type === 3 && (
                     <CodeEditor
-                      initialCode={currentLesson.initialCode}
-                      language={currentLesson.language}
+                      initialCode={currentLesson.initialCode || '// Write your code here'}
+                      language={currentLesson.language || 'javascript'}
                       onComplete={handleCompleteLesson}
                     />
                   )}
@@ -738,8 +802,10 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-gray-500">Chọn một bài học để bắt đầu</p>
+              <div className="flex items-center justify-center h-full p-6">
+                <p className="text-gray-500">
+                  {isEnrolled ? 'Chọn một bài học từ danh sách bên trái để bắt đầu học' : 'Bạn cần đăng ký khóa học để có thể học'}
+                </p>
               </div>
             )}
           </div>
