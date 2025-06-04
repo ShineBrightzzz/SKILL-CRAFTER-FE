@@ -37,6 +37,7 @@ interface PaginationParams {
   size?: number;  // Changed from pageSize to size
   sort?: string;
   order?: 'asc' | 'desc';
+  search?: string;
 }
 
 // Define API endpoints
@@ -46,9 +47,10 @@ export const categoryApiSlice = apiSlice.injectEndpoints({
       query: (params: PaginationParams = {}) => {
         if (!params) return '/api/categories';
 
-        const { page, size, sort, order } = params;
+        const { page, size, sort, order, search } = params;
         const queryParams = [];
         
+        if (search) queryParams.push(`search=${encodeURIComponent(search)}`);
         if (page) queryParams.push(`page=${page}`);
         if (size) queryParams.push(`size=${size}`);
         if (sort) queryParams.push(`sort=${sort}`);

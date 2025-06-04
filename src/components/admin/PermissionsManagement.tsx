@@ -19,10 +19,11 @@ const PermissionsManagement = () => {
   const [editingPermission, setEditingPermission] = useState<Permission | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  
-  const { data: permissionsResponse, isLoading, refetch } = useGetAllPermissionsQuery({
+  const [searchTerm, setSearchTerm] = useState('');
+    const { data: permissionsResponse, isLoading, refetch } = useGetAllPermissionsQuery({
     page: currentPage,
-    size: pageSize
+    size: pageSize,
+    search: searchTerm
   });
   
   const permissions = permissionsResponse?.data?.result || [];
@@ -189,6 +190,12 @@ const PermissionsManagement = () => {
     if (pageSize) setPageSize(pageSize);
   };
 
+  // Handle search
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page on search
+  };
+
   return (
     <div>
       <div style={{ 
@@ -198,14 +205,24 @@ const PermissionsManagement = () => {
         flexDirection: typeof window !== 'undefined' && window.innerWidth < 768 ? 'column' : 'row',
         gap: typeof window !== 'undefined' && window.innerWidth < 768 ? '10px' : '0'
       }}>
-        <Button 
-          type="primary" 
+        <Button
+          type="primary"
           icon={<PlusOutlined />}
           onClick={() => showModal()}
-          style={{ alignSelf: typeof window !== 'undefined' && window.innerWidth < 768 ? 'flex-start' : 'auto' }}
+          style={{ marginBottom: typeof window !== 'undefined' && window.innerWidth < 768 ? '10px' : '0' }}
         >
           Thêm quyền mới
         </Button>
+
+        <Input.Search
+          placeholder="Tìm kiếm quyền..."
+          allowClear
+          enterButton          className="max-w-xs"
+          onSearch={value => {
+            setSearchTerm(value);
+            setCurrentPage(1); // Reset to first page on search
+          }}
+        />
       </div>
 
       <Table 

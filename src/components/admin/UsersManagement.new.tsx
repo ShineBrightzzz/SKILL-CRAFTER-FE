@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Modal, Form, Input, Select, message, Pagination } from 'antd';
+import { Table, Button, Space, Modal, Form, Input, Select, message } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { 
   useGetAllAccountsQuery, 
@@ -10,14 +10,15 @@ import {
   useUpdateAccountMutation,
   User,
   AccountUpdateDTO,
-  RegisterAccountDTO,
-  ApiResponse
+  RegisterAccountDTO
 } from '@/services/user.service';
 import { 
   useGetAllRolesQuery, 
   Role, 
   PaginationParams 
 } from '@/services/role.service';
+import withPermission from '@/hocs/withPermission';
+import { Action, Subject } from '@/utils/ability';
 import type { ColumnType } from 'antd/es/table';
 
 interface UserFormData {
@@ -26,7 +27,7 @@ interface UserFormData {
   familyName?: string;
   givenName?: string;
   password?: string;
-  role?: number;
+  role?: string | number;
 }
 
 const UsersManagement: React.FC = () => {
@@ -42,7 +43,8 @@ const UsersManagement: React.FC = () => {
     size: pageSize,
     search: searchTerm.trim()
   });
-  const { data: rolesData } = useGetAllRolesQuery({} as PaginationParams);
+
+  const { data: rolesData } = useGetAllRolesQuery({});
   const [createUser] = useCreateAccountMutation();
   const [updateUser] = useUpdateAccountMutation();
   const [deleteUser] = useDeleteAccountMutation();
@@ -97,27 +99,15 @@ const UsersManagement: React.FC = () => {
       if (editingUser) {
         await updateUser({ 
           id: editingUser.id, 
-          body: {
-            email: values.email,
-            familyName: values.familyName,
-            givenName: values.givenName,
-            role: values.role
-          }
+          body: values as AccountUpdateDTO 
         }).unwrap();
         message.success('Cập nhật người dùng thành công!');
       } else {
         if (!values.username || !values.password) {
-          message.error('Tên đăng nhập và mật khẩu là bắt buộc!');
+          message.error('Tên đăng nhập và mật khẩu là bắt buộc khi tạo tài khoản mới!');
           return;
         }
-        await createUser({
-          username: values.username,
-          password: values.password,
-          email: values.email,
-          familyName: values.familyName,
-          givenName: values.givenName,
-          role: values.role
-        }).unwrap();
+        await createUser(values as RegisterAccountDTO).unwrap();
         message.success('Tạo người dùng thành công!');
       }
       setIsModalVisible(false);
@@ -129,7 +119,7 @@ const UsersManagement: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     Modal.confirm({
       title: 'Bạn có chắc chắn muốn xóa người dùng này?',
       content: 'Hành động này không thể hoàn tác.',
@@ -207,67 +197,6 @@ const UsersManagement: React.FC = () => {
       ),
     },
   ];
-  // Set up responsive columns
-  const getResponsiveColumns = () => {
-    // Get current window width
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    
-    // Base columns that always show
-    let responsiveColumns = [...columns];
-    
-    if (isMobile) {
-      // Remove email column on small screens
-      responsiveColumns = responsiveColumns.filter(col => col.key !== 'email');
-      
-      // Simplify action buttons on mobile
-      const actionColumn = responsiveColumns.find(col => col.key === 'action');
-      if (actionColumn) {
-        actionColumn.render = (_: unknown, record: User) => (
-          <Space size="small">
-            <Button 
-              type="primary" 
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => showModal(record)}
-            />
-            <Button 
-              danger 
-              size="small"
-              icon={<DeleteOutlined />}
-              onClick={() => handleDelete(record.id)}
-            />
-          </Space>
-        );
-      }
-    }
-    
-    return responsiveColumns;
-  };
-
-  // State to track responsive columns
-  const [responsiveColumns, setResponsiveColumns] = useState(() => getResponsiveColumns());
-
-  // Update columns when window resizes
-  React.useEffect(() => {
-    const handleResize = () => {
-      setResponsiveColumns(getResponsiveColumns());
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Handle page change
-  const handlePageChange = (page: number, pageSize?: number) => {
-    setCurrentPage(page);
-    if (pageSize) setPageSize(pageSize);
-  };
-
-  // Handle search input change
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1); // Reset to first page on search
-  };
 
   return (
     <div className="p-6">
@@ -402,17 +331,17 @@ const UsersManagement: React.FC = () => {
           )}
 
           <Form.Item className="mb-0 flex justify-end">
-            <Space>
-              <Button onClick={handleCancel}>
-                Hủy
-              </Button>
-              <Button type="primary" htmlType="submit">
-                {editingUser ? 'Cập nhật' : 'Tạo mới'}
-              </Button>
-            </Space>
+            <Button className="mr-2" onClick={handleCancel}>
+              Hủy
+            </Button>
+            <Button type="primary" htmlType="submit">
+              {editingUser ? 'Cập nhật' : 'Tạo mới'}
+            </Button>
           </Form.Item>
         </Form>
-      </Modal>    </div>  );
+      </Modal>
+    </div>
+  );
 };
 
-export default UsersManagement;
+export default withPermission(UsersManagement, Action.Read, Subject.User);

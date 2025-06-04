@@ -7,6 +7,7 @@ export interface PaginationParams {
   size?: number;  // Changed from pageSize to size
   sort?: string;
   order?: 'asc' | 'desc';
+  search?: string;
 }
 
 // Define the Role type
@@ -33,12 +34,12 @@ export interface RolesResponse {
 export const roleApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // Role endpoints
-    getAllRoles: builder.query<RolesResponse, PaginationParams>({
-      query: (params: PaginationParams = {}) => {
+    getAllRoles: builder.query<RolesResponse, PaginationParams>({      query: (params: PaginationParams = {}) => {
         // Build query string for pagination
-        const { page, size, sort, order } = params;
+        const { page, size, sort, order, search } = params;
         const queryParams = [];
         
+        if (search) queryParams.push(`search=${encodeURIComponent(search)}`);
         if (page) queryParams.push(`page=${page}`);
         if (size) queryParams.push(`pageSize=${size}`);
         if (sort) queryParams.push(`sort=${sort}`);

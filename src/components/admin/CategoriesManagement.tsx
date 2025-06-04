@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Table, Card, Button, Space, Modal, Form, Input, message } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useGetAllCategoriesQuery, useCreateCategoryMutation, useUpdateCategoryMutation, useDeleteCategoryMutation } from '@/services/category.service';
@@ -15,11 +15,19 @@ const CategoriesManagement = () => {
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   
-  const { data: categoriesResponse, isLoading, refetch } = useGetAllCategoriesQuery({
+  const { data: categoriesResponse, isLoading, error, refetch } = useGetAllCategoriesQuery({
     page: currentPage,
     size: pageSize,
-    search: searchTerm
+    search: searchTerm.trim() // Ensure we trim whitespace
   });
+
+  // Add error handling
+  useEffect(() => {
+    if (error) {
+      message.error('Có lỗi khi tải dữ liệu danh mục');
+      console.error('Categories load error:', error);
+    }
+  }, [error]);
 
   const categories = categoriesResponse?.data?.result || [];
   const paginationMeta = categoriesResponse?.data?.meta || { 
@@ -27,6 +35,12 @@ const CategoriesManagement = () => {
     pageSize: 10, 
     pages: 1, 
     total: 0 
+  };
+
+  // Handle search with debounce
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page on search
   };
 
   const [createCategory] = useCreateCategoryMutation();
@@ -135,45 +149,58 @@ const CategoriesManagement = () => {
   ];
 
   return (
-    <Card title="Quản lý danh mục khóa học">
-      <Button 
-        type="primary" 
-        icon={<PlusOutlined />} 
-        onClick={() => showModal()}
-        style={{ marginBottom: 16 }}
-      >
-        Thêm danh mục mới
-      </Button>
+    <Card title="Quản lý danh mục khóa học" className="m-4">
+      <div className="flex justify-between items-center mb-4">
+        <Button 
+          type="primary" 
+          icon={<PlusOutlined />} 
+          onClick={() => showModal()}
+        >
+          Thêm danh mục mới
+        </Button>
 
-      <div className="mb-4">
         <Input.Search
           placeholder="Tìm kiếm danh mục..."
           allowClear
           enterButton
-          className="max-w-xs"
+          style={{ width: 300 }}
           value={searchTerm}
-          onChange={e => {
-            setSearchTerm(e.target.value);
-            setCurrentPage(1); // Reset to first page on search
-          }}
+          onChange={(e) => handleSearch(e.target.value)}
+          onSearch={handleSearch}
         />
       </div>
 
-      <Table
-        columns={columns}
-        dataSource={categories}
-        rowKey="id"
-        loading={isLoading}
-        pagination={{
-          current: currentPage,
-          pageSize: pageSize,
-          total: paginationMeta.total,
-          onChange: (page, pageSize) => {
-            setCurrentPage(page);
-            setPageSize(pageSize);
-          }
-        }}
-      />
+      {error ? (
+        <div className="text-center text-red-500 my-4">
+          Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau.
+          <Button onClick={() => refetch()} className="ml-2">
+            Thử lại
+          </Button>
+        </div>
+      ) : (
+        <Table
+          columns={columns}
+          dataSource={categories}
+          rowKey="id"
+          loading={isLoading}
+          locale={{
+            emptyText: searchTerm 
+              ? 'Không tìm thấy danh mục phù hợp với từ khóa tìm kiếm' 
+              : 'Chưa có danh mục nào'
+          }}
+          pagination={{
+            current: currentPage,
+            pageSize: pageSize,
+            total: paginationMeta.total,
+            onChange: (page, pageSize) => {
+              setCurrentPage(page);
+              if (pageSize) setPageSize(pageSize);
+            },
+            showSizeChanger: true,
+            showTotal: (total) => `Tổng cộng ${total} danh mục`
+          }}
+        />
+      )}
 
       <Modal
         title={editingCategory ? "Sửa danh mục" : "Thêm danh mục mới"}

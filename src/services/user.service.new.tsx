@@ -26,6 +26,8 @@ export interface User {
   updatedAt?: string;
   createdBy?: string;
   updatedBy?: string;
+  email_verified?: boolean;
+  accessToken?: string;
 }
 
 // Role assignment DTO
@@ -39,7 +41,8 @@ export interface AccountUpdateDTO {
   username?: string;
   password?: string;
   email?: string;
-  fullName?: string;
+  familyName?: string;
+  givenName?: string;
   role?: string;
 }
 
@@ -48,7 +51,8 @@ export interface RegisterAccountDTO {
   username: string;
   password: string;
   email: string;
-  fullName?: string;
+  familyName?: string;
+  givenName?: string;
 }
 
 export interface UserPermission {
@@ -94,23 +98,21 @@ export const userApiSlice = apiSlice.injectEndpoints({
           const response = await queryFulfilled;
           const { data } = response.data;
 
-          // Store access token in memory
           setAccessToken(data.accessToken);
+          localStorage.setItem('userId', data.id);
           
-          // Store user ID in localStorage
-          localStorage.setItem('userId', data.id);          // Store refresh token for development/debugging only
           if (data.refreshToken) {
             setDebugRefreshToken(data.refreshToken);
           }
           
-          // Update Redux store with user data
           dispatch(setUser({
             id: data.id,
             username: data.username,
             email: data.email,
             email_verified: data.email_verified,
-            family_name: data.family_name,
-            given_name: data.given_name,
+            familyName: data.familyName,
+            givenName: data.givenName,
+            role: data.role,
             accessToken: data.accessToken,
             refreshToken: data.refreshToken
           }));
@@ -155,42 +157,32 @@ export const userApiSlice = apiSlice.injectEndpoints({
       },
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
-          // Get the response and extract data
           const response = await queryFulfilled;
           
-          // Check if the response is successful
           if (response.data?.success) {
             const data = response.data.data;
 
-            // Store access token in memory and Redux
             if (data.accessToken) {
               setAccessToken(data.accessToken);
               dispatch(setToken(data.accessToken));
-              console.log('Access token updated:', data.accessToken.substring(0, 10) + '...');
             }
 
-            // Store new refresh token for development/debugging
             if (data.refreshToken) {
               setDebugRefreshToken(data.refreshToken);
-              console.log('New refresh token saved:', data.refreshToken.substring(0, 8) + '...');
             }
 
-            // Update user data in Redux store
             if (data.id) {
-              const userData = {
+              dispatch(setUser({
                 id: data.id,
                 username: data.username,
                 email: data.email,
                 email_verified: data.email_verified,
-                family_name: data.family_name,
-                given_name: data.given_name,
-                fullName: `${data.given_name || ''} ${data.family_name || ''}`.trim(),
-                pictureUrl: data.pictureUrl || null,
+                familyName: data.familyName,
+                givenName: data.givenName,
+                role: data.role,
                 accessToken: data.accessToken,
                 refreshToken: data.refreshToken
-              };
-              dispatch(setUser(userData));
-              console.log('User data updated in Redux store');
+              }));
             }
           } else {
             console.error('Token refresh failed:', response.data?.message);
@@ -207,11 +199,9 @@ export const userApiSlice = apiSlice.injectEndpoints({
       }
     }),
 
-
-    // Account management endpoints
-    getAllAccounts: builder.query<ApiResponse<User[]>, PaginationParams | void>({
+    getAllAccounts: builder.query<ApiResponse<User>, PaginationParams | void>({
       query: (params: PaginationParams = {}) => {
-        if (!params) return '/accounts';
+        if (!params) return '/api/users';
 
         const { page, size, sort, order, search } = params;
         const queryParams = [];
@@ -222,27 +212,25 @@ export const userApiSlice = apiSlice.injectEndpoints({
         if (sort) queryParams.push(`sort=${sort}`);
         if (order) queryParams.push(`order=${order}`);
         
-        return `/accounts${queryParams.length > 0 ? `?${queryParams.join('&')}` : ''}`;
+        return `/api/users${queryParams.length > 0 ? `?${queryParams.join('&')}` : ''}`;
       },
-      providesTags: (result) => {
-        if (!result?.data) return [{ type: 'Users' as const, id: 'LIST' }];
-        
-        const users = Array.isArray(result.data) ? result.data : result.data.result;
-        return [
-          ...users.map((user) => ({ type: 'Users' as const, id: user.id })),
-          { type: 'Users' as const, id: 'LIST' },
-        ];
-      },
+      providesTags: (result) =>
+        result?.data?.result
+          ? [
+              ...result.data.result.map(({ id }) => ({ type: 'Users' as const, id })),
+              { type: 'Users' as const, id: 'LIST' },
+            ]
+          : [{ type: 'Users' as const, id: 'LIST' }],
     }),
 
     getAccountById: builder.query<ApiResponse<User>, string>({
-      query: (id) => `/accounts/${id}`,
+      query: (id) => `/users/${id}`,
       providesTags: (result, error, id) => [{ type: 'Users' as const, id }],
     }),
 
     createAccount: builder.mutation<ApiResponse<User>, RegisterAccountDTO>({
       query: (data) => ({
-        url: '/accounts',
+        url: '/users',
         method: 'POST',
         body: data,
       }),
@@ -251,7 +239,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
 
     updateAccount: builder.mutation<ApiResponse<User>, { id: string; body: AccountUpdateDTO }>({
       query: ({ id, body }) => ({
-        url: `/accounts/${id}`,
+        url: `/users/${id}`,
         method: 'PUT',
         body,
       }),
@@ -261,9 +249,9 @@ export const userApiSlice = apiSlice.injectEndpoints({
       ],
     }),
 
-    deleteAccount: builder.mutation<ApiResponse<string>, string>({
+    deleteAccount: builder.mutation<ApiResponse<User>, string>({
       query: (id) => ({
-        url: `/accounts/${id}`,
+        url: `/users/${id}`,
         method: 'DELETE',
       }),
       invalidatesTags: (result, error, id) => [
@@ -275,7 +263,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
     // Role management endpoints
     assignRole: builder.mutation<ApiResponse<User>, { accountId: string; body: RoleAssignmentDTO }>({
       query: ({ accountId, body }) => ({
-        url: `/accounts/${accountId}/role`,
+        url: `/users/${accountId}/role`,
         method: 'POST',
         body,
       }),
@@ -287,7 +275,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
 
     updateRole: builder.mutation<ApiResponse<User>, { accountId: string; body: RoleAssignmentDTO }>({
       query: ({ accountId, body }) => ({
-        url: `/accounts/${accountId}/role`,
+        url: `/users/${accountId}/role`,
         method: 'PUT',
         body,
       }),
@@ -299,7 +287,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
 
     removeRole: builder.mutation<ApiResponse<User>, string>({
       query: (accountId) => ({
-        url: `/accounts/${accountId}/role`,
+        url: `/users/${accountId}/role`,
         method: 'DELETE',
       }),
       invalidatesTags: (result, error, accountId) => [
@@ -316,16 +304,11 @@ export const {
   useLoginMutation,
   useLogoutMutation,
   useRefreshTokenMutation,
-
-  // New account management hooks
   useGetAllAccountsQuery,
   useGetAccountByIdQuery,
-  useLazyGetAccountByIdQuery,
   useCreateAccountMutation,
   useUpdateAccountMutation,
   useDeleteAccountMutation,
-
-  // Role management hooks
   useAssignRoleMutation,
   useUpdateRoleMutation,
   useRemoveRoleMutation,

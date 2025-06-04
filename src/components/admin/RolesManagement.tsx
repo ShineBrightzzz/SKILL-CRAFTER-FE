@@ -24,11 +24,21 @@ const RolesManagement = () => {
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('');
   
-  const { data: rolesResponse, isLoading, refetch } = useGetAllRolesQuery({
+  const { data: rolesResponse, isLoading, error, refetch } = useGetAllRolesQuery({
     page: currentPage,
-    size: pageSize
+    size: pageSize,
+    search: searchTerm.trim() // Ensure we trim whitespace
   });
+
+  // Add error handling
+  useEffect(() => {
+    if (error) {
+      message.error('Có lỗi khi tải dữ liệu vai trò');
+      console.error('Roles load error:', error);
+    }
+  }, [error]);
 
   const roles = rolesResponse?.data?.result || [];
   const paginationMeta = rolesResponse?.data?.meta || { 
@@ -233,43 +243,68 @@ const RolesManagement = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Handle search with debounce
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page on search
+  };
+
   return (
-    <div>
-      <div style={{ 
-        marginBottom: 16, 
-        display: 'flex', 
-        justifyContent: 'space-between',
-        flexDirection: typeof window !== 'undefined' && window.innerWidth < 768 ? 'column' : 'row',
-        gap: typeof window !== 'undefined' && window.innerWidth < 768 ? '10px' : '0'
-      }}>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Quản lý vai trò</h1>
         <Button 
           type="primary" 
-          icon={<PlusOutlined />}
+          icon={<PlusOutlined />} 
           onClick={() => showModal()}
-          style={{ alignSelf: typeof window !== 'undefined' && window.innerWidth < 768 ? 'flex-start' : 'auto' }}
         >
           Thêm vai trò mới
         </Button>
       </div>
+      
+      <div className="flex justify-between items-center mb-4">
+        <Input.Search
+          placeholder="Tìm kiếm vai trò..."
+          allowClear
+          enterButton
+          style={{ width: 300 }}
+          value={searchTerm}
+          onChange={(e) => handleSearch(e.target.value)}
+          onSearch={handleSearch}
+        />
+      </div>
 
-      <Table 
-        columns={responsiveColumns} 
-        dataSource={roles} 
-        rowKey="id" 
-        loading={isLoading}
-        pagination={{ 
-          current: paginationMeta.page, 
-          pageSize: paginationMeta.size,
-          total: paginationMeta.total,
-          onChange: (page, size) => {
-            setCurrentPage(page);
-            setPageSize(size);
-          },
-          showSizeChanger: true,
-          pageSizeOptions: ['10', '20', '50'],
-        }}
-        scroll={{ x: 'max-content' }}
-      />
+      {error ? (
+        <div className="text-center text-red-500 my-4">
+          Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau.
+          <Button onClick={() => refetch()} className="ml-2">
+            Thử lại
+          </Button>
+        </div>
+      ) : (
+        <Table
+          columns={columns}
+          dataSource={roles}
+          rowKey="id"
+          loading={isLoading}
+          locale={{
+            emptyText: searchTerm 
+              ? 'Không tìm thấy vai trò phù hợp với từ khóa tìm kiếm' 
+              : 'Chưa có vai trò nào'
+          }}
+          pagination={{
+            current: currentPage,
+            pageSize: pageSize,
+            total: paginationMeta.total,
+            onChange: (page, pageSize) => {
+              setCurrentPage(page);
+              if (pageSize) setPageSize(pageSize);
+            },
+            showSizeChanger: true,
+            showTotal: (total) => `Tổng cộng ${total} vai trò`
+          }}
+        />
+      )}
 
       <Modal
         title={editingRole ? "Chỉnh sửa vai trò" : "Thêm vai trò mới"}

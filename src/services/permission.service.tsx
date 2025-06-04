@@ -6,6 +6,7 @@ interface PaginationParams {
   size?: number;  // Changed from pageSize to size
   sort?: string;
   order?: 'asc' | 'desc';
+  search?: string;
 }
 
 // Define module params
@@ -56,13 +57,14 @@ export const permissionApiSlice = apiSlice.injectEndpoints({
     getAllPermissions: builder.query<PermissionsResponse, PaginationParams>({
       query: (params: PaginationParams = {}) => {
         // Build query string for pagination
-        const { page, size, sort, order } = params;
+        const { page, size, sort, order, search } = params;
         const queryParams = [];
         
         if (page) queryParams.push(`page=${page}`);
         if (size) queryParams.push(`size=${size}`);
         if (sort) queryParams.push(`sort=${sort}`);
         if (order) queryParams.push(`order=${order}`);
+        if (search) queryParams.push(`search=${encodeURIComponent(search)}`);
         
         const queryString = queryParams.length > 0 
           ? `?${queryParams.join('&')}` 

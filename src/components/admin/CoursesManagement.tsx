@@ -15,12 +15,25 @@ const CoursesManagement = () => {
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
     
-  const { data: coursesResponse, isLoading, refetch } = useGetAllCoursesQuery({
+  const { data: coursesResponse, isLoading, error, refetch } = useGetAllCoursesQuery({
     page: currentPage,
     size: pageSize,
-    search: searchTerm
+    search: searchTerm.trim() // Ensure we trim whitespace
   });
 
+  // Add error handling
+  useEffect(() => {
+    if (error) {
+      message.error('Có lỗi khi tải dữ liệu khóa học');
+    }
+  }, [error]);
+
+  // Handle search with debounce
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page on search
+  };
+  
   // Extract courses and pagination metadata from the new API response format
   const courses = coursesResponse?.data?.result || [];
   const paginationMeta = coursesResponse?.data?.meta || { 
@@ -146,7 +159,8 @@ const CoursesManagement = () => {
     setCurrentPage(page);
     if (pageSize) setPageSize(pageSize);
   };
-  return (    <div className="p-6">
+  return (
+    <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Quản lý khóa học</h1>
         <Button 
@@ -165,35 +179,43 @@ const CoursesManagement = () => {
           enterButton
           className="max-w-xs"
           value={searchTerm}
-          onChange={e => {
-            setSearchTerm(e.target.value);
-            setCurrentPage(1); // Reset to first page on search
-          }}
-        />
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => showModal()}>
-          Thêm khóa học
-        </Button>
-      </div>
-      
-      <Table 
-        columns={columns} 
-        dataSource={courses}
-        rowKey="id"
-        loading={isLoading}
-        pagination={false} // Disable default pagination
-      />
-      
-      {/* Custom pagination using Ant Design Pagination component */}
-      <div className="mt-4 flex justify-end">
-        <Pagination 
-          current={currentPage}
-          pageSize={pageSize}
-          total={paginationMeta.total}
-          showSizeChanger
-          onChange={handlePageChange}
-          showTotal={(total) => `Tổng cộng ${total} khóa học`}
+          onChange={(e) => handleSearch(e.target.value)}
+          onSearch={handleSearch}
         />
       </div>
+
+      {error ? (
+        <div className="text-center text-red-500 my-4">
+          Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau.
+        </div>
+      ) : (
+        <>
+          <Table 
+            columns={columns} 
+            dataSource={courses}
+            rowKey="id"
+            loading={isLoading}
+            pagination={false}
+            locale={{
+              emptyText: searchTerm ? 'Không tìm thấy khóa học phù hợp' : 'Không có khóa học nào'
+            }}
+          />
+          
+          {/* Custom pagination */}
+          {courses && courses.length > 0 && (
+            <div className="mt-4 flex justify-end">
+              <Pagination 
+                current={currentPage}
+                pageSize={pageSize}
+                total={paginationMeta.total}
+                showSizeChanger
+                onChange={handlePageChange}
+                showTotal={(total) => `Tổng cộng ${total} khóa học`}
+              />
+            </div>
+          )}
+        </>
+      )}
 
       <Modal
         title={editingCourse ? 'Chỉnh sửa khóa học' : 'Tạo khóa học mới'}
