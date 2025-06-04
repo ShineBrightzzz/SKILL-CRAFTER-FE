@@ -13,7 +13,7 @@ export default function VerificationPending() {
   const [resendTimer, setResendTimer] = useState(0);
   
   const [resendVerification, { isLoading }] = useResendVerificationMutation();
-
+  console.log('Email for verification:', email);
   const handleResendVerification = async () => {
     if (resendTimer > 0) return;
 

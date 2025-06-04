@@ -88,37 +88,25 @@ export default function Register() {
     if (formPassword !== confirmPassword) {
       setError('Mật khẩu xác nhận không khớp');
       return;
-    }    try {
+    }    
+    
+    try {
       setError(''); // Clear previous errors
       
-      const response = await register({ 
+      await register({ 
         username, 
         password: formPassword, 
         email,
         familyName,
         givenName
       }).unwrap();
-      
-      // Display success message
-      toast.success('Đăng ký tài khoản thành công!');
-      
-      // Set a small timeout to ensure the toast is displayed before redirect
-      setTimeout(() => {
-        // Redirect to verification-pending page with email
-        router.push(`/verification-pending?email=${encodeURIComponent(email)}`);
-      }, 500);
+
+      toast.success('Đăng ký thành công!');
+      router.push(`/verification-pending?email=${encodeURIComponent(email)}`);
     } catch (error: any) {
       console.error('Registration error:', error);
-      
-      // Handle API error message if available
-      if (error.data && error.data.message) {
-        setError(error.data.message);
-      } else {
-        setError('Có lỗi xảy ra khi đăng ký. Vui lòng thử lại sau.');
-      }
-      
-      // Show toast notification for error
-      toast.error('Đăng ký thất bại');
+      setError(error.data?.message || 'Có lỗi xảy ra trong quá trình đăng ký');
+      toast.error(error.data?.message || 'Có lỗi xảy ra trong quá trình đăng ký');
     }
   };
 
