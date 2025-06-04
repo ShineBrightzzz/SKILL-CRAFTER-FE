@@ -23,10 +23,9 @@ export interface User {
   } | null;
   refreshToken?: string;
   createdAt?: string;
-  updatedAt?: string;
-  createdBy?: string;
+  updatedAt?: string;  createdBy?: string;
   updatedBy?: string;
-  avatar_url?: string;
+  pictureUrl?: string;
   phone?: string;
 }
 
@@ -84,9 +83,10 @@ export interface PaginationParams {
 
 // Profile update DTO
 export interface ProfileUpdateDTO {
+  password?: string;
   givenName?: string;
   familyName?: string;
-  avatar?: File;
+  pictureFile?: File;
 }
 
 export const userApiSlice = apiSlice.injectEndpoints({
@@ -254,14 +254,28 @@ export const userApiSlice = apiSlice.injectEndpoints({
         body: data,
       }),
       invalidatesTags: [{ type: 'Users' as const, id: 'LIST' }],
-    }),
+    }),    updateAccount: builder.mutation<ApiResponse<User>, { id: string; body: AccountUpdateDTO & ProfileUpdateDTO }>({
+      query: ({ id, body }) => {
+        const formData = new FormData();
+        
+        // AccountUpdateDTO fields
+        if (body.username) formData.append('username', body.username);
+        if (body.password) formData.append('password', body.password);
+        if (body.email) formData.append('email', body.email);
+        if (body.fullName) formData.append('fullName', body.fullName);
+        if (body.role) formData.append('role', body.role);
 
-    updateAccount: builder.mutation<ApiResponse<User>, { id: string; body: AccountUpdateDTO }>({
-      query: ({ id, body }) => ({
-        url: `/accounts/${id}`,
-        method: 'PUT',
-        body,
-      }),
+        // ProfileUpdateDTO fields
+        if (body.givenName) formData.append('givenName', body.givenName);
+        if (body.familyName) formData.append('familyName', body.familyName);
+        if (body.pictureFile) formData.append('pictureFile', body.pictureFile);
+
+        return {
+          url: `/accounts/${id}`,
+          method: 'PUT',
+          body: formData,
+        };
+      },
       invalidatesTags: (result, error, { id }) => [
         { type: 'Users' as const, id },
         { type: 'Users' as const, id: 'LIST' },
@@ -313,16 +327,8 @@ export const userApiSlice = apiSlice.injectEndpoints({
         { type: 'Users' as const, id: accountId },
         { type: 'Users' as const, id: 'LIST' },
       ],
-    }),
-
-    updateUser: builder.mutation<User, { id: string, body: FormData }>({
-      query: ({ id, body }) => ({
-        url: `/api/users/${id}`,
-        method: 'PATCH',
-        body
-      }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Users', id }]
-    }),
+    }),    
+  
   }),
   overrideExisting: true,
 });
@@ -346,5 +352,4 @@ export const {
   useUpdateRoleMutation,
   useRemoveRoleMutation,
 
-  useUpdateUserMutation,
 } = userApiSlice;

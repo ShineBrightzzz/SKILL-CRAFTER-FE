@@ -92,7 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = getAccessToken();
         
         if (token && userId) {
-          // If we have both access token and userId, fetch user data          const userData = await getUserById(userId).unwrap();
+          // If we have both access token and userId, fetch user data          
+          const userData = await getUserById(userId).unwrap();
           // Type assertion to match the actual API response structure
           const userInfo = userData?.data as unknown as User;
           
@@ -101,10 +102,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: userInfo.id,
             username: userInfo.username,
             email: userInfo.email,
-            familyName: userInfo.familyName || userInfo.family_name,
-            givenName: userInfo.givenName || userInfo.given_name,
+            familyName: userInfo.familyName || userInfo.family_name,            givenName: userInfo.givenName || userInfo.given_name,
             email_verified: userInfo.email_verified,
-            avatar_url: userInfo.avatar_url,
+            pictureUrl: userInfo.pictureUrl,
             role: userInfo.role
           }));
 
@@ -116,14 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Store token in ref
           tokenRef.current = token;
           setCurrentUserId(userId);
-          
-          // Update Redux store
-          dispatch(setUser({
-            id: userId,
-            username: userInfo?.username || '',
-            // Don't store the token in Redux for security
-            isAuthenticated: true
-          }));          // Dispatch permissions to ability slice
+
           dispatch(setAbility(permissions?.data || []));
 
           setIsAuthenticated(true);

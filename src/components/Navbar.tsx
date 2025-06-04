@@ -123,10 +123,19 @@ const Navbar: React.FC = () => {
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
                     className="flex items-center space-x-2 text-white hover:text-blue-200 transition"
-                  >
-                    <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-blue-700">
-                      {getDisplayName().charAt(0).toUpperCase()}
-                    </div>
+                  >                    {user.pictureUrl ? (
+                      <Image
+                        src={user.pictureUrl}
+                        alt={getDisplayName()}
+                        width={32}
+                        height={32}
+                        className="rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-blue-700">
+                        {getDisplayName().charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <span className="font-medium">{getDisplayName()}</span>
                     <svg
                       className={`h-4 w-4 transition-transform ${showUserMenu ? 'rotate-180' : ''}`}

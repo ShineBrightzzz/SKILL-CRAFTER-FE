@@ -4,37 +4,35 @@ import React, { useState, useEffect } from 'react';
 import { Button, Form, Input, Upload, message, Card, Avatar, Spin, Divider } from 'antd';
 import { UserOutlined, MailOutlined, PhoneOutlined, UploadOutlined } from '@ant-design/icons';
 import { useAuth } from '@/store/hooks';
-import { useUpdateUserMutation } from '@/services/user.service';
+import { useUpdateAccountMutation } from '@/services/user.service';
 
 const ProfilePage = () => {
   const { user } = useAuth();
   const [form] = Form.useForm();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();  useEffect(() => {
+  const [updateAccount, { isLoading: isUpdating }] = useUpdateAccountMutation();useEffect(() => {
     if (user) {
       console.log('Current user data:', user); // Debug log
       form.setFieldsValue({
         username: user.username,
         email: user.email,
-        familyName: user.familyName || user.family_name,
-        givenName: user.givenName || user.given_name,
+        familyName: user.familyName,
+        givenName: user.givenName
       });
-      setAvatarUrl(user.avatar_url || null);
+      setAvatarUrl(user.pictureUrl || null);
     }
-  }, [user, form]);
-  const handleSubmit = async (values: any) => {
+  }, [user, form]);  const handleSubmit = async (values: any) => {
     if (!user?.id) return;
 
     try {
-      const formData = new FormData();
-      formData.append('familyName', values.familyName);
-      formData.append('givenName', values.givenName);
-
-      console.log('Submitting values:', values); // Debug log
-      
-      await updateUser({
+      await updateAccount({
         id: user.id,
-        body: formData
+        body: {
+          familyName: values.familyName,
+          givenName: values.givenName,
+          email: values.email,
+          password: values.password, // nếu có thay đổi mật khẩu
+        }
       }).unwrap();
       
       message.success('Cập nhật thông tin thành công!');
@@ -45,16 +43,25 @@ const ProfilePage = () => {
   };
 
   const customUploadRequest = async ({ file, onSuccess, onError }: any) => {
-    try {
-      const formData = new FormData();
-      formData.append('avatar', file);
+    if (!user?.id) return;
+
+    try {      const response = await updateAccount({
+        id: user.id,
+        body: {
+          pictureFile: file
+        }
+      }).unwrap();
       
-      // TODO: Implement avatar upload API
-      // const response = await uploadAvatar(formData);
-      // setAvatarUrl(response.url);
+      // Cập nhật avatar URL từ response của server
+      if (response.data?.pictureUrl) {
+        setAvatarUrl(response.data.pictureUrl);
+      }
       
+      message.success('Cập nhật ảnh đại diện thành công!');
       onSuccess("Upload successful");
     } catch (error) {
+      console.error('Failed to upload avatar:', error);
+      message.error('Có lỗi xảy ra khi tải lên ảnh đại diện');
       onError("Upload failed");
     }
   };
@@ -89,14 +96,13 @@ const ProfilePage = () => {
             </Upload>
           </div>
 
-          <Divider />
-
-          <Form
+          <Divider />          <Form
             form={form}
             layout="vertical"
             onFinish={handleSubmit}
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">              <Form.Item
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Form.Item
                 name="familyName"
                 label="Họ"
                 rules={[{ required: true, message: 'Vui lòng nhập họ' }]}
@@ -132,11 +138,22 @@ const ProfilePage = () => {
                 { required: true, message: 'Vui lòng nhập email' },
                 { type: 'email', message: 'Email không hợp lệ' }
               ]}
-            >
-              <Input
+            >              <Input
                 prefix={<MailOutlined />}
                 placeholder="Nhập email"
                 disabled
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="password"
+              label="Mật khẩu mới"
+              rules={[
+                { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự' }
+              ]}
+            >
+              <Input.Password
+                placeholder="Nhập mật khẩu mới (để trống nếu không thay đổi)"
               />
             </Form.Item>
 
