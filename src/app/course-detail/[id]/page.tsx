@@ -97,12 +97,6 @@ export default function CourseDetailPage({ params }: PageProps) {
     selectedLessonId || skipToken
   );
   
-  // Log lesson data when it changes
-  useEffect(() => {
-    if (lessonData) {
-      console.log("Lesson data updated:", lessonData);
-    }
-  }, [lessonData]);
   
   // Check enrollment
   const { data: enrollmentsData, isLoading: enrollmentsLoading } = useGetEnrollmentsByUserIdQuery(
@@ -276,16 +270,11 @@ export default function CourseDetailPage({ params }: PageProps) {
   };
   // Handle lesson selection
   const handleLessonClick = (lessonId: string) => {
-    console.log("Lesson clicked:", lessonId);
     
     // Fetch lesson data directly for debugging
     fetch(`/api/lessons/${lessonId}`)
       .then(response => response.json())
       .then(data => {
-        console.log("Lesson data from direct fetch:", data);
-        console.log("Lesson type:", data.data?.type, typeof data.data?.type);
-        console.log("Lesson initialCode exists:", !!data.data?.initialCode);
-        console.log("Lesson language:", data.data?.language);
         
         // Now set the selected lesson ID to trigger the official data fetch
         setSelectedLessonId(lessonId);
@@ -434,7 +423,6 @@ export default function CourseDetailPage({ params }: PageProps) {
       normalizedLesson.initialCode = '// Mã code mẫu chưa được cung cấp\n// Bạn có thể bắt đầu viết code ở đây';
     }
     
-    console.log("Normalized lesson:", normalizedLesson);
     return normalizedLesson;
   };
 

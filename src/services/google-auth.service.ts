@@ -21,7 +21,6 @@ export const googleAuthApiSlice = apiSlice.injectEndpoints({
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          console.log('Google authentication successful:', data);
           localStorage.setItem('userId', data.data.id);
           localStorage.setItem('accessToken', data.data.accessToken);
         } catch (error) {

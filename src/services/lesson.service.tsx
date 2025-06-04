@@ -129,7 +129,6 @@ export const lessonApiSlice = apiSlice.injectEndpoints({
     
     updateLesson: builder.mutation<Lesson, { id: string, body: FormData }>({
       query: ({ id, body }) => {
-        console.log(body.get('quizData'))
         return {
             url: `/api/lessons/${id}`,
             method: 'PUT',

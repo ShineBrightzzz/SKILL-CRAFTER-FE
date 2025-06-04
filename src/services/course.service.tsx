@@ -5,9 +5,13 @@ import { LessonsResponse } from './lesson.service';
 // Define types for pagination parameters
 interface PaginationParams {
   page?: number;
-  pageSize?: number;
+  size?: number;  // Changed from pageSize to size to match API
   sort?: string;
   order?: 'asc' | 'desc';
+  search?: string;
+  categoryId?: string;
+  level?: number;
+  status?: number;
 }
 
 // Extend with category and instructor specific params
@@ -68,13 +72,17 @@ export const courseApiSlice = apiSlice.injectEndpoints({
     getAllCourses: builder.query<CoursesResponse, PaginationParams>({
       query: (params: PaginationParams = {}) => {
         // Build query string for pagination
-        const { page, pageSize, sort, order } = params;
+        const { page, size, sort, order, search, categoryId, level, status } = params;
         const queryParams = [];
         
         if (page) queryParams.push(`page=${page}`);
-        if (pageSize) queryParams.push(`pageSize=${pageSize}`);
+        if (size) queryParams.push(`size=${size}`);
         if (sort) queryParams.push(`sort=${sort}`);
         if (order) queryParams.push(`order=${order}`);
+        if (search) queryParams.push(`search=${encodeURIComponent(search)}`);
+        if (categoryId) queryParams.push(`categoryId=${categoryId}`);
+        if (level !== undefined) queryParams.push(`level=${level}`);
+        if (status !== undefined) queryParams.push(`status=${status}`);
         
         const queryString = queryParams.length > 0 
           ? `?${queryParams.join('&')}` 
@@ -149,11 +157,11 @@ export const courseApiSlice = apiSlice.injectEndpoints({
     
     getAllCourseByCategory: builder.query<CoursesResponse, CategoryParams>({
       query: (params: CategoryParams) => {
-        const { categoryId, page, pageSize, sort, order } = params;
+        const { categoryId, page, size, sort, order } = params;
         const queryParams = [];
         
         if (page) queryParams.push(`page=${page}`);
-        if (pageSize) queryParams.push(`pageSize=${pageSize}`);
+        if (size) queryParams.push(`size=${size}`);
         if (sort) queryParams.push(`sort=${sort}`);
         if (order) queryParams.push(`order=${order}`);
         
@@ -177,11 +185,11 @@ export const courseApiSlice = apiSlice.injectEndpoints({
     
     getAllCourseByInstructor: builder.query<CoursesResponse, InstructorParams>({
       query: (params: InstructorParams) => {
-        const { instructorId, page, pageSize, sort, order } = params;
+        const { instructorId, page, size, sort, order } = params;
         const queryParams = [];
         
         if (page) queryParams.push(`page=${page}`);
-        if (pageSize) queryParams.push(`pageSize=${pageSize}`);
+        if (size) queryParams.push(`size=${size}`);
         if (sort) queryParams.push(`sort=${sort}`);
         if (order) queryParams.push(`order=${order}`);
         
@@ -206,11 +214,11 @@ export const courseApiSlice = apiSlice.injectEndpoints({
     getAllLessonsByChapterId: builder.query<LessonsResponse, { chapterId: string; params?: PaginationParams }>({
       query: ({ chapterId, params = {} }) => {
         // Build query string for pagination
-        const { page, pageSize } = params;
+        const { page, size } = params;
         const queryParams = [];
         
         if (page) queryParams.push(`page=${page}`);
-        if (pageSize) queryParams.push(`pageSize=${pageSize}`);
+        if (size) queryParams.push(`size=${size}`);
         
         const queryString = queryParams.length > 0 
           ? `?${queryParams.join('&')}` 
@@ -232,11 +240,11 @@ export const courseApiSlice = apiSlice.injectEndpoints({
 
     getEnrollmentsByUserId: builder.query<EnrollmentsResponse, EnrollmentParams>({
       query: (params: EnrollmentParams) => {
-        const { userId, page, pageSize } = params;
+        const { userId, page, size } = params;
         const queryParams = [];
         
         if (page) queryParams.push(`page=${page}`);
-        if (pageSize) queryParams.push(`pageSize=${pageSize}`);
+        if (size) queryParams.push(`size=${size}`);
         
         const queryString = queryParams.length > 0 
           ? `?${queryParams.join('&')}` 
@@ -258,11 +266,11 @@ export const courseApiSlice = apiSlice.injectEndpoints({
 
     getEnrollmentsByCourseId: builder.query<EnrollmentsResponse, EnrollmentParams>({
       query: (params: EnrollmentParams) => {
-        const { courseId, page, pageSize } = params;
+        const { courseId, page, size } = params;
         const queryParams = [];
         
         if (page) queryParams.push(`page=${page}`);
-        if (pageSize) queryParams.push(`pageSize=${pageSize}`);
+        if (size) queryParams.push(`size=${size}`);
         
         const queryString = queryParams.length > 0 
           ? `?${queryParams.join('&')}` 

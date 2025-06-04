@@ -70,7 +70,6 @@ export const createAbility = (permissions: any[]) => {
     const subject = mapApiPathToSubject(permission.apiPath);
     
     if (action && subject) {
-      console.log(`Adding ability: ${action} ${subject}`);
       can(action, subject);
     }
   });

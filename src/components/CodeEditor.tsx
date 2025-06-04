@@ -85,15 +85,10 @@ export default function CodeEditor({
     const handleRunCode = async () => {
     try {
       const languageId = LANGUAGE_IDS[selectedLanguage as keyof typeof LANGUAGE_IDS];   
-      console.log('Language ID:', languageId);
-      console.log('Code:', code);
         const response = await runCode({
         language_id: languageId,
         source_code: code
-      }).unwrap();      console.log('Run Response:', response);
-      console.log('Response success:', response.success);
-      console.log('Response data success:', response.data.success);
-      console.log('Response data error:', response.data.error);
+      }).unwrap();      
         if (response.success) {
         // If the overall response is successful, we should display a success message
         const hasError = response.data.error && response.data.error !== 'null' && response.data.error !== '';
@@ -107,7 +102,6 @@ export default function CodeEditor({
           totalTestCases: null
         };
         
-        console.log('Setting result to:', resultObject);
         setResult(resultObject);
       } else {
         setResult({
@@ -144,10 +138,6 @@ export default function CodeEditor({
   const handleSubmitCode = async () => {
     try {
       const languageId = LANGUAGE_IDS[selectedLanguage as keyof typeof LANGUAGE_IDS];
-      console.log('Language ID:', languageId);
-      console.log('Code:', code);
-      console.log('Lesson ID:', lessonId);
-      console.log('User ID:', userId);
 
       const response = await submitCode({
         language_id: languageId,
@@ -156,10 +146,6 @@ export default function CodeEditor({
         userId: userId
       }).unwrap();
 
-      console.log('Submit Response:', response);
-      console.log('Response success:', response.success);
-      console.log('Response data success:', response.data.success);
-      console.log('Response data error:', response.data.error);
       
       if (response.success) {
         // For submit code, we might want to show success based on the test case results
@@ -182,7 +168,6 @@ export default function CodeEditor({
           totalTestCases: response.data.totalTestCases
         };
 
-        console.log('Setting result to:', resultObject);
         setResult(resultObject);
 
         // If all test cases pass, trigger onComplete callback
@@ -221,7 +206,6 @@ export default function CodeEditor({
       });
     }
   };
-  console.log('Result:', result);
   return (
     <div className={`code-editor-container border border-gray-200 rounded-lg shadow-lg ${className}`}>
       {/* Toolbar */}

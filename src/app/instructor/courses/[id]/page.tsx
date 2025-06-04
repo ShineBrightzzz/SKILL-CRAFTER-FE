@@ -36,7 +36,6 @@ export default function CourseDetailPage({ params }: CourseDetailProps) {
     courseId
   });
   const chapters = chaptersResponse?.data?.result || [];
-  console.log(chaptersResponse)
   
   // Fetch enrollments
   const { data: enrollmentsResponse, isLoading: enrollmentsLoading } = useGetEnrollmentsByCourseIdQuery({

@@ -6,7 +6,8 @@ import MobileNav from './MobileNav';
 import { useAuth } from '@/store/hooks';
 import Image from 'next/image';
 import { Badge } from 'antd';
-import { BellOutlined, QuestionCircleOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import { QuestionCircleOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import NotificationDropdown from './NotificationDropdown';
 import { useGetCartByUserIdQuery } from '@/services/cart.service';
 import { skipToken } from '@reduxjs/toolkit/query';
 import { useAbility } from '@/store/hooks/abilityHooks';
@@ -105,12 +106,9 @@ const Navbar: React.FC = () => {
                   Đăng ký
                 </Link>
               </>            ) : (
-              <div className="flex items-center space-x-5">
-                <Badge count={3} size="small">
-                  <BellOutlined 
-                    className="text-white text-xl cursor-pointer hover:text-blue-200" 
-                  />
-                </Badge>
+              <div className="flex items-center space-x-5">                <div className="hover:text-blue-200 transition">
+                  <NotificationDropdown />
+                </div>
                 <Link href="/cart">
                   <Badge count={cartItemCount} size="small">
                     <ShoppingCartOutlined 

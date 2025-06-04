@@ -99,7 +99,6 @@ const BlogDetailPage: React.FC<PageProps> = ({ params }) => {
       message.error('Vui lòng đăng nhập để bình luận');
       return;
     }
-    console.log('Replying to comment ID:', replyToCommentId);
     try {
       await createComment({
         content: values.content,

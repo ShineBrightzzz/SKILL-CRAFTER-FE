@@ -86,8 +86,6 @@ export default function CartPage() {
       const courseIds = cartItems
         .filter(item => selectedItems.has(item.id))
         .map(item => item.courseId);
-      console.log('Selected course IDs:', courseIds);
-      console.log('Total price:', totalPrice);  
       const response = await createPayment({
           courseIds: courseIds, // Send array of course IDs
           amount: totalPrice,

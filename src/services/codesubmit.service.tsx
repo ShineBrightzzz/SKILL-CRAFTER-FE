@@ -41,7 +41,6 @@ export const codeSubmitApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({      
     submitCode: builder.mutation<SubmitCodeResponse, SubmitCodeRequest>({
       query: (payload) => {
-        console.log('Request Payload:', JSON.stringify(payload, null, 2));
         return {
           url: '/api/code/submit',
           method: 'POST',
@@ -57,7 +56,6 @@ export const codeSubmitApiSlice = apiSlice.injectEndpoints({
 
     runCode : builder.mutation<SubmitCodeResponse, SubmitCodeRequest>({
       query: (payload) => {
-        console.log('Run Code Request Payload:', JSON.stringify(payload, null, 2));
         return {
           url: '/api/code/run',
           method: 'POST',

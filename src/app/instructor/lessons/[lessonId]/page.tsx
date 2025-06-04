@@ -10,6 +10,7 @@ import { ArrowLeftOutlined, DeleteOutlined, PlusOutlined, DragOutlined } from '@
 import { useGetLessonByIdQuery, useUpdateLessonMutation } from '@/services/lesson.service';
 import { QuizQuestion, LessonUpdateDTO, TestCaseDTO } from '@/types/quiz';
 import { useAuth } from '@/store/hooks';
+import LessonStatusDisplay from '@/components/instructor/LessonStatusDisplay';
 import { 
   useGetTestCasesByLessonIdQuery, 
   useCreateTestCaseMutation, 
@@ -92,7 +93,6 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
   }, [lesson]);  // Initialize test cases when data is loaded
   useEffect(() => {
     if (testCasesResponse) {
-      console.log('Test Cases Response:', testCasesResponse);
       // Ensure testCasesResponse is an array
       const testCasesArray = Array.isArray(testCasesResponse) 
         ? testCasesResponse 
@@ -744,8 +744,12 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
             <Text type="secondary">Chương: {lesson.chapterName}</Text>
             <Text type="secondary">Loại: {getLessonTypeName(lesson.type)}</Text>
             {lesson.duration && <Text type="secondary">Thời lượng: {lesson.duration} phút</Text>}
+            <LessonStatusDisplay 
+              status={lesson.status} 
+              message={lesson.statusMessage} 
+            />
           </div>
-            <Tabs activeKey={activeTab} onChange={setActiveTab}>
+          <Tabs activeKey={activeTab} onChange={setActiveTab}>
             <TabPane tab="Chỉnh sửa bài học" key="edit">
               <Form 
                 form={form} 
@@ -758,7 +762,9 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
                   videoUrl: lesson.videoUrl,
                   duration: lesson.duration,
                   initialCode: lesson.initialCode,
-                  language: lesson.language
+                  language: lesson.language,
+                  status: lesson.status || 1,
+                  statusMessage: lesson.statusMessage
                 }}
               >
                 <Form.Item
@@ -783,7 +789,29 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
                     ))}
                   </Select>
                 </Form.Item>
-                
+
+                <Form.Item
+                  name="status"
+                  label="Trạng thái"
+                  rules={[{ required: true, message: 'Vui lòng chọn trạng thái!' }]}
+                >
+                  <Select placeholder="Chọn trạng thái">
+                    <Option value={1}>Chờ phê duyệt</Option>
+                    <Option value={2}>Đã phê duyệt</Option>
+                    <Option value={3}>Đã từ chối</Option>
+                  </Select>
+                </Form.Item>
+
+                <Form.Item
+                  name="statusMessage"
+                  label="Thông báo trạng thái"
+                >
+                  <Input.TextArea 
+                    rows={2}
+                    placeholder="Nhập thông báo về trạng thái của bài học (tùy chọn)"
+                  />
+                </Form.Item>
+
                 {/* Render different fields based on lesson type */}
                 {renderLessonTypeFields()}
                 

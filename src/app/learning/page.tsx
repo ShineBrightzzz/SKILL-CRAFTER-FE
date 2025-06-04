@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useGetAllCoursesQuery } from '@/services/course.service';
+import { useGetAllCategoriesQuery } from '@/services/category.service';
 import { FiSearch, FiChevronDown, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import withPermission from '@/hocs/withPermission';
 import { Action, Subject } from '@/utils/ability';
@@ -47,67 +48,42 @@ const getLevelText = (level: number) => {
   }
 };
 
-const categories = ['Tất cả', 'Frontend', 'Backend', 'Mobile', 'DevOps'];
 const levels = ['Tất cả', 'Cơ bản', 'Trung cấp', 'Nâng cao'];
-const PAGE_SIZE = 9; // Number of courses to display per page
+const PAGE_SIZE = 6; // Number of courses to display per page
 
-const LearningPage = () => {  // State for pagination
+const LearningPage = () => {
+  // Initialize all state variables first
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoaded, setIsLoaded] = useState(false);
-  
-  // Fetch courses data from API
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedLevel, setSelectedLevel] = useState('Tất cả');
+
+  // Fetch categories data from API
+  const { data: categoriesResponse } = useGetAllCategoriesQuery();
+  const categories = [
+    { id: 'all', name: 'Tất cả' },
+    ...(categoriesResponse?.data?.result?.map(cat => ({
+      id: cat.id,
+      name: cat.name
+    })) || [])
+  ];
+  // Fetch courses data from API with filters
   const { data: coursesResponse, isLoading, error } = useGetAllCoursesQuery({
-    // Add pagination parameters if needed in your API
     page: currentPage,
-    pageSize: PAGE_SIZE
+    size: PAGE_SIZE,
+    search: searchTerm,
+    categoryId: selectedCategory !== 'all' ? selectedCategory : undefined,
+    level: selectedLevel !== 'Tất cả' ? levels.indexOf(selectedLevel) : undefined,
+    status: 2 // Chỉ lấy các khóa học đã được phê duyệt
   }, {
-    // Thêm cấu hình này để đảm bảo request không bị treo vĩnh viễn
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     pollingInterval: 0
   });
-  
-  // Extract courses and pagination metadata from the new API response format
-  const allCourses = coursesResponse?.data?.result || [];
+    // Extract courses and pagination metadata from the new API response format
+  const courses = coursesResponse?.data?.result || [];
   const paginationMeta = coursesResponse?.data?.meta || { page: 1, pageSize: PAGE_SIZE, pages: 1, total: 0 };
-  
-  // State for filters and search
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('Tất cả');
-  const [selectedLevel, setSelectedLevel] = useState('Tất cả');  const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
-  const [filteredTotal, setFilteredTotal] = useState(0);
-
-  // Filter courses based on search term and filters
-  useEffect(() => {
-    const courses = Array.isArray(allCourses) ? [...allCourses] : [];
-    
-    // Filter approved courses first (status = 2)
-    let result = courses.filter(course => course.status === 2);
-    
-    // Apply search filter
-    if (searchTerm.trim() !== '') {
-      result = result.filter(course => 
-        course.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        (course.description && course.description.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
-    
-    // Apply category filter
-    if (selectedCategory !== 'Tất cả') {
-      result = result.filter(course => course.categoryName === selectedCategory);
-    }
-    
-    // Apply level filter
-    if (selectedLevel !== 'Tất cả') {
-      const levelNumber = levels.indexOf(selectedLevel);
-      if (levelNumber > 0) {
-        result = result.filter(course => course.level === levelNumber);
-      }
-    }
-    
-    setFilteredCourses(result);
-    setFilteredTotal(result.length);
-  }, [allCourses, searchTerm, selectedCategory, selectedLevel]);
   
   // Handle page change
   const handlePageChange = (newPage: number) => {
@@ -120,13 +96,12 @@ const LearningPage = () => {  // State for pagination
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, selectedCategory, selectedLevel]);
-  
-  // Add animation effect when courses load
+    // Add animation effect when courses load
   useEffect(() => {
-    if (!isLoading && !error && allCourses.length > 0) {
+    if (!isLoading && !error && courses.length > 0) {
       setIsLoaded(true);
     }
-  }, [isLoading, error, allCourses]);
+  }, [isLoading, error, courses]);
   
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12">
@@ -157,13 +132,12 @@ const LearningPage = () => {  // State for pagination
               </label>
               <div className="relative">
                 <select 
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 appearance-none bg-white focus:ring-blue-500 focus:border-blue-500 pr-10 transition-all duration-300 hover:border-blue-400" 
-                  value={selectedCategory}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 appearance-none bg-white focus:ring-blue-500 focus:border-blue-500 pr-10 transition-all duration-300 hover:border-blue-400"                  value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
                 >
                   {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
+                    <option key={category.id} value={category.id}>
+                      {category.name}
                     </option>
                   ))}
                 </select>
@@ -227,18 +201,15 @@ const LearningPage = () => {  // State for pagination
         )}
           {/* Results information */}
         {!isLoading && !error && (
-          <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm">
-            <p className="text-gray-700 font-medium">
-              {filteredCourses.length > 0 
-                ? `Hiển thị ${filteredCourses.length} trong tổng số ${paginationMeta.total} khóa học` 
+          <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm">            <p className="text-gray-700 font-medium">              {paginationMeta.total > 0 
+                ? `Trang ${currentPage} - Hiển thị ${((currentPage - 1) * PAGE_SIZE) + 1}-${Math.min(currentPage * PAGE_SIZE, paginationMeta.total)} trong ${paginationMeta.total} khóa học` 
                 : "Không tìm thấy khóa học nào"}
-            </p>
-            {(searchTerm || selectedCategory !== 'Tất cả' || selectedLevel !== 'Tất cả') && (
+            </p>{(searchTerm || selectedCategory !== 'all' || selectedLevel !== 'Tất cả') && (
               <button 
                 className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md"
                 onClick={() => {
                   setSearchTerm('');
-                  setSelectedCategory('Tất cả');
+                  setSelectedCategory('all');
                   setSelectedLevel('Tất cả');
                 }}
               >
@@ -250,9 +221,8 @@ const LearningPage = () => {  // State for pagination
 
         {/* Course Grid */}
         {!isLoading && !error && (
-          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
-            {filteredCourses.length > 0 ? (
-              filteredCourses.map((course: Course) => (            
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>            {courses.length > 0 ? (
+              courses.map((course) => (
                 <Link href={`/learning/${course.id}`} key={course.id} className="group">
                   <div className="bg-white rounded-xl shadow-md overflow-hidden group-hover:shadow-xl transition-all duration-300 transform group-hover:-translate-y-1">
                     <div className="relative h-52 overflow-hidden">
@@ -296,8 +266,8 @@ const LearningPage = () => {  // State for pagination
                     </div>
                   </div>
                 </Link>
-              ))
-            ) : (              <div className="col-span-1 md:col-span-2 lg:col-span-3 flex justify-center items-center h-64">
+              ))            ) : (
+              <div className="col-span-1 md:col-span-2 lg:col-span-3 flex justify-center items-center h-64">
                 <div className="text-center bg-white p-10 rounded-xl shadow-md">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -395,4 +365,4 @@ const LearningPage = () => {  // State for pagination
   );
 }
 
-export default withPermission(LearningPage, Action.Read, Subject.Course);
+export default LearningPage;
