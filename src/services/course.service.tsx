@@ -324,13 +324,13 @@ export const courseApiSlice = apiSlice.injectEndpoints({
         { type: 'Courses' as const, id: courseId },
         { type: 'Courses' as const, id: 'LIST' },
       ],
-    }),
-
-    // Get user's rating for a course
-    getCourseRatingByUser: builder.query<
-      { data: { rating: number } }, 
-      { courseId: string; userId: string }
-    >({
+    }),    // Get user's rating for a course
+    getCourseRatingByUser: builder.query<{
+      success: boolean,
+      message: string,
+      data: { rating: number },
+      timestamp: string
+    }, { courseId: string, userId: string }>({
       query: ({ courseId, userId }) => 
         `/api/courses/${courseId}/ratings/user/${userId}`,
       providesTags: (result, error, { courseId, userId }) => [

@@ -1,20 +1,28 @@
 export interface CourseComment {
   id: string;
-  courseId: string;
   userId: string;
-  userName: string;
-  avatar_url?: string;
+  courseId: string;
   content: string;
+  rating: number;
+  userName: string;
+  userAvatar: string | null;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt: string | null;
 }
 
 export interface CourseCommentResponse {
+  success: boolean;
+  message: string;
   data: {
-    success: boolean;
+    meta: {
+      page: number;
+      pageSize: number;
+      pages: number;
+      total: number;
+    };
     result: CourseComment[];
-    message?: string;
   };
+  timestamp: string;
 }
 
 export interface CourseRating {

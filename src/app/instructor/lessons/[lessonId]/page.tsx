@@ -43,7 +43,7 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
   const [activeTestCase, setActiveTestCase] = useState<number | null>(null);  const [modifiedTestCases, setModifiedTestCases] = useState<Set<number>>(new Set());
   // Fetch lesson details    
   const { data: lessonResponse, isLoading: lessonLoading } = useGetLessonByIdQuery(lessonId);
-  const lesson = lessonResponse;
+  const lesson = lessonResponse?.data;
 
   // Fetch test cases for programming lessons
   const { data: testCasesResponse, isLoading: testCasesLoading } = useGetTestCasesByLessonIdQuery(
@@ -59,8 +59,7 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
   const [deleteTestCase] = useDeleteTestCaseMutation();
     // Initialize form with lesson data
   useEffect(() => {
-    if (lesson) {
-      setLessonType(lesson.type);
+    if (lesson) {      setLessonType(lesson.type);
       form.setFieldsValue({
         title: lesson.title,
         type: lesson.type,
@@ -68,8 +67,7 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
         videoUrl: lesson.videoUrl,
         duration: lesson.duration,
         initialCode: lesson.initialCode,
-        language: lesson.language,
-        statusMessage: lesson.statusMessage
+        programmingLanguage: lesson.programmingLanguage
       });
     }
   }, [lesson, form]);
@@ -158,7 +156,10 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
           return;
         }
 
-        formData.append('quizData', JSON.stringify(quizValidation.data));
+        // Only append quizData if there is valid data
+        if (quizValidation.data && questions.length > 0) {
+          formData.append('quizData', JSON.stringify(quizValidation.data));
+        }
         // Clear other type-specific fields
         formData.append('content', '');
         formData.append('videoUrl', '');
@@ -169,34 +170,23 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
       // Handle other lesson types
       switch (values.type) {
         case 2: // Video
-          formData.append('quizData', '');
           if (values.videoUrl) formData.append('videoUrl', values.videoUrl.trim());
           if (values.duration) formData.append('duration', values.duration.toString());
           if (values.content) formData.append('content', values.content.trim());
           break;
 
-        case 3: // Programming
-          formData.append('quizData', '');
+        case 3: // Programming          
           if (values.content) formData.append('content', values.content.trim());
           if (values.initialCode) formData.append('initialCode', values.initialCode.trim());
           if (values.solutionCode) formData.append('solutionCode', values.solutionCode.trim());
           if (values.testCases) formData.append('testCases', values.testCases.trim());
-          if (values.language) formData.append('language', values.language);
+          if (values.programmingLanguage) formData.append('programmingLanguage', values.programmingLanguage);
           break;
 
         case 4: // Reading
-          formData.append('quizData', '');
           if (values.content) formData.append('content', values.content.trim());
           break;
       }      // Send the update
-      // Preserve the status if it exists
-      if (lesson && lesson.status !== undefined) {
-        formData.append('status', String(lesson.status));
-      }
-      if (lesson && lesson.statusMessage) {
-        formData.append('statusMessage', lesson.statusMessage);
-      }
-      
       await updateLesson({
         id: lessonId,
         body: formData
@@ -671,8 +661,9 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
             >
               <TextArea rows={6} placeholder="Nhập mã khởi tạo cho học viên" />
             </Form.Item>
+            
             <Form.Item
-              name="language"
+              name="programmingLanguage"
               label="Ngôn ngữ lập trình"
               rules={[{ required: true, message: 'Vui lòng chọn ngôn ngữ lập trình!' }]}
             >
@@ -764,9 +755,8 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
                   videoUrl: lesson.videoUrl,
                   duration: lesson.duration,
                   initialCode: lesson.initialCode,
-                  language: lesson.language,
-                  status: lesson.status || 1,
-                  statusMessage: lesson.statusMessage
+                  programmingLanguage: lesson.programmingLanguage,
+                  language: lesson.language
                 }}
               >
                 <Form.Item
@@ -790,28 +780,6 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
                       <Option key={type.value} value={type.value}>{type.label}</Option>
                     ))}
                   </Select>
-                </Form.Item>
-
-                <Form.Item
-                  name="status"
-                  label="Trạng thái"
-                  rules={[{ required: true, message: 'Vui lòng chọn trạng thái!' }]}
-                >
-                  <Select placeholder="Chọn trạng thái">
-                    <Option value={1}>Chờ phê duyệt</Option>
-                    <Option value={2}>Đã phê duyệt</Option>
-                    <Option value={3}>Đã từ chối</Option>
-                  </Select>
-                </Form.Item>
-
-                <Form.Item
-                  name="statusMessage"
-                  label="Thông báo trạng thái"
-                >
-                  <Input.TextArea 
-                    rows={2}
-                    placeholder="Nhập thông báo về trạng thái của bài học (tùy chọn)"
-                  />
                 </Form.Item>
 
                 {/* Render different fields based on lesson type */}
