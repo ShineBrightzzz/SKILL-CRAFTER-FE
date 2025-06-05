@@ -33,12 +33,11 @@ const PaymentsManagement = () => {
     pages: 1, 
     total: 0 
   };
-
   const columns = [
     {
       title: 'Mã giao dịch',
-      dataIndex: 'transactionId',
-      key: 'transactionId',
+      dataIndex: 'transactionCode',
+      key: 'transactionCode',
     },
     {
       title: 'Người dùng',
@@ -64,18 +63,16 @@ const PaymentsManagement = () => {
       key: 'status',
       render: (status: string) => {
         let color = 'default';
-        let text = 'Không xác định';
-
-        switch (status) {
-          case 'completed':
+        let text = 'Không xác định';        switch (status) {
+          case 'SUCCESS':
             color = 'success';
             text = 'Hoàn thành';
             break;
-          case 'pending':
+          case 'PENDING':
             color = 'processing';
             text = 'Đang xử lý';
             break;
-          case 'failed':
+          case 'FAILED':
             color = 'error';
             text = 'Thất bại';
             break;
@@ -86,8 +83,8 @@ const PaymentsManagement = () => {
     },
     {
       title: 'Thời gian',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
+      dataIndex: 'time',
+      key: 'time',
       render: (date: string) => dayjs(date).format('DD/MM/YYYY HH:mm')
     }
   ];
@@ -120,11 +117,10 @@ const PaymentsManagement = () => {
           defaultValue="all"
           onChange={handleStatusChange}
           style={{ width: 150 }}
-        >
-          <Select.Option value="all">Tất cả trạng thái</Select.Option>
-          <Select.Option value="completed">Hoàn thành</Select.Option>
-          <Select.Option value="pending">Đang xử lý</Select.Option>
-          <Select.Option value="failed">Thất bại</Select.Option>
+        >          <Select.Option value="all">Tất cả trạng thái</Select.Option>
+          <Select.Option value="SUCCESS">Hoàn thành</Select.Option>
+          <Select.Option value="PENDING">Đang xử lý</Select.Option>
+          <Select.Option value="FAILED">Thất bại</Select.Option>
         </Select>
         <RangePicker onChange={handleDateRangeChange} />
         <Button icon={<ReloadOutlined />} onClick={() => refetch()}>

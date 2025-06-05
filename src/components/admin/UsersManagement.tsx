@@ -2,16 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Space, Modal, Form, Input, Select, message, Pagination } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { UserOutlined, PlusOutlined } from '@ant-design/icons';
 import { 
   useGetAllAccountsQuery, 
-  useCreateAccountMutation, 
-  useDeleteAccountMutation, 
-  useUpdateAccountMutation,
+  useCreateAccountMutation,
+  useAssignRoleMutation,
   User,
-  AccountUpdateDTO,
   RegisterAccountDTO,
-  ApiResponse
+  RoleAssignmentDTO
 } from '@/services/user.service';
 import { 
   useGetAllRolesQuery, 
@@ -21,18 +19,24 @@ import {
 import type { ColumnType } from 'antd/es/table';
 
 interface UserFormData {
-  username?: string;
-  email?: string;
-  familyName?: string;
-  givenName?: string;
-  password?: string;
-  role?: string; // Changed from number to string to match AccountUpdateDTO
+  username: string;
+  email: string;
+  familyName: string;
+  givenName: string;
+  password: string;
+  role?: string;
+}
+
+interface RoleFormData {
+  role: string;
 }
 
 const UsersManagement: React.FC = () => {
-  const [form] = Form.useForm<UserFormData>();
+  const [createForm] = Form.useForm<UserFormData>();
+  const [roleForm] = Form.useForm<RoleFormData>();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isAssignRoleModalVisible, setIsAssignRoleModalVisible] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,10 +48,8 @@ const UsersManagement: React.FC = () => {
   });
   const { data: rolesData } = useGetAllRolesQuery({} as PaginationParams);
   const [createUser] = useCreateAccountMutation();
-  const [updateUser] = useUpdateAccountMutation();
-  const [deleteUser] = useDeleteAccountMutation();
+  const [assignRole] = useAssignRoleMutation();
 
-  // Add error handling
   useEffect(() => {
     if (error) {
       message.error('Có lỗi khi tải dữ liệu người dùng');
@@ -55,13 +57,11 @@ const UsersManagement: React.FC = () => {
     }
   }, [error]);
 
-  // Handle search with debounce
   const handleSearch = (value: string) => {
     setSearchTerm(value);
-    setCurrentPage(1); // Reset to first page on search
+    setCurrentPage(1);
   };
 
-  // Extract users and pagination metadata
   const users = usersResponse?.data?.result || [];
   const paginationMeta = usersResponse?.data?.meta || { 
     page: 1, 
@@ -70,86 +70,70 @@ const UsersManagement: React.FC = () => {
     total: 0
   };
 
-  const showModal = (user?: User) => {
-    if (user) {
-      setEditingUser(user);
-      form.setFieldsValue({
-        username: user.username,
-        email: user.email,
-        familyName: user.familyName,
-        givenName: user.givenName,
-        role: user.role?.id ? String(user.role.id) : undefined
-      });
-    } else {
-      setEditingUser(null);
-      form.resetFields();
-    }
+  const showCreateModal = () => {
+    createForm.resetFields();
     setIsModalVisible(true);
   };
 
   const handleCancel = () => {
     setIsModalVisible(false);
-    form.resetFields();
+    createForm.resetFields();
   };
 
   const handleSubmit = async (values: UserFormData) => {
     try {
-      if (editingUser) {
-        await updateUser({ 
-          id: editingUser.id, 
-          body: {
-            email: values.email,
-            fullName: `${values.familyName || ''} ${values.givenName || ''}`.trim(),
-            role: values.role
-          }
-        }).unwrap();
-        message.success('Cập nhật người dùng thành công!');
-      } else {
-        if (!values.username || !values.password) {
-          message.error('Tên đăng nhập và mật khẩu là bắt buộc!');
-          return;
-        }
-        await createUser({
-          username: values.username!,
-          password: values.password!,
-          email: values.email || '',
-          fullName: `${values.familyName || ''} ${values.givenName || ''}`.trim()
-        }).unwrap();
-        
-        // If role is provided, we need to set it separately
-        if (values.role) {
-          // Additional logic to set role if needed
-          console.log("Role setting would be handled separately:", values.role);
-        }
-        message.success('Tạo người dùng thành công!');
-      }
+      const newUser: RegisterAccountDTO = {
+        username: values.username,
+        password: values.password,
+        email: values.email,
+        fullName: `${values.familyName} ${values.givenName}`.trim()
+      };
+
+      await createUser(newUser).unwrap();
+      message.success('Tạo người dùng thành công!');
       setIsModalVisible(false);
-      form.resetFields();
+      createForm.resetFields();
       refetch();
     } catch (error) {
-      message.error('Có lỗi xảy ra!');
+      message.error('Có lỗi xảy ra khi tạo người dùng!');
       console.error(error);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    Modal.confirm({
-      title: 'Bạn có chắc chắn muốn xóa người dùng này?',
-      content: 'Hành động này không thể hoàn tác.',
-      okText: 'Xóa',
-      okType: 'danger',
-      cancelText: 'Hủy',
-      onOk: async () => {
-        try {
-          await deleteUser(id).unwrap();
-          message.success('Xóa người dùng thành công!');
-          refetch();
-        } catch (error) {
-          message.error('Có lỗi xảy ra khi xóa người dùng!');
-          console.error(error);
-        }
-      },
+  const handleAssignRole = (user: User) => {
+    setSelectedUser(user);
+    roleForm.setFieldsValue({
+      role: user.role?.id ? String(user.role.id) : undefined
     });
+    setIsAssignRoleModalVisible(true);
+  };
+
+  const handleAssignRoleSubmit = async (values: RoleFormData) => {
+    if (!selectedUser) return;
+
+    try {
+      const roleAssignment: RoleAssignmentDTO = {
+        roleId: values.role
+      };
+
+      await assignRole({ 
+        accountId: selectedUser.id, 
+        body: roleAssignment
+      }).unwrap();
+      message.success('Cập nhật vai trò thành công!');
+      setIsAssignRoleModalVisible(false);
+      roleForm.resetFields();
+      refetch();
+    } catch (error) {
+      message.error('Có lỗi xảy ra khi cập nhật vai trò!');
+      console.error(error);
+    }
+  };
+
+  const handleAssignRoleCancel = () => {
+    setIsAssignRoleModalVisible(false);
+    roleForm.resetFields();
+    setSelectedUser(null);
   };
 
   const columns: ColumnType<User>[] = [
@@ -158,27 +142,27 @@ const UsersManagement: React.FC = () => {
       dataIndex: 'id',
       key: 'id',
       width: 300,
-      ellipsis: true,
+      ellipsis: true
     },
     {
       title: 'Tên đăng nhập',
       dataIndex: 'username',
-      key: 'username',
+      key: 'username'
     },
     {
       title: 'Email',
       dataIndex: 'email',
-      key: 'email',
+      key: 'email'
     },
     {
       title: 'Họ',
       dataIndex: 'familyName',
-      key: 'familyName',
+      key: 'familyName'
     },
     {
       title: 'Tên',
       dataIndex: 'givenName',
-      key: 'givenName',
+      key: 'givenName'
     },
     {
       title: 'Vai trò',
@@ -190,87 +174,16 @@ const UsersManagement: React.FC = () => {
       title: 'Thao tác',
       key: 'actions',
       render: (_: unknown, record: User) => (
-        <Space size="middle">
-          <Button 
-            type="default" 
-            icon={<EditOutlined />} 
-            onClick={() => showModal(record)}
-          >
-            Sửa
-          </Button>
-          <Button 
-            type="default" 
-            danger
-            icon={<DeleteOutlined />} 
-            onClick={() => handleDelete(record.id)}
-          >
-            Xóa
-          </Button>
-        </Space>
-      ),
-    },
-  ];
-  // Set up responsive columns
-  const getResponsiveColumns = () => {
-    // Get current window width
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    
-    // Base columns that always show
-    let responsiveColumns = [...columns];
-    
-    if (isMobile) {
-      // Remove email column on small screens
-      responsiveColumns = responsiveColumns.filter(col => col.key !== 'email');
-      
-      // Simplify action buttons on mobile
-      const actionColumn = responsiveColumns.find(col => col.key === 'action');
-      if (actionColumn) {
-        actionColumn.render = (_: unknown, record: User) => (
-          <Space size="small">
-            <Button 
-              type="primary" 
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => showModal(record)}
-            />
-            <Button 
-              danger 
-              size="small"
-              icon={<DeleteOutlined />}
-              onClick={() => handleDelete(record.id)}
-            />
-          </Space>
-        );
-      }
+        <Button 
+          type="primary" 
+          icon={<UserOutlined />} 
+          onClick={() => handleAssignRole(record)}
+        >
+          Phân quyền
+        </Button>
+      )
     }
-    
-    return responsiveColumns;
-  };
-
-  // State to track responsive columns
-  const [responsiveColumns, setResponsiveColumns] = useState(() => getResponsiveColumns());
-
-  // Update columns when window resizes
-  React.useEffect(() => {
-    const handleResize = () => {
-      setResponsiveColumns(getResponsiveColumns());
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Handle page change
-  const handlePageChange = (page: number, pageSize?: number) => {
-    setCurrentPage(page);
-    if (pageSize) setPageSize(pageSize);
-  };
-
-  // Handle search input change
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1); // Reset to first page on search
-  };
+  ];
 
   return (
     <div className="p-6">
@@ -279,7 +192,7 @@ const UsersManagement: React.FC = () => {
         <Button 
           type="primary" 
           icon={<PlusOutlined />} 
-          onClick={() => showModal()}
+          onClick={showCreateModal}
         >
           Thêm người dùng mới
         </Button>
@@ -303,9 +216,10 @@ const UsersManagement: React.FC = () => {
           <Button onClick={() => refetch()} className="ml-2">
             Thử lại
           </Button>
-        </div>      ) : (
+        </div>
+      ) : (
         <Table
-          columns={columns as any}
+          columns={columns}
           dataSource={users}
           rowKey="id"
           loading={isLoading}
@@ -328,14 +242,15 @@ const UsersManagement: React.FC = () => {
         />
       )}
 
+      {/* Modal thêm người dùng mới */}
       <Modal
-        title={editingUser ? "Chỉnh sửa người dùng" : "Thêm người dùng mới"}
+        title="Thêm người dùng mới"
         open={isModalVisible}
         onCancel={handleCancel}
         footer={null}
       >
         <Form
-          form={form}
+          form={createForm}
           layout="vertical"
           onFinish={handleSubmit}
         >
@@ -343,10 +258,10 @@ const UsersManagement: React.FC = () => {
             name="username"
             label="Tên đăng nhập"
             rules={[
-              { required: !editingUser, message: 'Vui lòng nhập tên đăng nhập!' }
+              { required: true, message: 'Vui lòng nhập tên đăng nhập!' }
             ]}
           >
-            <Input disabled={!!editingUser} placeholder="Nhập tên đăng nhập" />
+            <Input placeholder="Nhập tên đăng nhập" />
           </Form.Item>
 
           <Form.Item
@@ -377,6 +292,42 @@ const UsersManagement: React.FC = () => {
           </Form.Item>
 
           <Form.Item
+            name="password"
+            label="Mật khẩu"
+            rules={[
+              { required: true, message: 'Vui lòng nhập mật khẩu!' },
+              { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' }
+            ]}
+          >
+            <Input.Password placeholder="Nhập mật khẩu" />
+          </Form.Item>
+
+          <Form.Item className="mb-0 flex justify-end">
+            <Space>
+              <Button onClick={handleCancel}>
+                Hủy
+              </Button>
+              <Button type="primary" htmlType="submit">
+                Tạo mới
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Modal phân quyền */}
+      <Modal
+        title="Phân quyền người dùng"
+        open={isAssignRoleModalVisible}
+        onCancel={handleAssignRoleCancel}
+        footer={null}
+      >
+        <Form
+          form={roleForm}
+          layout="vertical"
+          onFinish={handleAssignRoleSubmit}
+        >
+          <Form.Item
             name="role"
             label="Vai trò"
             rules={[{ required: true, message: 'Vui lòng chọn vai trò!' }]}
@@ -390,31 +341,20 @@ const UsersManagement: React.FC = () => {
             </Select>
           </Form.Item>
 
-          {!editingUser && (
-            <Form.Item
-              name="password"
-              label="Mật khẩu"
-              rules={[
-                { required: true, message: 'Vui lòng nhập mật khẩu!' },
-                { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' }
-              ]}
-            >
-              <Input.Password placeholder="Nhập mật khẩu" />
-            </Form.Item>
-          )}
-
           <Form.Item className="mb-0 flex justify-end">
             <Space>
-              <Button onClick={handleCancel}>
+              <Button onClick={handleAssignRoleCancel}>
                 Hủy
               </Button>
               <Button type="primary" htmlType="submit">
-                {editingUser ? 'Cập nhật' : 'Tạo mới'}
+                Xác nhận
               </Button>
             </Space>
           </Form.Item>
         </Form>
-      </Modal>    </div>  );
+      </Modal>
+    </div>
+  );
 };
 
 export default UsersManagement;

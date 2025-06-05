@@ -107,8 +107,7 @@ const CategoriesManagement = () => {
     });
   };
 
-  const columns = [
-    {
+  const columns = [    {
       title: 'Tên danh mục',
       dataIndex: 'name',
       key: 'name',
@@ -117,12 +116,6 @@ const CategoriesManagement = () => {
       title: 'Mô tả',
       dataIndex: 'description',
       key: 'description',
-    },
-    {
-      title: 'Số khóa học',
-      dataIndex: 'coursesCount',
-      key: 'coursesCount',
-      render: (_: any, record: any) => record.courses?.length || 0
     },
     {
       title: 'Thao tác',

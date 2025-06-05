@@ -14,10 +14,12 @@ import {
 import { useGetAllPermissionsQuery, Permission } from '@/services/permission.service';
 import withPermission from '@/hocs/withPermission';
 import { Action, Subject } from '@/utils/ability';
+import { useAbility } from '@/store/hooks/abilityHooks';
 
 const { Panel } = Collapse;
 
 const RolesManagement = () => {
+  const ability = useAbility();
   const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
@@ -71,6 +73,15 @@ const RolesManagement = () => {
     }, {});  }, [allPermissions]);  
 
   const showModal = (role?: any) => {
+    if (role && !ability.can(Action.Update, Subject.Role)) {
+      message.error('Bạn không có quyền chỉnh sửa vai trò');
+      return;
+    }
+    if (!role && !ability.can(Action.Create, Subject.Role)) {
+      message.error('Bạn không có quyền tạo vai trò mới');
+      return;
+    }
+
     setEditingRole(role);
     form.setFieldsValue(role ? {
       name: role.name,
@@ -131,6 +142,11 @@ const RolesManagement = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!ability.can(Action.Delete, Subject.Role)) {
+      message.error('Bạn không có quyền xóa vai trò');
+      return;
+    }
+
     Modal.confirm({
       title: 'Bạn có chắc chắn muốn xóa vai trò này?',
       content: 'Hành động này không thể hoàn tác.',
@@ -175,20 +191,24 @@ const RolesManagement = () => {
       key: 'action',
       render: (_: undefined, record: Role) => (
         <Space size="middle">
-          <Button 
-            type="primary" 
-            icon={<EditOutlined />}
-            onClick={() => showModal(record)}
-          >
-            Sửa
-          </Button>
-          <Button 
-            danger 
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record.id)}
-          >
-            Xóa
-          </Button>
+          {ability.can(Action.Update, Subject.Role) && (
+            <Button 
+              type="primary" 
+              icon={<EditOutlined />}
+              onClick={() => showModal(record)}
+            >
+              Sửa
+            </Button>
+          )}
+          {ability.can(Action.Delete, Subject.Role) && (
+            <Button 
+              danger 
+              icon={<DeleteOutlined />}
+              onClick={() => handleDelete(record.id)}
+            >
+              Xóa
+            </Button>
+          )}
         </Space>
       ),
     },
@@ -252,23 +272,22 @@ const RolesManagement = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Quản lý vai trò</h1>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
-          onClick={() => showModal()}
-        >
-          Thêm vai trò mới
-        </Button>
+        {ability.can(Action.Create, Subject.Role) && (
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={() => showModal()}
+          >
+            Thêm vai trò mới
+          </Button>
+        )}
       </div>
       
-      <div className="flex justify-between items-center mb-4">
-        <Input.Search
+      <div className="flex justify-between items-center mb-4">        <Input.Search
           placeholder="Tìm kiếm vai trò..."
           allowClear
           enterButton
           style={{ width: 300 }}
-          value={searchTerm}
-          onChange={(e) => handleSearch(e.target.value)}
           onSearch={handleSearch}
         />
       </div>
