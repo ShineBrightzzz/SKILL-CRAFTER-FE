@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLoginMutation } from '@/services/user.service';
 import { useGoogleAuthMutation } from '@/services/google-auth.service';
+import { useDispatch } from 'react-redux';
+import { setAbility } from '@/store/slices/abilitySlice';
 import { toast } from 'react-toastify';
 import ReCAPTCHA from "react-google-recaptcha";
 import { GoogleLogin } from '@react-oauth/google';
@@ -27,11 +29,13 @@ export default function Login() {
   const [login, { isLoading: apiLoading }] = useLoginMutation();
   const [googleAuth] = useGoogleAuthMutation();
   const router = useRouter();
+  const dispatch = useDispatch();
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaValue, setCaptchaValue] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const RESET_DURATION = 3600000; // 1 giờ tính bằng milliseconds
 
   // Kiểm tra và load số lần đăng nhập thất bại khi component mount
@@ -103,12 +107,31 @@ export default function Login() {
         setError('Tên đăng nhập hoặc mật khẩu không hợp lệ');
         setIsSubmitting(false);
         return;
-      }
-
-      // Xóa thông tin đăng nhập thất bại khi đăng nhập thành công
+      }      // Clear failed login attempts when login successful
       localStorage.removeItem('loginAttempts');
-      setFailedAttempts(0);
-      router.replace('/');
+      setFailedAttempts(0);      // Fetch and store role permissions
+      if (response.data.role?.id) {
+        try {
+          const permissionsResponse = await fetch(`/api/roles/${response.data.role.id}/permissions`, {
+            headers: {
+              'Authorization': `Bearer ${response.data.accessToken}`
+            }
+          });
+          
+          if (permissionsResponse.ok) {
+            const permissions = await permissionsResponse.json();
+            // Dispatch permissions to the store
+            dispatch(setAbility(permissions.data));
+          }
+        } catch (err) {
+          console.error('Error fetching role permissions:', err);
+        }
+      }      // Redirect based on isAdmin
+      if (response.data.isAdmin) {
+        router.replace('/admin');
+      } else {
+        router.replace('/');
+      }
     } catch (err: any) {
       const newAttempts = failedAttempts + 1;
       updateFailedAttempts(newAttempts);
@@ -153,8 +176,8 @@ export default function Login() {
             <label htmlFor="password" className="block text-gray-700 font-medium">Mật khẩu</label>
             <div className="relative">
               <input 
-                type="password" 
-                className="w-full p-3 pl-10 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700 placeholder-gray-400 transition-all" 
+                type={showPassword ? "text" : "password"}
+                className="w-full p-3 pl-10 pr-10 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700 placeholder-gray-400 transition-all" 
                 id="password" 
                 name="password"
                 placeholder="Nhập mật khẩu"
@@ -164,7 +187,24 @@ export default function Login() {
                 <svg className="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                 </svg>
-              </div>            </div>
+              </div>
+              <button
+                type="button"
+                className="absolute inset-y-0 right-3 flex items-center"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+              >                {showPassword ? (
+                  <svg className="w-5 h-5 text-gray-400 hover:text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 text-gray-400 hover:text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
           
           <div className="flex items-center">
@@ -212,9 +252,8 @@ export default function Login() {
                 onSuccess={async (credentialResponse) => {                
                   try {
                     
-                    if (credentialResponse.credential) {
-                      // Send ID token directly to backend
-                      await googleAuth({
+                    if (credentialResponse.credential) {                      // Send ID token directly to backend
+                      const response = await googleAuth({
                         idToken: credentialResponse.credential,
                         // Note: email and name are already included in the JWT, backend will decode them
                       }).unwrap();
@@ -222,9 +261,30 @@ export default function Login() {
                       // Reset failed attempts on successful login
                       localStorage.removeItem('loginAttempts');
                       setFailedAttempts(0);
-                      
-                      // Redirect to home page
-                      router.replace('/');
+                      console.log('Google login successful:', response);
+                      // Fetch and store role permissions
+                      if (response.data.role?.id) {
+                        try {
+                          const permissionsResponse = await fetch(`/api/roles/${response.data.role.id}/permissions`, {
+                            headers: {
+                              'Authorization': `Bearer ${response.data.accessToken}`
+                            }
+                          });
+                          
+                          if (permissionsResponse.ok) {
+                            const permissions = await permissionsResponse.json();
+                            // Dispatch permissions to the store
+                            dispatch(setAbility(permissions.data));
+                          }
+                        } catch (err) {
+                          console.error('Error fetching role permissions:', err);
+                        }
+                      }                      // Check if user is admin and redirect accordingly  
+                      if (response.data.isAdmin) {
+                        router.replace('/admin');
+                      } else {
+                        router.replace('/');
+                      }
                     }
                   } catch (err) {
                     console.error('Google login failed:', err);

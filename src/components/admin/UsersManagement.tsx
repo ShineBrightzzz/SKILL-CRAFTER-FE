@@ -135,8 +135,7 @@ const UsersManagement: React.FC = () => {
     roleForm.resetFields();
     setSelectedUser(null);
   };
-
-  const columns: ColumnType<User>[] = [
+  const columns: ColumnType<User[]>[] = [
     {
       title: 'ID',
       dataIndex: 'id',
@@ -167,13 +166,12 @@ const UsersManagement: React.FC = () => {
     {
       title: 'Vai trò',
       dataIndex: ['role', 'name'],
-      key: 'role',
-      render: (text: string, record: User) => record.role?.name || 'Chưa có vai trò'
+      key: 'role',      render: (_: string, record: any) => record.role?.name || 'Chưa có vai trò'
     },
     {
       title: 'Thao tác',
       key: 'actions',
-      render: (_: unknown, record: User) => (
+      render: (_: unknown, record: any) => (
         <Button 
           type="primary" 
           icon={<UserOutlined />} 

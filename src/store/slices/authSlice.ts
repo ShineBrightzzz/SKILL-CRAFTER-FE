@@ -8,6 +8,7 @@ export interface User {  id: string;
   givenName?: string;
   email_verified?: boolean;
   pictureUrl?: string;
+  isAdmin?: boolean;
   role?: {
     id: number | string;
     name: string;

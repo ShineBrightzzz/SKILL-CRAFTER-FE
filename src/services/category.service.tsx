@@ -65,9 +65,7 @@ export const categoryApiSlice = apiSlice.injectEndpoints({
               { type: 'Categories' as const, id: 'LIST' },
             ]
           : [{ type: 'Categories' as const, id: 'LIST' }],
-    }),
-
-    getCategoryById: builder.query<Category, string>({
+    }),    getCategoryById: builder.query<{data: Category}, string>({
       query: (id: string) => `/api/categories/${id}`,
       providesTags: (result, error, id) => [{ type: 'Categories' as const, id }],
     }),

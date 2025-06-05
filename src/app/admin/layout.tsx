@@ -250,20 +250,20 @@ export default function AdminLayout({
                 {/* User menu dropdown for mobile */}
                 <Tooltip title="Tùy chọn người dùng" placement="bottomRight">
                   <Dropdown menu={{ 
-                    items: [
-                      {
+                    items: [                      {
                         key: '1',
                         icon: <UserOutlined />,
-                        label: user?.username || 'Người dùng',
-                      },
-                      {
-                        type: 'divider',
+                        label: 'Hồ sơ của tôi',
+                        onClick: () => router.push('/profile'),
                       },
                       {
                         key: '2',
                         icon: <UserSwitchOutlined />,
                         label: 'Chuyển đến trang người dùng',
                         onClick: () => router.push('/'),
+                      },
+                      {
+                        type: 'divider',
                       },
                       {
                         key: '3',
@@ -366,21 +366,16 @@ export default function AdminLayout({
                 </div>
                 
                 {/* User info and logout button */}
-                <div style={{ marginRight: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Dropdown menu={{ 
+                <div style={{ marginRight: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>                  <Dropdown menu={{ 
                     items: [
                       {
                         key: '1',
                         icon: <UserOutlined />,
                         label: 'Hồ sơ của tôi',
+                        onClick: () => router.push('/profile'),
                       },
                       {
                         key: '2',
-                        icon: <SettingOutlined />,
-                        label: 'Cài đặt',
-                      },
-                      {
-                        key: '3',
                         icon: <UserSwitchOutlined />,
                         label: 'Chuyển đến trang người dùng',
                         onClick: () => router.push('/'),
@@ -389,7 +384,7 @@ export default function AdminLayout({
                         type: 'divider',
                       },
                       {
-                        key: '4',
+                        key: '3',
                         icon: <LogoutOutlined />,
                         label: 'Đăng xuất',
                         onClick: handleLogout,

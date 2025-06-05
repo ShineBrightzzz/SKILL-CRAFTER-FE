@@ -22,6 +22,7 @@ export interface AuthResponse {
     accessToken: string;
     refreshToken: string;
     pictureUrl?: string;
+    isAdmin?: boolean;
     role?: {
       id: number | string;
       name: string;

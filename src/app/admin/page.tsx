@@ -197,12 +197,11 @@ const AdminPage = () => {
         grid: {
           display: false
         }
-      },
-      y: {
+      },      y: {
         display: true,
         beginAtZero: true,
         ticks: {
-          callback: function(value: any, index: number, ticks: any) {
+          callback: function(this: any, value: any) {
             if (this.chart.canvas.id === 'revenue-chart') {
               return value.toLocaleString('vi-VN') + 'đ';
             }
@@ -211,26 +210,19 @@ const AdminPage = () => {
         }
       }
     }
-  };
-
-  // Recent courses table columns
+  };  // Recent courses table columns
   const recentCoursesColumns = [
     {
       title: 'Tên khóa học',
       dataIndex: 'title',
       key: 'title',
+      width: '70%',
     },
     {
       title: 'Danh mục',
-      dataIndex: 'category',
-      key: 'category',
-      render: (_: any, record: Course) => record.category?.name
-    },
-    {
-      title: 'Học viên',
-      dataIndex: 'enrollmentsCount',
-      key: 'enrollmentsCount',
-      render: (_: any, record: Course) => record.enrollments?.length || 0
+      dataIndex: 'categoryName',
+      key: 'categoryName',
+      render: (_: any, record: Course) => categories.find(c => c.id === record.categoryId)?.name || 'Unknown',
     }
   ];
 
@@ -327,10 +319,9 @@ const AdminPage = () => {
         <Col xs={24} lg={12}>
           <Card title="Khóa học gần đây">
             <Table 
-              columns={recentCoursesColumns}
-              dataSource={courses.slice(0, 5) as any}
+              columns={recentCoursesColumns}              dataSource={courses.slice(0, 5) as unknown as readonly Course[]}
               pagination={false}
-              rowKey="id"
+              rowKey="key"
             />
             <div className="mt-4">
               <Button type="link" onClick={() => router.push('/admin/courses')}>
