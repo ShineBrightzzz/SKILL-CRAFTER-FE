@@ -125,13 +125,20 @@ export default function MobileNav() {
                     </div>
                     <span>{getDisplayName()}</span>
                   </div>
-                  
-                  <Link
+                    <Link
                     href="/profile"
                     className="block text-gray-600 hover:text-blue-600 transition py-3 px-2 rounded-md hover:bg-gray-50 mt-2"
                     onClick={() => setIsOpen(false)}
                   >
                     Thông tin cá nhân
+                  </Link>
+
+                  <Link
+                    href="/transaction-history"
+                    className="block text-gray-600 hover:text-blue-600 transition py-3 px-2 rounded-md hover:bg-gray-50"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Lịch sử giao dịch
                   </Link>
                   
                   <button

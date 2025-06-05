@@ -156,13 +156,12 @@ const Navbar: React.FC = () => {
                         onClick={() => setShowUserMenu(false)}
                       >
                         Thông tin cá nhân
-                      </Link>
-                      <Link
-                        href="/settings"
+                      </Link>                      <Link
+                        href="/transaction-history"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setShowUserMenu(false)}
                       >
-                        Cài đặt
+                        Lịch sử giao dịch
                       </Link>
                       <div className="border-t border-gray-100 my-1"></div>
                       <button

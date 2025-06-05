@@ -135,10 +135,8 @@ export const paymentApiSlice = apiSlice.injectEndpoints({
         body: request,
       }),
       invalidatesTags: (result, error, request) => [{ type: 'Payment', id: request.txnRef }],
-    }),
-
-    getPaymentHistory: builder.query<PaymentsResponse, void>({
-      query: () => '/api/payments/history',
+    }),    getPaymentHistory: builder.query<PaymentsResponse, string>({
+      query: (userId) => `/api/payments/history/${userId}`,
       providesTags: (result) =>
         result?.data?.result
           ? [
