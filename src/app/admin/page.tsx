@@ -1,62 +1,217 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Card, Row, Col, Statistic, Button, Typography, Table, Space } from 'antd';
+import { Card, Row, Col, Statistic, Button, Typography, Table } from 'antd';
 import { 
   BookOutlined, 
   UserOutlined,
-  UserSwitchOutlined,
   DollarOutlined,
   AppstoreOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js';
+import { Line, Bar } from 'react-chartjs-2';
 import { useGetAllCoursesQuery } from '@/services/course.service';
 import { useGetAllCategoriesQuery } from '@/services/category.service';
 import { useGetAllPaymentsQuery } from '@/services/payment.service';
-import type { Payment } from '@/types/payment';
+import { useGetLast6MonthsRevenueQuery, useGetLast6MonthsRegistrationsQuery } from '@/services/dashboard.service';
 import type { Course } from '@/types/course';
-import type { Category } from '@/types/category';
+import type { ChartData, ChartDataset } from '@/types/dashboard';
 
-const { Title } = Typography;
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
+const { Title: AntTitle } = Typography;
 
 const AdminPage = () => {
   const router = useRouter();
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [revenueChange, setRevenueChange] = useState(0);
+  const [revenueData, setRevenueData] = useState<ChartData>({
+    labels: [],
+    datasets: [{
+      label: 'Doanh thu (VNĐ)',
+      data: [],
+      fill: false,
+      borderColor: 'rgb(75, 192, 192)',
+      tension: 0.1,
+    }]
+  });
+  const [enrollmentData, setEnrollmentData] = useState<ChartData>({
+    labels: [],
+    datasets: [{
+      label: 'Số lượng đăng ký',
+      data: [],
+      backgroundColor: 'rgba(53, 162, 235, 0.5)',
+    }]
+  });
 
   // Fetch data using RTK Query
   const { data: coursesResponse } = useGetAllCoursesQuery({});
   const { data: categoriesResponse } = useGetAllCategoriesQuery();
   const { data: paymentsResponse } = useGetAllPaymentsQuery();
+  const { data: revenueResponse } = useGetLast6MonthsRevenueQuery();
+  const { data: registrationsResponse } = useGetLast6MonthsRegistrationsQuery();
+  console.log(revenueResponse, registrationsResponse);
 
   const courses = coursesResponse?.data?.result || [];
-  const payments = paymentsResponse?.data?.result || [];
   const categories = categoriesResponse?.data?.result || [];
+  const payments = paymentsResponse?.data?.result || [];
+  const monthlyRevenue = revenueResponse?.data || {};
+  const monthlyRegistrations = registrationsResponse?.data || {};
 
-  // Calculate statistics
+  // Chart configuration
+  const defaultDataset: Record<string, ChartDataset> = {
+    revenue: {
+      label: 'Doanh thu (VNĐ)',
+      data: [],
+      fill: false,
+      borderColor: 'rgb(75, 192, 192)',
+      tension: 0.1,
+    },
+    enrollment: {
+      label: 'Số lượng đăng ký',
+      data: [],
+      backgroundColor: 'rgba(53, 162, 235, 0.5)',
+    }
+  };
+
+  // Sort month strings helper
+  const sortMonthStrings = (months: string[]) => {
+    return months.sort((a, b) => {
+      const [monthA, yearA] = a.split(' ');
+      const [monthB, yearB] = b.split(' ');
+      const dateA = new Date(Date.parse(`${monthA} 1, ${yearA}`));
+      const dateB = new Date(Date.parse(`${monthB} 1, ${yearB}`));
+      return dateA.getTime() - dateB.getTime();
+    });
+  };
+
+  // Format month label for chart
+  const formatMonthLabel = (monthString: string) => {
+    try {
+      const [monthName, year] = monthString.split(' ');
+      const date = new Date(Date.parse(`${monthName} 1, 2000`));
+      const monthNumber = date.getMonth() + 1;
+      return `${monthNumber.toString().padStart(2, '0')}/${year}`;
+    } catch (error) {
+      console.error('Error formatting month:', error);
+      return monthString;
+    }
+  };
+
+  // Process revenue data
   useEffect(() => {
-    if (payments.length > 0) {
-      // Calculate total revenue
-      const total = payments
-        .filter((p) => p.status === 'completed')
-        .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+    if (monthlyRevenue && Object.keys(monthlyRevenue).length > 0) {
+      const sortedMonths = sortMonthStrings(Object.keys(monthlyRevenue));
+      const formattedLabels = sortedMonths.map(formatMonthLabel);
+      const revenues = sortedMonths.map(month => monthlyRevenue[month]);
+
+      // Cập nhật tổng doanh thu
+      const total = revenues.reduce((sum, revenue) => sum + revenue, 0);
       setTotalRevenue(total);
 
-      // Calculate revenue change (compare with last month)
-      const currentMonth = new Date().getMonth();
-      const currentMonthRevenue = payments
-        .filter((p) => p.status === 'completed' && new Date(p.createdAt).getMonth() === currentMonth)
-        .reduce((sum, payment) => sum + (payment.amount || 0), 0);
-      const lastMonthRevenue = payments
-        .filter((p) => p.status === 'completed' && new Date(p.createdAt).getMonth() === currentMonth - 1)
-        .reduce((sum, payment) => sum + (payment.amount || 0), 0);
-      
-      const change = lastMonthRevenue ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0;
-      setRevenueChange(change);
+      // Tính toán thay đổi doanh thu
+      const currentMonthRevenue = revenues[revenues.length - 1] || 0;
+      const previousMonthRevenue = revenues[revenues.length - 2] || 0;
+      const revenueChangeValue = previousMonthRevenue 
+        ? ((currentMonthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100 
+        : 0;
+      setRevenueChange(revenueChangeValue);
+
+      // Cập nhật dữ liệu biểu đồ
+      setRevenueData({
+        labels: formattedLabels,
+        datasets: [{
+          ...defaultDataset.revenue,
+          data: revenues
+        }]
+      });
     }
-  }, [payments]);
+  }, [monthlyRevenue]);
+
+  // Process registration data
+  useEffect(() => {
+    if (monthlyRegistrations && Object.keys(monthlyRegistrations).length > 0) {
+      const sortedMonths = sortMonthStrings(Object.keys(monthlyRegistrations));
+      const formattedLabels = sortedMonths.map(formatMonthLabel);
+      const registrations = sortedMonths.map(month => monthlyRegistrations[month]);
+
+      setEnrollmentData({
+        labels: formattedLabels,
+        datasets: [{
+          ...defaultDataset.enrollment,
+          data: registrations
+        }]
+      });
+    }
+  }, [monthlyRegistrations]);
+
+  // Chart options
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top' as const,
+      },
+      tooltip: {
+        enabled: true,
+        mode: 'index' as const,
+        intersect: false,
+        callbacks: {
+          label: function(context: any) {
+            const value = context.raw;
+            if (context.dataset.label.includes('VNĐ')) {
+              return `${context.dataset.label}: ${value.toLocaleString('vi-VN')}đ`;
+            }
+            return `${context.dataset.label}: ${value} lượt`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        display: true,
+        grid: {
+          display: false
+        }
+      },
+      y: {
+        display: true,
+        beginAtZero: true,
+        ticks: {
+          callback: function(value: any, index: number, ticks: any) {
+            if (this.chart.canvas.id === 'revenue-chart') {
+              return value.toLocaleString('vi-VN') + 'đ';
+            }
+            return value;
+          }
+        }
+      }
+    }
+  };
 
   // Recent courses table columns
   const recentCoursesColumns = [
@@ -102,7 +257,8 @@ const AdminPage = () => {
   ];
 
   return (
-    <div className="dashboard-content">
+    <div className="dashboard-content p-6">
+      <AntTitle level={2} className="mb-6">Tổng quan</AntTitle>
       <Row gutter={[16, 16]} className="mb-6">
         <Col xs={24} sm={12} md={6}>
           <Card hoverable onClick={() => router.push('/admin/courses')}>
@@ -142,8 +298,34 @@ const AdminPage = () => {
         </Col>
       </Row>
 
+      <Row gutter={[16, 16]} className="mb-6">
+        <Col xs={24} lg={12}>
+          <Card title="Biểu đồ doanh thu 6 tháng gần nhất">
+            <div style={{ height: '400px', position: 'relative' }}>
+              <Line 
+                data={revenueData}
+                options={chartOptions}
+                id="revenue-chart"
+              />
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} lg={12}>
+          <Card title="Số lượng đăng ký theo tháng">
+            <div style={{ height: '400px', position: 'relative' }}>
+              <Bar 
+                data={enrollmentData}
+                options={chartOptions}
+                id="registration-chart"
+              />
+            </div>
+          </Card>
+        </Col>
+      </Row>
+
       <Row gutter={[16, 16]}>
-        <Col xs={24} lg={12}>          <Card title="Khóa học gần đây">
+        <Col xs={24} lg={12}>
+          <Card title="Khóa học gần đây">
             <Table 
               columns={recentCoursesColumns}
               dataSource={courses.slice(0, 5) as any}
@@ -158,7 +340,8 @@ const AdminPage = () => {
           </Card>
         </Col>
 
-        <Col xs={24} lg={12}>          <Card title="Giao dịch gần đây">
+        <Col xs={24} lg={12}>
+          <Card title="Giao dịch gần đây">
             <Table 
               columns={recentTransactionsColumns}
               dataSource={payments.slice(0, 5) as any}

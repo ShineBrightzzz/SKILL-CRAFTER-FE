@@ -232,3 +232,14 @@ html {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Chart styles */
+.chart-container {
+  position: relative;
+  height: 400px;
+  width: 100%;
+}
+
+.chart-container canvas {
+  max-height: 100%;
+}

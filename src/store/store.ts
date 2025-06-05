@@ -8,7 +8,6 @@ import lessonReducer from './slices/lessonSlice';
 import enrollmentReducer from './slices/enrollmentSlice';
 import authReducer from './slices/authSlice';
 import abilityReducer from './slices/abilitySlice';
-
 export const store = configureStore({
   reducer: {
     [apiSlice.reducerPath]: apiSlice.reducer,
@@ -20,7 +19,9 @@ export const store = configureStore({
     ability: abilityReducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(apiSlice.middleware),
+    getDefaultMiddleware().concat([
+      apiSlice.middleware,
+    ]),
   devTools: process.env.NODE_ENV !== 'production',
 });
 
