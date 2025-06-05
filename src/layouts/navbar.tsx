@@ -74,7 +74,7 @@ const Navbar: React.FC<NavbarProps> = ({ collapsed }) => {
     >
       <div className="logo-container" style={{ display: 'flex', alignItems: 'center' }}>
         <Image 
-          src="/logo.svg" 
+          src="/logo.png" 
           alt="Logo" 
           width={32} 
           height={32}

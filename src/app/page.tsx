@@ -37,10 +37,21 @@ export default function Home() {
   return (
     <main className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white py-24 relative overflow-hidden">
+      <section className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white py-4 relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/images/hero-pattern.svg')] opacity-10"></div>
         <div className="container mx-auto px-4 relative">
           <div className="max-w-4xl mx-auto text-center">
+            <div className="flex justify-center mb-2">
+              <div className="transform transition-transform duration-300 hover:scale-110">
+                <Image
+                  src="/logo-big.png"
+                  alt="Logo"
+                  width={300}
+                  height={300}
+                  className="animate-fade-in"
+                />
+              </div>
+            </div>
             <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-tight animate-fade-in">
               Học Lập Trình <br/>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">
@@ -58,7 +69,7 @@ export default function Home() {
                 Bắt đầu học ngay
               </Link>
             </div>
-            <div className="mt-12 flex justify-center gap-8 text-gray-200">
+            <div className="mt-12 flex justify-center gap-8 text-gray-200 mb-8">
               <div className="text-center">
                 <div className="text-3xl font-bold mb-1">{categories.length}+</div>
                 <div className="text-sm">Danh mục</div>

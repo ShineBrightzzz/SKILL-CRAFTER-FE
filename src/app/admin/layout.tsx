@@ -187,7 +187,7 @@ export default function AdminLayout({
               marginTop: '8px'
             }}>
               <img 
-                src="/logo.svg" 
+                src="/logo.png" 
                 alt="Logo"                style={{ 
                   height: collapsed ? '40px' : '80px',
                   width: 'auto',

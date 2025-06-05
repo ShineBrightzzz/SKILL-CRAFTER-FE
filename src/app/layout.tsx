@@ -17,7 +17,11 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Skill Crafter - Học Lập Trình Trực Tuyến',
-  description: 'Nền tảng học lập trình trực tuyến với các khóa học chất lượng cao',
+  description: 'Nền tảng học lập trình trực tuyến với các khóa học chất lượng cao',  icons: {
+    icon: 'icon.png',
+    shortcut: 'icon.png',
+    apple: 'icon.png',
+  },
 };
 
 export default function RootLayout({
