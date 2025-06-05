@@ -138,7 +138,7 @@ export const roleApiSlice = apiSlice.injectEndpoints({
     toggleRoleStatus: builder.mutation<Role, { id: string }>({
       query: ({id}) => ({
         url: `/api/roles/${id}/toggle-status`,
-        method: 'POST',
+        method: 'PATCH',
       }),
       invalidatesTags: (result, error, { id }) => [
         { type: 'Roles' as const, id },

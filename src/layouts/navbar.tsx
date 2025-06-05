@@ -7,7 +7,8 @@ import {
   UserOutlined, 
   BellOutlined, 
   QuestionCircleOutlined,
-  SettingOutlined
+  SettingOutlined,
+  BookOutlined
 } from '@ant-design/icons';
 import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
@@ -43,6 +44,9 @@ const Navbar: React.FC<NavbarProps> = ({ collapsed }) => {
       <Menu.Divider />
       <Menu.Item key="profile" icon={<UserOutlined />}>
         Profile
+      </Menu.Item>
+      <Menu.Item key="myCourses" icon={<BookOutlined />} onClick={() => router.push('/learning')}>
+        My Courses
       </Menu.Item>
       <Menu.Item key="settings" icon={<SettingOutlined />}>
         Settings
@@ -86,24 +90,18 @@ const Navbar: React.FC<NavbarProps> = ({ collapsed }) => {
       <Space size={isMobile ? 'small' : 'middle'}>
         {!isMobile && (
           <>
-            <Badge count={5} size="small">
+            <Badge count={5} size="small">              
               <BellOutlined 
                 style={{ 
                   fontSize: '20px', 
                   color: '#fff',
                   cursor: 'pointer',
-                  padding: '4px'
+                  padding: '4px',
+                  borderRadius: '50%',
+                  backgroundColor: '#1468a2',
                 }} 
               />
             </Badge>
-            <QuestionCircleOutlined 
-              style={{ 
-                fontSize: '20px', 
-                color: '#fff',
-                cursor: 'pointer',
-                padding: '4px'
-              }} 
-            />
           </>
         )}
         <Dropdown overlay={menu} trigger={['click']}>

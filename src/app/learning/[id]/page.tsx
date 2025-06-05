@@ -417,10 +417,11 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
             <div className="lg:col-span-2">
               {/* Course Title and Basic Info */}
               <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-                <h1 className="text-3xl font-bold mb-4">{course.title}</h1>
-                <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">                  <span>Cấp độ: {getLevelText(course.level)}</span>
+                <h1 className="text-3xl font-bold mb-4">{course.title}</h1>                
+                <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">
+                  <span>Cấp độ: {getLevelText(course.level)}</span>
                   <span>•</span>
-                  <span>{categoryData?.name}</span>
+                  <span>Danh mục: {categoryData?.data?.name || 'Đang tải...'}</span>
                   {course.rating !== undefined && (
                     <>
                       <span>•</span>
@@ -559,7 +560,7 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                       <span className="font-medium">{course.duration}</span>
                     </li>                    <li className="flex justify-between">
                       <span className="text-gray-600">Danh mục:</span>
-                      <span className="font-medium">{categoryData?.name}</span>
+                      <span className="font-medium">{categoryData?.data?.name || 'Đang tải...'}</span>
                     </li>
                     {course.rating !== undefined && (
                       <li className="flex justify-between items-center">

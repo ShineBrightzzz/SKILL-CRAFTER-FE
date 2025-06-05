@@ -52,11 +52,10 @@ const RolesManagement = () => {
   const [createRole] = useCreateRoleMutation();
   const [updateRole] = useUpdateRoleMutation();
   const [deleteRole] = useDeleteRoleMutation();
-  
-  const { data: rolePermissions, refetch: refetchPermissions } = useGetRolePermissionsQuery(
+    const { data: rolePermissions, refetch: refetchPermissions } = useGetRolePermissionsQuery(
     editingRole?.id ?? 'skip', 
     { skip: !editingRole?.id }
-  );
+  ); 
 
   // Group permissions by module
   const groupedPermissions = React.useMemo(() => {
@@ -69,8 +68,7 @@ const RolesManagement = () => {
       }
       acc[module].push(permission);
       return acc;
-    }, {});
-  }, [allPermissions]);
+    }, {});  }, [allPermissions]);  
 
   const showModal = (role?: any) => {
     setEditingRole(role);
@@ -86,14 +84,15 @@ const RolesManagement = () => {
     }
     setIsModalVisible(true);
   };
-  // Update selectedPermissions when rolePermissions changes
   useEffect(() => {
-    if (Array.isArray(rolePermissions)) {
-      setSelectedPermissions(rolePermissions.map((p: Permission) => p.id));
-    } else {
+    if (rolePermissions?.data) {
+      const permissionIds = rolePermissions.data.map((p: Permission) => p.id);
+      console.log('Setting permissions:', permissionIds);
+      setSelectedPermissions(permissionIds);
+    } else if (!editingRole) {
       setSelectedPermissions([]);
     }
-  }, [rolePermissions]);
+  }, [rolePermissions, editingRole]);
 
   const handlePermissionChange = (permissionId: string, checked: boolean) => {
     setSelectedPermissions(prev => 

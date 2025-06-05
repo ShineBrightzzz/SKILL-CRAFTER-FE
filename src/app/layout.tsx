@@ -16,7 +16,7 @@ import GoogleOAuthWrapper from '@/components/GoogleOAuthWrapper';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'CodeLearn - Học Lập Trình Trực Tuyến',
+  title: 'Skill Crafter - Học Lập Trình Trực Tuyến',
   description: 'Nền tảng học lập trình trực tuyến với các khóa học chất lượng cao',
 };
 

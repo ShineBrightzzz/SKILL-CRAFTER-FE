@@ -178,24 +178,26 @@ export default function AdminLayout({
               left: 0,
               zIndex: 1001,
               boxShadow: '2px 0 8px rgba(0,0,0,0.1)'
-            }}
-          >
-            <div className="logo" style={{ 
-              height: '64px', 
+            }}          >            <div className="logo" style={{ 
+              height: '120px', 
               display: 'flex', 
               justifyContent: 'center', 
               alignItems: 'center',
-              background: token.colorBgContainer,
-              margin: '16px'
+              padding: '8px 0',
+              marginTop: '8px'
             }}>
-              {!collapsed && <h2>Admin Panel</h2>}
-              {collapsed && <h2>AP</h2>}
+              <img 
+                src="/logo.svg" 
+                alt="Logo"                style={{ 
+                  height: collapsed ? '40px' : '80px',
+                  width: 'auto',
+                  transition: 'all 0.2s'
+                }} 
+              />
             </div>
             <Menu
               theme="dark"
-              mode="inline"
-              defaultSelectedKeys={[getActiveMenuKey()]
-              }
+              mode="inline"              defaultSelectedKeys={[getActiveMenuKey()]}
               selectedKeys={[getActiveMenuKey()]}
               items={menuItems}
             />

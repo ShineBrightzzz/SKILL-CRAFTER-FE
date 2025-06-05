@@ -95,7 +95,7 @@ const NotificationDropdown: React.FC = () => {  const { data: notificationData, 
     >
       <div className="cursor-pointer">
         <Badge count={unreadCount} overflowCount={99}>
-          <BellOutlined className="text-xl" />
+          <BellOutlined className="text-xl text-white" />
         </Badge>
       </div>
     </Dropdown>

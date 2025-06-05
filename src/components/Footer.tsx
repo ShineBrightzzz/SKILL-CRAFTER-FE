@@ -9,7 +9,7 @@ const Footer: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-xl font-bold mb-4">CodeLearn</h3>
+            <h3 className="text-xl font-bold mb-4">Skill Crafter</h3>
             <p className="text-gray-400">
               Nền tảng học lập trình trực tuyến với các khóa học chất lượng cao
             </p>
@@ -83,7 +83,7 @@ const Footer: React.FC = () => {
           </div>
         </div>
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; 2024 CodeLearn. All rights reserved.</p>
+          <p>&copy; 2025 Skill Crafter. All rights reserved.</p>
         </div>
       </div>
     </footer>

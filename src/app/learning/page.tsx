@@ -237,9 +237,8 @@ const LearningPage = () => {
                       </div>
                     </div>
                     <div className="p-6">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-medium text-white bg-blue-600 px-3 py-1 rounded-full">
-                          {course.categoryName || 'Chưa phân loại'}
+                      <div className="flex items-center justify-between mb-3">                        <span className="text-sm font-medium text-white bg-blue-600 px-3 py-1 rounded-full">
+                          {categories.find(cat => cat.id === course.categoryId)?.name || 'Chưa phân loại'}
                         </span>
                         <span className="text-sm text-gray-600 font-medium bg-gray-100 px-3 py-1 rounded-full">{getLevelText(course.level)}</span>
                       </div>

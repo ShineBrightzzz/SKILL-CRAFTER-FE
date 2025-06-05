@@ -70,7 +70,6 @@ export const createAbility = (permissions: any[] | null | undefined) => {
       
       const action = mapApiMethodToAction(permission.method, permission.apiPath);
       const subject = mapApiPathToSubject(permission.apiPath);
-      console.log(`Mapping permission: ${permission.apiPath} with method: ${permission.method} to action: ${action} and subject: ${subject}`);
       if (action && subject) {
         can(action, subject);
       }

@@ -139,12 +139,11 @@ export default function CourseComments({ courseId, userId }: CourseCommentsProps
         <h3 className="text-lg font-semibold">Các đánh giá khác</h3>
         {commentsData?.data?.result?.map((comment: CourseComment) => (
           <div key={comment.id} className="bg-white p-4 rounded-lg shadow-sm">
-            <div className="flex items-start space-x-4">
-              <Avatar 
+            <div className="flex items-start space-x-4">              <Avatar 
                 src={comment.userPictureUrl || undefined}
                 alt={comment.username}
               >
-                {comment.username[0]}
+                {comment.username ? comment.username[0] : '?'}
               </Avatar>
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-2">

@@ -116,10 +116,8 @@ const Navbar: React.FC = () => {
                     />
                   </Badge>
                 </Link>
-                <QuestionCircleOutlined 
-                  className="text-white text-xl cursor-pointer hover:text-blue-200"
-                />
-                <div className="relative">                  <button
+                <div className="relative">                  
+                  <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
                     className="flex items-center space-x-2 text-white hover:text-blue-200 transition"                  >                    {user.pictureUrl ? (
                       <Image
@@ -157,6 +155,13 @@ const Navbar: React.FC = () => {
                       >
                         Thông tin cá nhân
                       </Link>                      <Link
+                        href="/my-courses"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        Khóa học của tôi
+                      </Link>
+                      <Link
                         href="/transaction-history"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setShowUserMenu(false)}
