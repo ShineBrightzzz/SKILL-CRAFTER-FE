@@ -1,12 +1,17 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircleIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '@/store/hooks';
-import { useGetCourseByIdQuery, useEnrollCourseMutation, useGetEnrollmentsByUserIdQuery, useUpdateCourseStatusMutation } from '@/services/course.service';
+import { useGetCourseByIdQuery, useUpdateCourseStatusMutation } from '@/services/course.service';
 import { useGetChaptersByCourseIdQuery } from '@/services/chapter.service';
-import { useGetLessonProgressByUserIdQuery, useGetLessonByIdQuery, useUpdateLessonStatusMutation } from '@/services/lesson.service';
+import { 
+  useGetLessonProgressByUserIdQuery, 
+  useGetLessonByIdQuery,
+  useGetLessonsByChapterIdQuery,
+  useUpdateLessonStatusMutation 
+} from '@/services/lesson.service';
 import Image from 'next/image';
 import { toast } from 'react-toastify';
 import { skipToken } from '@reduxjs/toolkit/query/react';
@@ -40,16 +45,37 @@ const getLevelText = (level: number) => {
   }
 };
 
+interface Chapter {
+  id: string;
+  title: string;
+  description?: string;
+  order: number;
+}
+
+interface CourseResponse {
+  id: string;
+  title: string;
+  description: string;
+  duration: number;
+  level: number;
+  price: number;
+  status: number;
+  chapters: Chapter[];
+}
+
 export default function CourseDetailPage({ params }: PageProps) {
   const router = useRouter();
   const { user: currentUser } = useAuth();
+    
+  // State management
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
-  const [isLocalEnrolled, setIsLocalEnrolled] = useState(false);
+  const [chapterLessons, setChapterLessons] = useState<{[key: string]: any[]}>({});
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [updateLessonStatus, { isLoading: isUpdatingStatus }] = useUpdateLessonStatusMutation();
   const [updateCourseStatus] = useUpdateCourseStatusMutation();
   const [modal, contextHolder] = Modal.useModal();
-    // Handle course approval with confirmation
+
+  // Handle showing course status modal
   const showConfirmModal = (status: number) => {
     let message = '';
     const type = status === 2 ? "phê duyệt" : "từ chối";
@@ -68,144 +94,80 @@ export default function CourseDetailPage({ params }: PageProps) {
       ),
       okText: 'Có',
       cancelText: 'Không',
-      onOk: () => handleCourseApproval(status, message),
+      onOk: async () => {
+        try {
+          await updateCourseStatus({
+            courseId: params.id,
+            status: status,
+            message: message
+          }).unwrap();
+          
+          toast.success(status === 2 ? 'Khóa học đã được phê duyệt' : 'Khóa học đã bị từ chối');
+        } catch (error) {
+          console.error('Course status update error:', error);
+          toast.error('Có lỗi xảy ra khi cập nhật trạng thái khóa học');
+        }
+      },
     });
   };
-  // Handle course approval
-  const handleCourseApproval = async (status: number, message?: string) => {
-    if (!course) return;
-    
-    try {
-      await updateCourseStatus({ 
-        courseId: params.id,
-        status: status,
-        message: message
-      }).unwrap();
-      
-      toast.success(status === 2 ? 'Khóa học đã được phê duyệt' : 'Khóa học đã bị từ chối');
-    } catch (error) {
-      console.error('Course approval error:', error);
-      toast.error('Có lỗi xảy ra khi cập nhật trạng thái khóa học');
-    }
-  };
-  
-  // Fetch course details
-  const { data: courseData, isLoading: courseLoading } = useGetCourseByIdQuery(params.id);
-  const course = courseData?.data;
-  
-  // Fetch selected lesson details
+
+  // Fetch individual lesson when selected
   const { data: lessonData, isLoading: lessonLoading } = useGetLessonByIdQuery(
     selectedLessonId || skipToken
   );
-  
-  
-  // Check enrollment
-  const { data: enrollmentsData, isLoading: enrollmentsLoading } = useGetEnrollmentsByUserIdQuery(
-    currentUser?.id ? { userId: currentUser.id } : skipToken
-  );
 
-  // Check if user is enrolled in this course
-  const isEnrolled = useMemo(() => {
-    if (!enrollmentsData?.data?.result || !params.id) return false;
-    return enrollmentsData.data.result.some((enrollment: any) => enrollment.courseId === params.id);
-  }, [enrollmentsData, params.id]);
-
-  // Combined enrollment status
-  const effectivelyEnrolled = isEnrolled || (isLocalEnrolled && !enrollmentsLoading);
-
-  // Fetch chapters
-  const { data: chaptersResponse, isLoading: chaptersLoading } = useGetChaptersByCourseIdQuery({
-    courseId: params.id
-  });
-  
-  // Keep track of chapters and their lessons
-  const chapters = useMemo(() => {
-    const result = chaptersResponse?.data?.result || [];
-    // Sort chapters by order if available
-    return result;
-  }, [chaptersResponse]);
-  
-  // Keep track of lessons for each chapter
-  const [chaptersWithLessons, setChaptersWithLessons] = useState<any[]>([]);
-  
-  // Fetch user's lesson progress
-  const { data: progressData } = useGetLessonProgressByUserIdQuery(
-    currentUser?.id ? currentUser.id : skipToken
-  );
-  
-  // Fetch lessons for expanded chapters
-  useEffect(() => {
-    const fetchLessonsForExpandedChapters = async () => {
-      const updatedChapters = [...chapters];
-      
-      // For each expanded chapter, fetch its lessons if not already loaded
-      for (const chapter of updatedChapters) {
-        if (expandedChapters.has(chapter.id) && !chapter.lessons) {
-          try {
-            // Fetch lessons for this chapter
-            const response = await fetch(`/api/chapters/${chapter.id}/lessons`);
-            const data = await response.json();
-            
-            if (data.data && data.data.result) {
-              // Enhance lessons with completion status if user is logged in
-              let lessons = data.data.result;
-              
-              if (progressData?.data?.result) {
-                const progressMap = new Map(
-                  progressData.data.result.map((progress: any) => [progress.lessonId, progress])
-                );
-                
-                lessons = lessons.map((lesson: any) => ({
-                  ...lesson,
-                  isCompleted: progressMap.has(lesson.id) && progressMap.get(lesson.id).completed
-                }));
-              }
-              
-              // Add lessons to the chapter
-              chapter.lessons = lessons;
-            }
-          } catch (error) {
-            console.error(`Error fetching lessons for chapter ${chapter.id}:`, error);
-          }
-        }
-      }
-      
-      setChaptersWithLessons(updatedChapters);
-    };
-    
-    if (chapters.length > 0 && expandedChapters.size > 0) {
-      fetchLessonsForExpandedChapters();
-    } else {
-      setChaptersWithLessons(chapters);
-    }
-  }, [chapters, expandedChapters, progressData]);
-
-  // Course enrollment mutation
-  const [enrollCourse, { isLoading: isEnrolling }] = useEnrollCourseMutation();
-
-  // Function to handle enrollment
-  const handleEnrollment = async () => {
-    if (!currentUser || !course) return;
-    
-    try {
-      const result = await enrollCourse({ 
-        courseId: params.id, 
-        userId: currentUser.id 
-      }).unwrap();
-      
-      // If enrollment was successful (result contains the enrollment data)
-      if (result.id) {
-        setIsLocalEnrolled(true);
-        toast.success('Đăng ký khóa học thành công!');
-      }
-    } catch (error) {
-      console.error('Enrollment error:', error);
-      toast.error('Có lỗi xảy ra khi đăng ký khóa học');
-    }
+  // Fetch course details 
+  const { data: course, isLoading: courseLoading } = useGetCourseByIdQuery(params.id) as { 
+    data: CourseResponse | undefined;
+    isLoading: boolean;
   };
 
+  // Fetch chapters
+  const { data: chaptersData, isLoading: chaptersLoading } = useGetChaptersByCourseIdQuery({
+    courseId: params.id
+  });
+
+  const chapters = chaptersData?.data?.result || [];
+
+  // Fetch lessons for expanded chapter
+  const { data: lessonsData, isLoading: lessonsLoading } = useGetLessonsByChapterIdQuery(
+    Array.from(expandedChapters)[expandedChapters.size - 1] || skipToken
+  );
+
+  // Initialize chapters
+  useEffect(() => {
+    if (chapters?.length > 0) {
+      setChapterLessons(prev => {
+        const newState = { ...prev };
+        chapters.forEach(chapter => {
+          if (!newState[chapter.id]) {
+            newState[chapter.id] = [];
+          }
+        });
+        return newState;
+      });
+    }
+  }, [chapters]);
+
+  // Update lessons when data is received
+  useEffect(() => {
+    const currentChapterId = Array.from(expandedChapters)[expandedChapters.size - 1];
+    if (!currentChapterId || !lessonsData?.data?.result) return;    const lessons = lessonsData.data.result;
+    const sortedLessons = [...lessons]
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
+      .map(lesson => ({
+        ...lesson,
+        type: typeof lesson.type === 'string' ? parseInt(lesson.type) : lesson.type
+      }));
+
+    setChapterLessons(prev => ({
+      ...prev,
+      [currentChapterId]: sortedLessons
+    }));
+  }, [lessonsData, expandedChapters]);
+
   // Handle chapter expansion/collapse
-  const handleChapterClick = (chapterId: string) => {
+  const handleChapterClick = useCallback((chapterId: string) => {
     setExpandedChapters(prev => {
       const newSet = new Set(prev);
       if (newSet.has(chapterId)) {
@@ -215,10 +177,15 @@ export default function CourseDetailPage({ params }: PageProps) {
       }
       return newSet;
     });
-  };
+  }, []);
+
+  // Handle lesson selection
+  const handleLessonClick = useCallback((lessonId: string) => {
+    setSelectedLessonId(lessonId);
+  }, []);
+
   // Handle starting course
   const handleStartCourse = () => {
-    // If enrolled, navigate to learning page
     router.push(`/learning/${params.id}`);
   };
 
@@ -268,22 +235,6 @@ export default function CourseDetailPage({ params }: PageProps) {
       default:
         return 'text-gray-700 bg-gray-100';
     }
-  };
-  // Handle lesson selection
-  const handleLessonClick = (lessonId: string) => {
-    
-    // Fetch lesson data directly for debugging
-    fetch(`/api/lessons/${lessonId}`)
-      .then(response => response.json())
-      .then(data => {
-        
-        // Now set the selected lesson ID to trigger the official data fetch
-        setSelectedLessonId(lessonId);
-      })
-      .catch(error => {
-        console.error("Error fetching lesson directly:", error);
-        setSelectedLessonId(lessonId);
-      });
   };
   // Handle lesson status update
   const handleLessonStatusUpdate = (status: number, message?: string) => async () => {
@@ -577,13 +528,13 @@ export default function CourseDetailPage({ params }: PageProps) {
               </div>
               
               <div className="overflow-y-auto max-h-[calc(100vh-400px)]">
-                {chaptersLoading ? (
+                {chaptersLoading || lessonsLoading ? (
                   <div className="flex justify-center items-center p-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-900"></div>
                   </div>
-                ) : chaptersWithLessons.length > 0 ? (
+                ) : chapters.length > 0 ? (
                   <div className="divide-y divide-gray-200">
-                    {chaptersWithLessons.map((chapter) => (
+                    {chapters.map((chapter) => (
                       <div key={chapter.id} className="cursor-pointer">
                         <div 
                           onClick={() => handleChapterClick(chapter.id)}
@@ -598,16 +549,15 @@ export default function CourseDetailPage({ params }: PageProps) {
                               )}
                               <span className="font-medium text-gray-900">{chapter.name}</span>
                             </div>
-                            <span className="text-xs text-gray-500">{chapter.estimatedTime || 0} phút</span>
                           </div>
                         </div>
                         
                         {/* Lesson list when chapter is expanded */}
                         {expandedChapters.has(chapter.id) && (
                           <div className="bg-gray-50 pl-10 pr-4">
-                            {chapter.lessons && chapter.lessons.length > 0 ? (
+                            {chapterLessons[chapter.id]?.length > 0 ? (
                               <ul className="py-2 space-y-1">
-                                {chapter.lessons.map((lesson: any) => (
+                                {chapterLessons[chapter.id].map((lesson: any) => (
                                   <li 
                                     key={lesson.id} 
                                     className={`py-2 px-3 rounded-md hover:bg-gray-100 transition-colors flex items-center justify-between cursor-pointer
@@ -624,7 +574,7 @@ export default function CourseDetailPage({ params }: PageProps) {
                                         )}
                                       </div>
                                       <span className="text-sm">{lesson.title}</span>
-                                    </div>                                    
+                                    </div>
                                     <div className="text-xs text-gray-500">
                                       {getLessonTypeText(parseInt(String(lesson.type)))}
                                     </div>
@@ -709,38 +659,23 @@ export default function CourseDetailPage({ params }: PageProps) {
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Course enrollment card */}
+                    {/* Course enrollment card */}
                   <div className="bg-blue-50 rounded-lg p-6 mt-8">
                     <div className="flex flex-col md:flex-row justify-between items-center">
                       <div>
                         <h3 className="text-xl font-semibold text-gray-900">
-                          {course.price === 0 ? 'Khóa học miễn phí' : `Giá: ${course.price.toLocaleString('vi-VN')} đ`}
+                          {course.price === 0 || !course.price ? 'Khóa học miễn phí' : `Giá: ${Number(course.price).toLocaleString('vi-VN')} đ`}
                         </h3>
-                        <p className="text-gray-600 mt-1">
-                          {effectivelyEnrolled 
-                            ? 'Bạn đã đăng ký khóa học này' 
-                            : 'Đăng ký để học ngay hôm nay'}
-                        </p>
+                        <p className="text-gray-600 mt-1">Đăng ký để học ngay hôm nay</p>
                       </div>
                       
                       <div className="mt-4 md:mt-0">
-                        {effectivelyEnrolled ? (
-                          <button
-                            onClick={handleStartCourse}
-                            className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
-                          >
-                            Vào học ngay
-                          </button>
-                        ) : (
-                          <button
-                            onClick={handleEnrollment}
-                            disabled={isEnrolling || !currentUser}
-                            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                          >
-                            {isEnrolling ? 'Đang xử lý...' : 'Đăng ký khóa học'}
-                          </button>
-                        )}
+                        <button
+                          onClick={handleStartCourse}
+                          className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                        >
+                          Vào học ngay
+                        </button>
                       </div>
                     </div>
                   </div>
