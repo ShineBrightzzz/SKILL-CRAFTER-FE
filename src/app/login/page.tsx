@@ -244,7 +244,6 @@ export default function Login() {
                       // Reset failed attempts on successful login
                       localStorage.removeItem('loginAttempts');
                       setFailedAttempts(0);
-                      console.log('Google login successful:', response);
                  // Check if user is admin and redirect accordingly  
                       if (response.data.isAdmin) {
                         router.replace('/admin');

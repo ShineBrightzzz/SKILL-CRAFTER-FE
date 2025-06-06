@@ -112,7 +112,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Handle permissions
           if (userInfo.roleId) {
             const permissions = await getPermissionByRole(String(userInfo.roleId)).unwrap();
-            console.log("User permissions:", permissions);
             dispatch(setAbility(permissions?.data || []));
           }
 
@@ -123,13 +122,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else if (userId) {
           // If no token in memory but we have userId, try to refresh it using the HTTP-only cookie
           try {
-            console.log('Attempting to refresh token in AuthProvider...');
             const result = await refreshToken().unwrap();
-            console.log("Token refresh result:", result);
             
             if (result.data?.accessToken) {
               const newAccessToken = result.data.accessToken;
-              console.log('Got new access token:', newAccessToken.substring(0, 10) + '...');
               
               // If refresh successful, update in-memory token
               setAccessToken(newAccessToken);
@@ -160,19 +156,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
               setIsAuthenticated(true);
             } else {
-              console.log("Token refresh failed");
               handleAuthFailure(false);
             }
           } catch (refreshError) {
-            console.log("Error refreshing token:", refreshError);
             handleAuthFailure(false);
           }
         } else {
-          console.log("No userId found");
           handleAuthFailure(false);
         }
       } catch (error) {
-        console.log("Error during initialization:", error);
         handleAuthFailure();
       } finally {
         setIsLoading(false);

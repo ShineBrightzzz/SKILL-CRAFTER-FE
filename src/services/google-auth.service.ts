@@ -25,8 +25,6 @@ export const googleAuthApiSlice = apiSlice.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           const userData = data.data;
-          console.log('Google auth response:', userData);
-
           if (!userData) {
             throw new Error('No user data received from Google authentication');
           }
@@ -62,7 +60,6 @@ export const googleAuthApiSlice = apiSlice.injectEndpoints({
               if ('data' in permissionsResult) {
                 const permissionsResponse = permissionsResult.data;
                 if (permissionsResponse?.data) {
-                  console.log('Setting permissions from Google login:', permissionsResponse.data);
                   dispatch(setAbility(permissionsResponse.data));
                 }
               }

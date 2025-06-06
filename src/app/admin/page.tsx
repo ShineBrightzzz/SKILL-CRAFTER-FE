@@ -72,7 +72,6 @@ const AdminPage = () => {
   const { data: paymentsResponse } = useGetAllPaymentsQuery();
   const { data: revenueResponse } = useGetLast6MonthsRevenueQuery();
   const { data: registrationsResponse } = useGetLast6MonthsRegistrationsQuery();
-  console.log(revenueResponse, registrationsResponse);
 
   const courses = coursesResponse?.data?.result || [];
   const categories = categoriesResponse?.data?.result || [];

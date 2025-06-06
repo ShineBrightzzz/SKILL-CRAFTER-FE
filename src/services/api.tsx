@@ -20,10 +20,8 @@ export const getAccessToken = () => accessToken;
 export const setDebugRefreshToken = (token: string | null) => {
   if (token) {
     localStorage.setItem('refreshTokenForDebug', token);
-    console.log('Debug refresh token set:', token.substring(0, 8) + '...');
   } else {
     localStorage.removeItem('refreshTokenForDebug');
-    console.log('Debug refresh token removed');
   }
 };
 
@@ -60,7 +58,6 @@ const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
       const release = await mutex.acquire();
       
       try {
-        console.log('Attempting to refresh token...');
         
         // Make the refresh token call directly to the backend
         const refreshResult = await fetch(`${baseUrl}/refresh-token`, {
@@ -77,7 +74,6 @@ const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
           const { accessToken: newAccessToken, ...userData } = refreshData.data;
 
           if (newAccessToken) {
-            console.log('Got new access token:', newAccessToken.substring(0, 10) + '...');
             
             // Store the new token in memory
             setAccessToken(newAccessToken);

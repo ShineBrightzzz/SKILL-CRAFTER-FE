@@ -98,7 +98,6 @@ const RolesManagement = () => {
   useEffect(() => {
     if (rolePermissions?.data) {
       const permissionIds = rolePermissions.data.map((p: Permission) => p.id);
-      console.log('Setting permissions:', permissionIds);
       setSelectedPermissions(permissionIds);
     } else if (!editingRole) {
       setSelectedPermissions([]);

@@ -127,7 +127,6 @@ export const userApiSlice = apiSlice.injectEndpoints({
               if ('data' in permissionsResult) {
                 const permissionsResponse = permissionsResult.data;
                 if (permissionsResponse?.data) {
-                  console.log('Setting permissions:', permissionsResponse.data);
                   dispatch(setAbility(permissionsResponse.data));
                 }
               }
@@ -146,7 +145,6 @@ export const userApiSlice = apiSlice.injectEndpoints({
               if ('data' in permissionsResult) {
                 const permissionsResponse = permissionsResult.data;
                 if (permissionsResponse?.data) {
-                  console.log('Setting permissions:', permissionsResponse.data);
                   dispatch(setAbility(permissionsResponse.data));
                 }
               }
@@ -205,13 +203,11 @@ export const userApiSlice = apiSlice.injectEndpoints({
             if (data.accessToken) {
               setAccessToken(data.accessToken);
               dispatch(setToken(data.accessToken));
-              console.log('Access token updated:', data.accessToken.substring(0, 10) + '...');
             }
 
             // Store new refresh token for development/debugging
             if (data.refreshToken) {
               setDebugRefreshToken(data.refreshToken);
-              console.log('New refresh token saved:', data.refreshToken.substring(0, 8) + '...');
             }
 
             // Update user data in Redux store
@@ -227,7 +223,6 @@ export const userApiSlice = apiSlice.injectEndpoints({
                 roleId: data.roleId || null
               };
               dispatch(setUser(userData));
-              console.log('User data updated in Redux store');
             }
           } else {
             console.error('Token refresh failed:', response.data?.message);
