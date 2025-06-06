@@ -104,10 +104,10 @@ export default function Home() {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 h-full">
               {featuredCourses.map((course) => (
-                <Link href={`/learning/${course.id}`} key={course.id}>                  
-                <div className="bg-white rounded-xl shadow-md overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-xl">
+                <Link href={`/learning/${course.id}`} key={course.id} className="h-full">                  
+                <div className="bg-white rounded-xl shadow-md overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-xl h-full flex flex-col">
                     <div className="relative h-48">                        
                       <Image
                           src={course.imageUrl || '/logo.png'}
@@ -119,10 +119,10 @@ export default function Home() {
                           {course.categoryName}
                         </div>
                       </div>
-                      <div className="p-6">
+                      <div className="p-6 flex flex-col flex-grow">
                         <h3 className="text-xl font-bold mb-2 text-gray-800 line-clamp-2">{course.title}</h3>
                         <p className="text-gray-600 mb-4 line-clamp-2">{course.description}</p>
-                        <div className="flex items-center justify-between text-sm text-gray-500 mt-4">
+                        <div className="flex items-center justify-between text-sm text-gray-500 mt-auto">
                           <div className="flex items-center">
                             <FiBarChart2 className="mr-2" />
                             <span>{getLevelText(course.level)}</span>

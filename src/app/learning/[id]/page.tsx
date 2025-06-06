@@ -192,6 +192,11 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   }, []);
 
   const switchToLearning = useCallback((selectedLesson?: Lesson) => {
+    if (!effectivelyEnrolled) {
+      toast.error('Bạn cần đăng ký khóa học để có thể học');
+      return;
+    }
+
     if (selectedLesson?.id) {
       changeLesson(selectedLesson);
       if (selectedLesson.chapterId) {
@@ -203,7 +208,7 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
       }
     }
     setIsLearningMode(true);
-  }, [changeLesson]);  // Get lessons for chapters
+  }, [changeLesson, effectivelyEnrolled]);  // Get lessons for chapters
   const { data: lessonsData } = useGetLessonsByChapterIdQuery(
     activeChapterId ?? skipToken
   );
@@ -371,13 +376,16 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
 
   // Handle adding course to cart
   const handleAddToCart = async () => {
-    if (!currentUser || !course) return;
+  if (!currentUser || !params.id) {
+    toast.error('Không thể thêm khóa học vào giỏ hàng');
+    return;
+  }
     
-    try {
-      await addToCart({
-        userId: currentUser.id,
-        courseId: params.id
-      }).unwrap();
+  try {
+    await addToCart({
+      userId: currentUser.id,
+      courseId: params.id
+    }).unwrap();
       
       toast.success('Đã thêm khóa học vào giỏ hàng');
     } catch (error) {
@@ -386,27 +394,12 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
     }
   };
 
-  if (courseLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Spin size="large" />
-        <span className="ml-2">Đang tải khóa học...</span>
-      </div>
-    );
-  }
-
-  if (!course) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Không tìm thấy khóa học</h1>
-          <Link href="/courses" className="text-blue-600 hover:underline">
-            Quay lại danh sách khóa học
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (isLearningMode && !effectivelyEnrolled) {
+      setIsLearningMode(false);
+      toast.error('Bạn cần đăng ký khóa học để có thể học');
+    }
+  }, [isLearningMode, effectivelyEnrolled]);
 
   // Main content render
   return (

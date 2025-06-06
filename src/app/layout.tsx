@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { ReduxProvider } from '@/store/ReduxProvider';
 import { ToastContainer } from 'react-toastify';
+import ProgressBar from '@/components/ProgressBar';
 
 import 'react-toastify/dist/ReactToastify.css';
 import '@videojs/themes/dist/forest/index.css';
@@ -43,10 +44,12 @@ export default function RootLayout({
                 closeOnClick
                 rtl={false}
                 pauseOnFocusLoss
-                draggable                pauseOnHover
+                draggable
+                pauseOnHover
                 theme="light"
               />
-              <Providers>          
+              <Providers>
+                <ProgressBar />          
                 <ConditionalNavbar />
                 <AuthGuard>
                   {children}
