@@ -99,11 +99,10 @@ const UsersManagement: React.FC = () => {
       console.error(error);
     }
   };
-
   const handleAssignRole = (user: User) => {
     setSelectedUser(user);
     roleForm.setFieldsValue({
-      role: user.role?.id ? String(user.role.id) : undefined
+      role: user.roleId ? String(user.roleId) : undefined
     });
     setIsAssignRoleModalVisible(true);
   };

@@ -2,10 +2,9 @@
 const nextConfig = {
   devIndicators: false,
   /* config options here */
-  transpilePackages: ["@ant-design/plots", "@casl/ability"],
-  images: {
-    domains: ['example.com', 'res.cloudinary.com', 'img.vietqr.io'],
-  },  webpack: (config) => {
+  transpilePackages: ["@ant-design/plots", "@casl/ability"],  images: {
+    domains: ['example.com', 'res.cloudinary.com', 'img.vietqr.io', 'lh3.googleusercontent.com'],
+  },webpack: (config) => {
     // This is needed to handle dynamic imports properly
     config.module = config.module || {};
     config.module.exprContextCritical = false;

@@ -1,26 +1,18 @@
 import { setUser, setToken, logout } from '@/store/slices/authSlice';
+import { setAbility } from '@/store/slices/abilitySlice';
 import apiSlice, { setAccessToken, setDebugRefreshToken } from './api';
 import type { AuthResponse } from '@/types/auth';
+import { roleApiSlice } from './role.service';
 
 // Define types
-export interface User {  id: string;
+export interface User {  
+  id: string;
   username: string;
   email?: string;
   familyName?: string;
   givenName?: string;
   isAdmin?: boolean;
-  role?: {
-    id: number | string;
-    name: string;
-    description?: string;
-    active?: boolean;
-    permissionIds?: number[];
-    permissions?: any[];
-    createdAt?: string;
-    updatedAt?: string;
-    createdBy?: string;
-    updatedBy?: string;
-  } | null;
+  roleId?: number;
   refreshToken?: string;
   createdAt?: string;
   updatedAt?: string;  
@@ -91,8 +83,7 @@ export interface ProfileUpdateDTO {
 }
 
 export const userApiSlice = apiSlice.injectEndpoints({
-  endpoints: (builder) => ({    
-    login: builder.mutation<AuthResponse, { username: string; password: string; recaptchaToken?: string | null }>({
+  endpoints: (builder) => ({      login: builder.mutation<AuthResponse, { username: string; password: string; recaptchaToken?: string | null }>({
       query: (credentials) => ({          
         url: '/login',
         method: 'POST',
@@ -109,8 +100,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
           
           // Store user ID in localStorage
           localStorage.setItem('userId', data.id);
-          
-          // Store refresh token for development/debugging only
+            // Store refresh token for development/debugging only
           if (data.refreshToken) {
             setDebugRefreshToken(data.refreshToken);
           }
@@ -123,9 +113,46 @@ export const userApiSlice = apiSlice.injectEndpoints({
             familyName: data.familyName,
             givenName: data.givenName,
             pictureUrl: data.pictureUrl,
-            role: data.role
+            roleId: data.roleId
           }));
 
+          // Fetch and dispatch permissions if roleId exists
+          if (data.roleId) {
+            try {
+              const permissionsResult = await dispatch(
+                roleApiSlice.endpoints.getRolePermissions.initiate(String(data.roleId))
+              );
+              
+              if ('data' in permissionsResult) {
+                const permissionsResponse = permissionsResult.data;
+                if (permissionsResponse?.data) {
+                  console.log('Setting permissions:', permissionsResponse.data);
+                  dispatch(setAbility(permissionsResponse.data));
+                }
+              }
+            } catch (error) {
+              console.error('Error fetching permissions:', error);
+            }
+          }
+
+          // Fetch and dispatch permissions if roleId exists
+          if (data.roleId) {
+            try {
+              const permissionsResult = await dispatch(
+                roleApiSlice.endpoints.getRolePermissions.initiate(String(data.roleId))
+              );
+              
+              if ('data' in permissionsResult) {
+                const permissionsResponse = permissionsResult.data;
+                if (permissionsResponse?.data) {
+                  console.log('Setting permissions:', permissionsResponse.data);
+                  dispatch(setAbility(permissionsResponse.data));
+                }
+              }
+            } catch (error) {
+              console.error('Error fetching permissions:', error);
+            }
+          }
         } catch (error) {
           console.error('Error saving user data:', error);
           setAccessToken(null);

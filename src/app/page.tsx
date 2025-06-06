@@ -106,9 +106,10 @@ export default function Home() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {featuredCourses.map((course) => (
-                <Link href={`/course-detail/${course.id}`} key={course.id}>                  
+                <Link href={`/learning/${course.id}`} key={course.id}>                  
                 <div className="bg-white rounded-xl shadow-md overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-xl">
-                    <div className="relative h-48">                        <Image
+                    <div className="relative h-48">                        
+                      <Image
                           src={course.imageUrl || '/logo.png'}
                           alt={course.title}
                           fill

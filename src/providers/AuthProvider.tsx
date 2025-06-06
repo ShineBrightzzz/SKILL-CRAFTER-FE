@@ -105,23 +105,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             familyName: userInfo.familyName,            
             givenName: userInfo.givenName,
             pictureUrl: userInfo.pictureUrl,
-            role: userInfo.role
+            roleId: userInfo.roleId,
+            isAdmin: userInfo.isAdmin
           }));
 
           // Handle permissions
-          const roleId = userInfo?.role?.id ? String(userInfo.role.id) : 'user';            
-          const permissions = await getPermissionByRole(roleId).unwrap();
-          console.log("User permissions:", permissions);
-          
+          if (userInfo.roleId) {
+            const permissions = await getPermissionByRole(String(userInfo.roleId)).unwrap();
+            console.log("User permissions:", permissions);
+            dispatch(setAbility(permissions?.data || []));
+          }
+
           // Store token in ref
           tokenRef.current = token;
           setCurrentUserId(userId);
-
-          dispatch(setAbility(permissions?.data || []));
-
           setIsAuthenticated(true);
-        } 
-          else if (userId) {
+        } else if (userId) {
           // If no token in memory but we have userId, try to refresh it using the HTTP-only cookie
           try {
             console.log('Attempting to refresh token in AuthProvider...');
@@ -140,8 +139,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               const userData = await getUserById(userId).unwrap();
               // Type assertion to match the actual API response structure
               const userInfo = userData?.data as unknown as User;
-              const roleId = userInfo?.role?.id ? String(userInfo.role.id) : 'user';
-              const permissions = await getPermissionByRole(roleId).unwrap();              // Update Redux store
+
+              // Update Redux store
               dispatch(setUser({
                 id: userId,
                 username: userInfo?.username || '',
@@ -149,9 +148,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 familyName: userInfo?.familyName,
                 givenName: userInfo?.givenName,
                 pictureUrl: userInfo?.pictureUrl,
-                role: userInfo?.role
-              }));                // Dispatch permissions
-              dispatch(setAbility(permissions?.data || []));
+                roleId: userInfo.roleId,
+                isAdmin: userInfo.isAdmin
+              }));
+
+              // Get and dispatch permissions if roleId exists
+              if (userInfo.roleId) {
+                const permissions = await getPermissionByRole(String(userInfo.roleId)).unwrap();
+                dispatch(setAbility(permissions?.data || []));
+              }
+
               setIsAuthenticated(true);
             } else {
               console.log("Token refresh failed");
@@ -173,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })();
   }, [dispatch, getUserById, getPermissionByRole, refreshToken, handleAuthFailure]);
+
   const signIn = useCallback(async (token: string) => {
     try {
       const userId = localStorage.getItem('userId');

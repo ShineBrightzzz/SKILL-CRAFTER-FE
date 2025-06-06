@@ -8,11 +8,14 @@ export interface User {
   pictureUrl?: string;
   accessToken: string;
   refreshToken?: string;
+  roleId?: number;
+  isAdmin?: boolean;
 }
 
 export interface AuthResponse {
   success: boolean;
-  message: string;  data: {
+  message: string;
+  data: {
     id: string;
     username: string;
     email: string;
@@ -23,11 +26,7 @@ export interface AuthResponse {
     refreshToken: string;
     pictureUrl?: string;
     isAdmin?: boolean;
-    role?: {
-      id: number | string;
-      name: string;
-      permissions?: string[];
-    } | null;
+    roleId?: number;
   };
   timestamp: string;
 }

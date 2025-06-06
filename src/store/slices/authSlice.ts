@@ -1,7 +1,8 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 // Define types for our state
-export interface User {  id: string;
+export interface User {  
+  id: string;
   username: string;
   email?: string;
   familyName?: string;
@@ -9,11 +10,7 @@ export interface User {  id: string;
   email_verified?: boolean;
   pictureUrl?: string;
   isAdmin?: boolean;
-  role?: {
-    id: number | string;
-    name: string;
-    permissions?: string[];
-  } | null;
+  roleId?: number;
 }
 
 interface AuthState {

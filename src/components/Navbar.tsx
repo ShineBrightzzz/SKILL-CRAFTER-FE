@@ -24,6 +24,7 @@ const Navbar: React.FC = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [mounted, setMounted] = useState(false);
   const ability = useAbility();
+  console.log('User:', user);
   
   // Check if user can create courses
   const canCreateCourse = ability.can(Action.Create, Subject.Course);
