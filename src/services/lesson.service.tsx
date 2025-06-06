@@ -12,7 +12,7 @@ interface Lesson {
   duration: number | null;
   order?: number;
   initialCode?: string;
-  language?: string;
+  programmingLanguage?: string;
   quizData?: any;
   isCompleted?: boolean;
   status?: number;
@@ -73,7 +73,8 @@ export const lessonApiSlice = apiSlice.injectEndpoints({
               ...result.data.result.map(({ id }) => ({ type: 'Lessons' as const, id })),
               { type: 'Lessons' as const, id: 'LIST' },
             ]
-          : [{ type: 'Lessons' as const, id: 'LIST' }],    }),    getLessonById: builder.query<Lesson, string>({
+          : [{ type: 'Lessons' as const, id: 'LIST' }],    }),    
+          getLessonById: builder.query<{ data: Lesson; success: boolean }, string>({
       query: (lessonId) => `/api/lessons/${lessonId}`,
       providesTags: (result, error, id) => [{ type: 'Lessons' as const, id }],
     }),

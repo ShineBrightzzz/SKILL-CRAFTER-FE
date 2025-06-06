@@ -497,7 +497,7 @@ export default function CourseDetailPage({ params }: PageProps) {
             <h2 className="text-xl font-bold mb-4">{normalizedLesson.title}</h2>
             <CodeEditor
               initialCode={normalizedLesson.initialCode || '// Mã code mẫu chưa được cung cấp'}
-              language={normalizedLesson.language || 'javascript'}
+              programmingLanguage={normalizedLesson.language || 'javascript'}
               useReduxStore={false}
             />
           </div>

@@ -5,7 +5,7 @@ import { Card, Empty, Tabs } from 'antd';
 import MarkdownCode from '@/components/MarkdownCode';
 import VideoPlayer from '@/components/VideoPlayer';
 import Quiz from '@/components/Quiz';
-import CodeEditor from '@/components/CodeEditor';
+import CodeEditor, { validateProgrammingLanguage } from '@/components/CodeEditor';
 import { QuizData } from '@/types/quiz';
 import { validateAndProcessQuizData } from '@/utils/quiz';
 
@@ -20,10 +20,10 @@ interface LessonPreviewProps {
     videoUrl: string | null;
     duration: number | null;
     initialCode: string | null;
-    language: string | null;
     quizData: any | null;
     contentFile?: File | null;
     videoFile?: File | null;
+    programmingLanguage?: string;
   };
 }
 
@@ -86,11 +86,10 @@ export default function LessonPreview({ lesson }: LessonPreviewProps) {
               )}
             </div>
             <div className="bg-gray-50 rounded-md border">
-              <h3 className="text-lg font-medium p-4 border-b">Editor:</h3>
-              <div className="h-[400px]">
+              <h3 className="text-lg font-medium p-4 border-b">Editor:</h3>              <div className="h-[400px]">
                 <CodeEditor
                   initialCode={lesson.initialCode || '// Mã khởi tạo cho học viên'}
-                  language={lesson.language || 'javascript'}
+                  programmingLanguage={validateProgrammingLanguage(lesson.programmingLanguage)}
                 />
               </div>
             </div>

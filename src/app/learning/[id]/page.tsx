@@ -26,7 +26,7 @@ import { useGetCartByUserIdQuery, useAddToCartMutation } from '@/services/cart.s
 import { Chapter } from '@/types/chapter';
 import VideoPlayer from '@/components/VideoPlayer';
 import MarkdownCode from '@/components/MarkdownCode';
-import CodeEditor from '@/components/CodeEditor';
+import CodeEditor, { validateProgrammingLanguage } from '@/components/CodeEditor';
 import Quiz from '@/components/Quiz';
 import CourseComments from '@/components/course/CourseComments';
 
@@ -55,6 +55,7 @@ interface Lesson {
   language?: string;
   quizData?: any;
   isCompleted?: boolean;
+  programmingLanguage?: string;
 }
 
 interface EnrollmentResponse {
@@ -685,9 +686,9 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                   )}
                   
                   {currentLesson.type === 3 && (
-                    <CodeEditor
+                    <CodeEditor                      
                       initialCode={currentLesson.initialCode || '// Write your code here'}
-                      language={currentLesson.language || 'javascript'}
+                      programmingLanguage={validateProgrammingLanguage(currentLesson.programmingLanguage)}
                       onComplete={handleCompleteLesson}
                     />
                   )}

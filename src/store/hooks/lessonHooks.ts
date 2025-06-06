@@ -33,16 +33,14 @@ export const useLesson = (lessonId: string) => {
     // Skip fetching if we already have the data cached
     skip: !!lesson
   });
-  
-  // Save lesson to Redux when it's fetched
+    // Save lesson to Redux when it's fetched
   useEffect(() => {
-    if (lessonResponse && !lesson) {
-      dispatch(setLesson(lessonResponse));
+    if (lessonResponse?.data && !lesson) {
+      dispatch(setLesson(lessonResponse.data));
     }
   }, [lessonResponse, lesson, dispatch]);
-  
-  return {
-    lesson: lesson || lessonResponse,
+    return {
+    lesson: lesson || lessonResponse?.data,
     isLoading: isFetching && !lesson,
     error
   };

@@ -59,16 +59,15 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
   const [deleteTestCase] = useDeleteTestCaseMutation();
     // Initialize form with lesson data
   useEffect(() => {
-    if (lesson) {      setLessonType(lesson.type);
-      form.setFieldsValue({
-        title: lesson.title,
-        type: lesson.type,
-        content: lesson.content,
-        videoUrl: lesson.videoUrl,
-        duration: lesson.duration,
-        initialCode: lesson.initialCode,
-        programmingLanguage: lesson.programmingLanguage
-      });
+    if (lesson) {      setLessonType(lesson.type);          form.setFieldsValue({
+            title: lesson.title,
+            type: lesson.type,
+            content: lesson.content,
+            videoUrl: lesson.videoUrl,
+            duration: lesson.duration,
+            initialCode: lesson.initialCode,
+            programmingLanguage: lesson.programmingLanguage
+          });
     }
   }, [lesson, form]);
   // Initialize quiz questions from lesson data
@@ -661,15 +660,14 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
             >
               <TextArea rows={6} placeholder="Nhập mã khởi tạo cho học viên" />
             </Form.Item>
-            
-            <Form.Item
-              name="programmingLanguage"
-              label="Ngôn ngữ lập trình"
+              <Form.Item              name="programmingLanguage"
+              label="Ngôn ngữ lập trình" 
               rules={[{ required: true, message: 'Vui lòng chọn ngôn ngữ lập trình!' }]}
+              initialValue="python"
             >
               <Select placeholder="Chọn ngôn ngữ lập trình">
-                <Option value="javascript">JavaScript</Option>
                 <Option value="python">Python</Option>
+                <Option value="javascript">JavaScript</Option>
                 <Option value="java">Java</Option>
                 <Option value="csharp">C#</Option>
               </Select>
@@ -754,9 +752,7 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
                   content: lesson.content,
                   videoUrl: lesson.videoUrl,
                   duration: lesson.duration,
-                  initialCode: lesson.initialCode,
-                  programmingLanguage: lesson.programmingLanguage,
-                  language: lesson.language
+                  initialCode: lesson.initialCode,                  programmingLanguage: lesson.programmingLanguage
                 }}
               >
                 <Form.Item
@@ -968,9 +964,12 @@ export default function LessonDetailPage({ params }: { params: { lessonId: strin
               </TabPane>
             )}
               <TabPane tab="Xem trước" key="preview">
-              <div className="bg-white p-4 rounded-md">                  {lesson ? (                  <LessonPreview lesson={{
-                    ...lesson,                    initialCode: lesson.initialCode || null,
-                    language: lesson.language || null,
+              <div className="bg-white p-4 rounded-md">                  
+                {lesson ? (                  
+                  <LessonPreview lesson={{
+                    ...lesson,                    
+                    initialCode: lesson.initialCode || null,
+                    programmingLanguage: lesson.programmingLanguage || 'javascript',
                     content: lesson.content || null,
                     videoUrl: lesson.videoUrl || null,
                     duration: lesson.duration || null,

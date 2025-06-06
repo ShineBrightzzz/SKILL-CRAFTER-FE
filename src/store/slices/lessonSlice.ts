@@ -8,8 +8,7 @@ export interface Lesson {
   content: string | null;
   videoUrl: string | null;
   duration: number | null;
-  initialCode?: string;
-  language?: string;
+  initialCode?: string;  programmingLanguage?: string;
   chapterId: string;
   order?: number;
   quizData?: any;
