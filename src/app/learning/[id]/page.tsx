@@ -402,6 +402,28 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   }, [isLearningMode, effectivelyEnrolled]);
 
   // Main content render
+  if (courseLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Spin size="large" />
+        <span className="ml-2">Đang tải khóa học...</span>
+      </div>
+    );
+  }
+
+  if (!course) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Không tìm thấy khóa học</h1>
+          <Link href="/courses" className="text-blue-600 hover:underline">
+            Quay lại danh sách khóa học
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-gray-50">
       {!isLearningMode ? (

@@ -6,6 +6,7 @@ import { PlusOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/store/hooks';
 import { useGetAllCourseByInstructorQuery } from '@/services/course.service';
+import { useGetAllCategoriesQuery } from '@/services/category.service';
 import CourseCard from '@/components/instructor/CourseCard';
 import withPermission from '@/hocs/withPermission';
 import { Action, Subject } from '@/utils/ability';
@@ -16,22 +17,33 @@ const InstructorDashboardPage = () => {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const [isModalVisible, setIsModalVisible] = useState(false);
+  
   // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login');
     }
-    // Role check removed for testing
   }, [isAuthenticated, router]);
 
   // Fetch instructor's courses
-  const { data: coursesResponse, isLoading } = useGetAllCourseByInstructorQuery({
+  const { data: coursesResponse, isLoading: coursesLoading } = useGetAllCourseByInstructorQuery({
     instructorId: user?.id || '',
   }, {
     skip: !user?.id
   });
 
-  const courses = coursesResponse?.data?.result || [];
+  // Fetch categories
+  const { data: categoriesResponse } = useGetAllCategoriesQuery();
+  const categories = categoriesResponse?.data?.result || [];
+
+  // Map courses with category names
+  const courses = coursesResponse?.data?.result?.map(course => {
+    const category = categories.find(cat => cat.id === course.categoryId);
+    return {
+      ...course,
+      categoryName: category?.name || "Chưa phân loại"
+    };
+  }) || [];
 
   const handleAddNewCourse = () => {
     // Navigate to course creation page or show modal
@@ -41,6 +53,7 @@ const InstructorDashboardPage = () => {
   const handleCourseClick = (courseId: string) => {
     router.push(`/instructor/courses/${courseId}`);
   };
+
   if (!isAuthenticated) {
     return <div className="min-h-screen flex items-center justify-center">Đang xác thực...</div>;
   }
@@ -59,7 +72,7 @@ const InstructorDashboardPage = () => {
           </Button>
         </div>
 
-        {isLoading ? (
+        {coursesLoading ? (
           <div className="flex justify-center items-center h-64">
             <Spin size="large" />
             <Text className="ml-2">Đang tải danh sách khóa học...</Text>
@@ -81,7 +94,7 @@ const InstructorDashboardPage = () => {
           </div>
         ) : (
           <Row gutter={[16, 16]}>
-            {courses.map((course: any) => (
+            {courses.map((course) => (
               <Col xs={24} sm={12} md={8} lg={6} key={course.id}>
                 <CourseCard course={course} />
               </Col>
