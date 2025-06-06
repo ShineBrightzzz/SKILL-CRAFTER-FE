@@ -109,24 +109,7 @@ export default function Login() {
         return;
       }      // Clear failed login attempts when login successful
       localStorage.removeItem('loginAttempts');
-      setFailedAttempts(0);      // Fetch and store role permissions
-      if (response.data.role?.id) {
-        try {
-          const permissionsResponse = await fetch(`/api/roles/${response.data.role.id}/permissions`, {
-            headers: {
-              'Authorization': `Bearer ${response.data.accessToken}`
-            }
-          });
-          
-          if (permissionsResponse.ok) {
-            const permissions = await permissionsResponse.json();
-            // Dispatch permissions to the store
-            dispatch(setAbility(permissions.data));
-          }
-        } catch (err) {
-          console.error('Error fetching role permissions:', err);
-        }
-      }      // Redirect based on isAdmin
+      setFailedAttempts(0);      
       if (response.data.isAdmin) {
         router.replace('/admin');
       } else {
@@ -262,24 +245,7 @@ export default function Login() {
                       localStorage.removeItem('loginAttempts');
                       setFailedAttempts(0);
                       console.log('Google login successful:', response);
-                      // Fetch and store role permissions
-                      if (response.data.role?.id) {
-                        try {
-                          const permissionsResponse = await fetch(`/api/roles/${response.data.role.id}/permissions`, {
-                            headers: {
-                              'Authorization': `Bearer ${response.data.accessToken}`
-                            }
-                          });
-                          
-                          if (permissionsResponse.ok) {
-                            const permissions = await permissionsResponse.json();
-                            // Dispatch permissions to the store
-                            dispatch(setAbility(permissions.data));
-                          }
-                        } catch (err) {
-                          console.error('Error fetching role permissions:', err);
-                        }
-                      }                      // Check if user is admin and redirect accordingly  
+                 // Check if user is admin and redirect accordingly  
                       if (response.data.isAdmin) {
                         router.replace('/admin');
                       } else {
