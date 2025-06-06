@@ -24,7 +24,6 @@ const Navbar: React.FC = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [mounted, setMounted] = useState(false);
   const ability = useAbility();
-  console.log('User:', user);
   
   // Check if user can create courses
   const canCreateCourse = ability.can(Action.Create, Subject.Course);
@@ -121,13 +120,15 @@ const Navbar: React.FC = () => {
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
                     className="flex items-center space-x-2 text-white hover:text-blue-200 transition"                  >                    {user.pictureUrl ? (
-                      <Image
-                        src={user.pictureUrl}
-                        alt={getDisplayName()}
-                        width={32}
-                        height={32}
-                        className="rounded-full object-cover"
-                      />
+                      <div className="w-8 h-8 relative rounded-full overflow-hidden">
+                        <Image
+                          src={user.pictureUrl}
+                          alt={getDisplayName()}
+                          fill
+                          sizes="32px"
+                          className="object-cover"
+                        />
+                      </div>
                     ) : (
                       <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-blue-700">
                         {getDisplayName().charAt(0).toUpperCase()}

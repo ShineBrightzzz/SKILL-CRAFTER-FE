@@ -222,11 +222,12 @@ const LearningPage = () => {
 
         {/* Course Grid */}
         {!isLoading && !error && (
-          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>            {courses.length > 0 ? (
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+            {courses.length > 0 ? (
               courses.map((course) => (
-                <Link href={`/learning/${course.id}`} key={course.id} className="group">
-                  <div className="bg-white rounded-xl shadow-md overflow-hidden group-hover:shadow-xl transition-all duration-300 transform group-hover:-translate-y-1">
-                    <div className="relative h-52 overflow-hidden">
+                <Link href={`/learning/${course.id}`} key={course.id} className="group h-[500px] block">
+                  <div className="bg-white rounded-xl shadow-md overflow-hidden group-hover:shadow-xl transition-all duration-300 transform group-hover:-translate-y-1 h-full flex flex-col">
+                    <div className="relative h-48 flex-shrink-0">
                       <Image
                         src={course.imageUrl || '/logo.png'}
                         alt={course.title}
@@ -236,15 +237,16 @@ const LearningPage = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       </div>
                     </div>
-                    <div className="p-6">
-                      <div className="flex items-center justify-between mb-3">                        <span className="text-sm font-medium text-white bg-blue-600 px-3 py-1 rounded-full">
+                    <div className="p-6 flex flex-col flex-grow">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-medium text-white bg-blue-600 px-3 py-1 rounded-full truncate max-w-[60%]">
                           {categories.find(cat => cat.id === course.categoryId)?.name || 'Chưa phân loại'}
                         </span>
                         <span className="text-sm text-gray-600 font-medium bg-gray-100 px-3 py-1 rounded-full">{getLevelText(course.level)}</span>
                       </div>
-                      <h3 className="text-xl font-bold mb-3 text-gray-800 group-hover:text-blue-600 transition-colors">{course.title}</h3>
-                      <p className="text-gray-600 mb-4 line-clamp-2">{course.description}</p>
-                      <div className="flex flex-wrap gap-2 mb-4">
+                      <h3 className="text-xl font-bold mb-3 text-gray-800 group-hover:text-blue-600 transition-colors line-clamp-2">{course.title}</h3>
+                      <p className="text-gray-600 mb-4 line-clamp-3">{course.description}</p>
+                      <div className="flex flex-wrap gap-2 mb-4 flex-grow overflow-y-auto">
                         {course.tags && Array.isArray(course.tags) && course.tags.map((tag: string) => (
                           <span
                             key={tag}
@@ -254,7 +256,7 @@ const LearningPage = () => {
                           </span>
                         ))}
                       </div>
-                      <div className="flex justify-between text-sm border-t pt-4 mt-2">
+                      <div className="flex justify-between text-sm border-t pt-4 mt-auto">
                         <span className="font-medium text-gray-700 flex items-center">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
