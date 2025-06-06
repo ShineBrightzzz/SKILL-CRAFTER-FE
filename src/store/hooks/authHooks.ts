@@ -5,6 +5,7 @@ import { logout as logoutAction } from '../slices/authSlice';
 import * as authActions from '../slices/authSlice';
 import { setAccessToken } from '@/services/api';
 import { useLogoutMutation } from '@/services/user.service';
+import { Modal } from 'antd';
 
 /**
  * Hook to access the current authentication state
@@ -20,17 +21,27 @@ export const useAuth = () => {
   const [logoutApi] = useLogoutMutation();
   
   const logout = useCallback(async () => {
-    try {
-      // Call the logout API which will clear the HTTP-only cookie
-      await logoutApi().unwrap();
-    } catch (error) {
-      console.error('Error during logout API call:', error);
-    } finally {
-      // Always clear local state even if API call fails
-      dispatch(authActions.logout());
-      setAccessToken(null);
-      localStorage.removeItem('userId');
-    }
+    Modal.confirm({
+      title: 'Xác nhận đăng xuất',
+      content: 'Bạn có chắc chắn muốn đăng xuất không?',
+      okText: 'Đăng xuất',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          // Call the logout API which will clear the HTTP-only cookie
+          await logoutApi().unwrap();
+        } catch (error) {
+          console.error('Error during logout API call:', error);
+        } finally {
+          // Always clear local state even if API call fails
+          dispatch(authActions.logout());
+          setAccessToken(null);
+          localStorage.removeItem('userId');
+          // Reload the page after logout
+          window.location.reload();
+        }
+      }
+    });
   }, [dispatch, logoutApi]);
 
   return {
