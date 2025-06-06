@@ -19,9 +19,9 @@ interface LessonFormValues {
   type: number;
   content?: string;
   quizData?: any;
-  quizDataStr?: string;  initialCode?: string;
-  solutionCode?: string;
-  testCases?: string;
+  quizDataStr?: string;  
+  initialCode?: string;
+  programmingLanguage?: string;
   duration?: number;
   contentFile?: File;
   video?: File;
@@ -56,7 +56,7 @@ export default function CreateLessonPage() {
   const handleLessonTypeChange = (value: number) => {
     setLessonType(value);
     setVideoFile(null);
-    form.resetFields(['content', 'quizData', 'video', 'initialCode', 'solutionCode', 'testCases', 'duration']);
+    form.resetFields(['content', 'quizData', 'video', 'initialCode', 'programmingLanguage', 'duration']);
   };
 
   const handleSubmit = async (values: LessonFormValues) => {
@@ -110,11 +110,8 @@ export default function CreateLessonPage() {
           if (values.initialCode) {
             formData.append('initialCode', values.initialCode);
           }
-          if (values.solutionCode) {
-            formData.append('solutionCode', values.solutionCode);
-          }
-          if (values.testCases) {
-            formData.append('testCases', values.testCases);
+          if (values.programmingLanguage) {
+            formData.append('programmingLanguage', values.programmingLanguage);
           }
           break;
 
@@ -327,6 +324,19 @@ export default function CreateLessonPage() {
         return (
           <>
             <Form.Item
+              name="programmingLanguage"
+              label="Ngôn ngữ lập trình"
+              rules={[{ required: true, message: 'Vui lòng chọn ngôn ngữ lập trình!' }]}
+            >
+              <Select>
+                <Option value="python">Python</Option>
+                <Option value="javascript">JavaScript</Option>
+                <Option value="java">Java</Option>
+                <Option value="cpp">C++</Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item
               name="content"
               label="Nội dung bài tập (Markdown)"
               rules={[{ required: true, message: 'Vui lòng nhập nội dung bài tập!' }]}
@@ -340,45 +350,6 @@ export default function CreateLessonPage() {
               rules={[{ required: true, message: 'Vui lòng nhập mã khởi tạo!' }]}
             >
               <TextArea rows={6} />
-            </Form.Item>
-
-            <Form.Item
-              name="solutionCode"
-              label="Mã giải pháp"
-              rules={[{ required: true, message: 'Vui lòng nhập mã giải pháp!' }]}
-            >
-              <TextArea rows={6} />
-            </Form.Item>
-
-            <Form.Item
-              name="testCases"
-              label="Test cases (JSON)"
-              rules={[
-                { 
-                  required: true,
-                  message: 'Vui lòng nhập test cases!',
-                  validator: async (_, value) => {
-                    if (value) {
-                      try {
-                        JSON.parse(value);
-                      } catch (error) {
-                        throw new Error('Dữ liệu JSON không hợp lệ!');
-                      }
-                    }
-                  }
-                }
-              ]}
-            >
-              <TextArea 
-                rows={6}
-                placeholder={`Nhập test cases dạng JSON, ví dụ:
-[
-  {
-    "input": "test input 1",
-    "expectedOutput": "expected output 1"
-  }
-]`}
-              />
             </Form.Item>
           </>
         );
