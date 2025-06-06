@@ -52,14 +52,31 @@ interface Chapter {
   order: number;
 }
 
+interface APIResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  timestamp: string;
+}
+
 interface CourseResponse {
   id: string;
   title: string;
   description: string;
+  instructorId: string;
+  categoryId: string;
+  price: number;
+  imageUrl: string | null;
+  paymentQrUrl: string | null;
   duration: number;
   level: number;
-  price: number;
   status: number;
+  statusMessage: string | null;
+  programmingLanguage: string | null;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
   chapters: Chapter[];
 }
 
@@ -115,12 +132,12 @@ export default function CourseDetailPage({ params }: PageProps) {
   const { data: lessonData, isLoading: lessonLoading } = useGetLessonByIdQuery(
     selectedLessonId || skipToken
   );
-
   // Fetch course details 
-  const { data: course, isLoading: courseLoading } = useGetCourseByIdQuery(params.id) as { 
-    data: CourseResponse | undefined;
+  const { data: courseData, isLoading: courseLoading } = useGetCourseByIdQuery(params.id) as { 
+    data: APIResponse<CourseResponse> | undefined;
     isLoading: boolean;
   };
+  const course = courseData?.data;
 
   // Fetch chapters
   const { data: chaptersData, isLoading: chaptersLoading } = useGetChaptersByCourseIdQuery({
@@ -128,10 +145,12 @@ export default function CourseDetailPage({ params }: PageProps) {
   });
 
   const chapters = chaptersData?.data?.result || [];
-
-  // Fetch lessons for expanded chapter
+  // Fetch lessons for expanded chapters
   const { data: lessonsData, isLoading: lessonsLoading } = useGetLessonsByChapterIdQuery(
-    Array.from(expandedChapters)[expandedChapters.size - 1] || skipToken
+    Array.from(expandedChapters).length > 0 ? Array.from(expandedChapters)[expandedChapters.size - 1] : skipToken,
+    {
+      skip: expandedChapters.size === 0
+    }
   );
 
   // Initialize chapters
@@ -151,20 +170,51 @@ export default function CourseDetailPage({ params }: PageProps) {
 
   // Update lessons when data is received
   useEffect(() => {
+    if (!lessonsData?.data?.result) return;
+    
     const currentChapterId = Array.from(expandedChapters)[expandedChapters.size - 1];
-    if (!currentChapterId || !lessonsData?.data?.result) return;    const lessons = lessonsData.data.result;
+    if (!currentChapterId) return;
+    
+    const lessons = lessonsData.data.result;
     const sortedLessons = [...lessons]
+      .filter(lesson => lesson.chapterId === currentChapterId)
       .sort((a, b) => (a.order || 0) - (b.order || 0))
       .map(lesson => ({
         ...lesson,
         type: typeof lesson.type === 'string' ? parseInt(lesson.type) : lesson.type
-      }));
-
-    setChapterLessons(prev => ({
+      }));    setChapterLessons(prev => ({
       ...prev,
       [currentChapterId]: sortedLessons
     }));
   }, [lessonsData, expandedChapters]);
+
+  // Load lessons for each expanded chapter
+  useEffect(() => {
+    Array.from(expandedChapters).forEach(chapterId => {
+      // Only fetch if we don't already have the lessons for this chapter
+      if (!chapterLessons[chapterId] || chapterLessons[chapterId].length === 0) {
+        fetch(`/api/lessons?chapterId=${chapterId}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.data?.result) {
+              const sortedLessons = [...data.data.result]
+                .filter(lesson => lesson.chapterId === chapterId)
+                .sort((a, b) => (a.order || 0) - (b.order || 0))
+                .map(lesson => ({
+                  ...lesson,
+                  type: typeof lesson.type === 'string' ? parseInt(lesson.type) : lesson.type
+                }));
+              
+              setChapterLessons(prev => ({
+                ...prev,
+                [chapterId]: sortedLessons
+              }));
+            }
+          })
+          .catch(error => console.error('Error loading lessons:', error));
+      }
+    });
+  }, [expandedChapters, chapterLessons]);
 
   // Handle chapter expansion/collapse
   const handleChapterClick = useCallback((chapterId: string) => {
@@ -627,7 +677,9 @@ export default function CourseDetailPage({ params }: PageProps) {
                       <div className="flex flex-wrap gap-2 mb-2">
                         <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
                           {getLessonTypeText(normalizeLessonData(lessonData)?.type)}
-                        </span>                        <div className="flex items-center gap-2">                          <LessonStatusDisplay 
+                        </span>                        
+                        <div className="flex items-center gap-2">                          
+                          <LessonStatusDisplay 
                             status={normalizeLessonData(lessonData)?.status} 
                             message={normalizeLessonData(lessonData)?.message} 
                           />
@@ -641,41 +693,70 @@ export default function CourseDetailPage({ params }: PageProps) {
               ) : (
                 /* Course overview when no lesson is selected */
                 <div className="space-y-6">
-                  {/* Course overview section */}
-                  <div>                    <div className="flex justify-between items-center mb-4">
-                      <div>
-                        <h1 className="text-2xl font-bold text-gray-900">{course.title}</h1>
-                        <p className="mt-2 text-gray-600">{course.description}</p>
+                  {/* Course overview section */}                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <div className="w-full">
+                        <h1 className="text-3xl font-bold text-gray-900 mb-3">{course.title}</h1>
+                        <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
+                          <span className="inline-flex items-center">
+                            <CheckCircleIcon className="h-5 w-5 text-blue-500 mr-2" />
+                            {chapters.length} chương học
+                          </span>
+                          <span className="inline-flex items-center">
+                            <CheckCircleIcon className="h-5 w-5 text-blue-500 mr-2" />
+                            {course.duration} giờ học
+                          </span>
+                          <LessonStatusDisplay 
+                            status={course.status} 
+                          />
+                        </div>
+                        <div className="prose max-w-none text-gray-600">
+                          <p className="text-lg">{course.description}</p>
+                        </div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 mt-4">
-                      <div className="p-4 bg-gray-50 rounded-lg">
-                        <p className="font-medium text-gray-700">Cấp độ</p>
-                        <p className="text-gray-600">{getLevelText(course.level)}</p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                        <div className="flex items-start">
+                          <div className="p-2 bg-blue-50 rounded-lg">
+                            <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                          </div>
+                          <div className="ml-4">
+                            <h3 className="text-lg font-semibold text-gray-900">Cấp độ</h3>
+                            <p className="mt-1 text-gray-600">{getLevelText(course.level)}</p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="p-4 bg-gray-50 rounded-lg">
-                        <p className="font-medium text-gray-700">Thời lượng</p>
-                        <p className="text-gray-600">{course.duration} giờ</p>
+
+                      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                        <div className="flex items-start">
+                          <div className="p-2 bg-green-50 rounded-lg">
+                            <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div className="ml-4">
+                            <h3 className="text-lg font-semibold text-gray-900">Thời lượng</h3>
+                            <p className="mt-1 text-gray-600">{course.duration} giờ học</p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                    {/* Course enrollment card */}
-                  <div className="bg-blue-50 rounded-lg p-6 mt-8">
-                    <div className="flex flex-col md:flex-row justify-between items-center">
-                      <div>
-                        <h3 className="text-xl font-semibold text-gray-900">
-                          {course.price === 0 || !course.price ? 'Khóa học miễn phí' : `Giá: ${Number(course.price).toLocaleString('vi-VN')} đ`}
-                        </h3>
-                        <p className="text-gray-600 mt-1">Đăng ký để học ngay hôm nay</p>
-                      </div>
-                      
-                      <div className="mt-4 md:mt-0">
-                        <button
-                          onClick={handleStartCourse}
-                          className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
-                        >
-                          Vào học ngay
-                        </button>
+
+                      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                        <div className="flex items-start">
+                          <div className="p-2 bg-purple-50 rounded-lg">
+                            <svg className="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div className="ml-4">
+                            <h3 className="text-lg font-semibold text-gray-900">Học phí</h3>
+                            <p className="mt-1 text-gray-600">{course.price === 0 || !course.price ? 'Miễn phí' : `${Number(course.price).toLocaleString('vi-VN')} đ`}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

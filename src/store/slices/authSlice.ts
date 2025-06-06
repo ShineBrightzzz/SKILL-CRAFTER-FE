@@ -10,7 +10,7 @@ export interface User {
   email_verified?: boolean;
   pictureUrl?: string;
   isAdmin?: boolean;
-  roleId?: number;
+  roleId?: number | null;
 }
 
 interface AuthState {

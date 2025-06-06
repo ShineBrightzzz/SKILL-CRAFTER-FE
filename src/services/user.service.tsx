@@ -12,7 +12,7 @@ export interface User {
   familyName?: string;
   givenName?: string;
   isAdmin?: boolean;
-  roleId?: number;
+  roleId?: number | null;
   refreshToken?: string;
   createdAt?: string;
   updatedAt?: string;  
@@ -20,6 +20,7 @@ export interface User {
   updatedBy?: string;  
   pictureUrl?: string;
   phone?: string;
+  email_verified?: boolean;
 }
 
 // Role assignment DTO
@@ -223,7 +224,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
                 familyName: data.familyName,
                 givenName: data.givenName,
                 pictureUrl: data.pictureUrl || undefined,
-                role: data.role || null
+                roleId: data.roleId || null
               };
               dispatch(setUser(userData));
               console.log('User data updated in Redux store');
