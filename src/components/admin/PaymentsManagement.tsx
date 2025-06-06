@@ -20,10 +20,12 @@ const PaymentsManagement = () => {
   const { data: paymentsResponse, isLoading, refetch } = useGetAllPaymentsQuery({
     page: currentPage,
     size: pageSize,
-    searchText,
-    status,
-    startDate: dateRange[0]?.format('YYYY-MM-DD'),
-    endDate: dateRange[1]?.format('YYYY-MM-DD')
+    search: searchText,
+    status: status !== 'all' ? status : undefined,
+    startDate: dateRange[0]?.format('YYYY-MM-DDTHH:mm:ss'),
+    endDate: dateRange[1]?.format('YYYY-MM-DDTHH:mm:ss'),
+    sortBy: 'createdAt',
+    sortDir: 'desc'
   });
 
   const payments = paymentsResponse?.data?.result || [];
@@ -63,7 +65,8 @@ const PaymentsManagement = () => {
       key: 'status',
       render: (status: string) => {
         let color = 'default';
-        let text = 'Không xác định';        switch (status) {
+        let text = 'Không xác định';        
+        switch (status) {
           case 'SUCCESS':
             color = 'success';
             text = 'Hoàn thành';

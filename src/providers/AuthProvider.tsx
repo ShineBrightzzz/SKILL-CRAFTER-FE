@@ -16,6 +16,7 @@ import { setUser, logout } from '@/store/slices/authSlice';
 import { setAbility } from '@/store/slices/abilitySlice';
 import { useLazyGetAccountByIdQuery, useRefreshTokenMutation, User } from '@/services/user.service';
 import { useLazyGetRolePermissionsQuery } from '@/services/role.service';
+import { useLogoutMutation } from '@/services/auth.service';
 import { Permission } from '@/services/permission.service';
 import { getAccessToken, setAccessToken } from '@/services/api';
 
@@ -58,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [getUserById] = useLazyGetAccountByIdQuery();
   const [getPermissionByRole] = useLazyGetRolePermissionsQuery();
   const [refreshToken] = useRefreshTokenMutation();
+  const [logoutApi] = useLogoutMutation();
 
   const handleAuthFailure = useCallback((shouldRedirect = true) => {
     // Clear in-memory token
@@ -191,8 +193,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [handleAuthFailure]);
 
   const signOut = useCallback(async () => {
-    handleAuthFailure(true);
-  }, [handleAuthFailure]);
+    try {
+      // Call the logout API endpoint
+      await logoutApi().unwrap();
+    } catch (error) {
+      console.error('Error during logout API call:', error);
+    } finally {
+      // Always clear local state even if API call fails
+      handleAuthFailure(true);
+    }
+  }, [logoutApi, handleAuthFailure]);
 
   if (isLoading) {
     return <div>Loading...</div>;

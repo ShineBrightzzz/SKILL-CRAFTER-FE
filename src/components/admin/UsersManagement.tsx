@@ -129,6 +129,8 @@ const UsersManagement: React.FC = () => {
     }
   };
 
+  console.log(rolesData)
+
   const handleAssignRoleCancel = () => {
     setIsAssignRoleModalVisible(false);
     roleForm.resetFields();
@@ -164,8 +166,12 @@ const UsersManagement: React.FC = () => {
     },
     {
       title: 'Vai trò',
-      dataIndex: ['role', 'name'],
-      key: 'role',      render: (_: string, record: any) => record.role?.name || 'Chưa có vai trò'
+      dataIndex: 'roleId',
+      key: 'role',
+      render: (roleId: number | null, record: any) => {
+        const role = rolesData?.data?.result?.find((r: Role) => Number(r.id) === roleId);
+        return role?.name || 'Chưa có vai trò';
+      }
     },
     {
       title: 'Thao tác',

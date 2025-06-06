@@ -24,11 +24,13 @@ interface Payment {
 
 interface PaginationParams {
   page?: number;
-  size?: number;  // Changed from pageSize to size
-  searchText?: string;
+  size?: number;
+  search?: string;
   status?: string;
   startDate?: string;
   endDate?: string;
+  sortBy?: string;
+  sortDir?: string;
 }
 
 interface PaymentsResponse {

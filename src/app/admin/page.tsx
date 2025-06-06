@@ -26,6 +26,7 @@ import { Line, Bar } from 'react-chartjs-2';
 import { useGetAllCoursesQuery } from '@/services/course.service';
 import { useGetAllCategoriesQuery } from '@/services/category.service';
 import { useGetAllPaymentsQuery } from '@/services/payment.service';
+import { useGetAllAccountsQuery } from '@/services/user.service';
 import { useGetLast6MonthsRevenueQuery, useGetLast6MonthsRegistrationsQuery } from '@/services/dashboard.service';
 import type { Course } from '@/types/course';
 import type { ChartData, ChartDataset } from '@/types/dashboard';
@@ -47,6 +48,7 @@ const AdminPage = () => {
   const router = useRouter();
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [revenueChange, setRevenueChange] = useState(0);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [revenueData, setRevenueData] = useState<ChartData>({
     labels: [],
     datasets: [{
@@ -70,12 +72,14 @@ const AdminPage = () => {
   const { data: coursesResponse } = useGetAllCoursesQuery({});
   const { data: categoriesResponse } = useGetAllCategoriesQuery();
   const { data: paymentsResponse } = useGetAllPaymentsQuery();
+  const { data: usersResponse } = useGetAllAccountsQuery({});
   const { data: revenueResponse } = useGetLast6MonthsRevenueQuery();
   const { data: registrationsResponse } = useGetLast6MonthsRegistrationsQuery();
 
   const courses = coursesResponse?.data?.result || [];
   const categories = categoriesResponse?.data?.result || [];
   const payments = paymentsResponse?.data?.result || [];
+  const users = usersResponse?.data?.result || [];
   const monthlyRevenue = revenueResponse?.data || {};
   const monthlyRegistrations = registrationsResponse?.data || {};
 
@@ -166,6 +170,11 @@ const AdminPage = () => {
     }
   }, [monthlyRegistrations]);
 
+  // Update total users count
+  useEffect(() => {
+    setTotalUsers(users.length);
+  }, [users]);
+
   // Chart options
   const chartOptions = {
     responsive: true,
@@ -252,7 +261,7 @@ const AdminPage = () => {
       <AntTitle level={2} className="mb-6">Tổng quan</AntTitle>
       <Row gutter={[16, 16]} className="mb-6">
         <Col xs={24} sm={12} md={6}>
-          <Card hoverable onClick={() => router.push('/admin/courses')}>
+          <Card hoverable className="h-40 flex flex-col justify-center" onClick={() => router.push('/admin/courses')}>
             <Statistic 
               title="Khóa học" 
               value={courses.length} 
@@ -261,7 +270,7 @@ const AdminPage = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} md={6}>
-          <Card hoverable onClick={() => router.push('/admin/categories')}>
+          <Card hoverable className="h-40 flex flex-col justify-center" onClick={() => router.push('/admin/categories')}>
             <Statistic 
               title="Danh mục" 
               value={categories.length} 
@@ -270,15 +279,26 @@ const AdminPage = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} md={6}>
-          <Card hoverable onClick={() => router.push('/admin/payments')}>
+          <Card hoverable className="h-40 flex flex-col justify-center" onClick={() => router.push('/admin/users')}>
             <Statistic 
-              title="Doanh thu" 
-              value={totalRevenue}
-              prefix={<DollarOutlined />}
-              suffix="đ"
-              precision={0}
+              title="Người dùng" 
+              value={users.length} 
+              prefix={<UserOutlined />} 
             />
-            <div className="mt-2">
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card hoverable className="h-40 flex flex-col" onClick={() => router.push('/admin/payments')}>
+            <div className="flex-1 flex flex-col justify-center">
+              <Statistic 
+                title="Doanh thu" 
+                value={totalRevenue}
+                prefix={<DollarOutlined />}
+                suffix="đ"
+                precision={0}
+              />
+            </div>
+            <div className="mt-auto">
               <span className={revenueChange >= 0 ? 'text-green-500' : 'text-red-500'}>
                 {revenueChange >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
                 {Math.abs(revenueChange).toFixed(1)}%
