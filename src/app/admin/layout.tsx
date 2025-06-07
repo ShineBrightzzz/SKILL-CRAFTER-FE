@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Layout, Menu, Button, theme, Drawer, Dropdown, Avatar, Tooltip } from 'antd';
+import { Layout, Menu, Button, theme, Drawer, Dropdown, Avatar, Tooltip, Modal } from 'antd';
 import { 
   BookOutlined, 
   UserOutlined,
@@ -13,7 +13,8 @@ import {
   UserSwitchOutlined,
   SafetyCertificateOutlined,
   DashboardOutlined,
-  DollarOutlined
+  DollarOutlined,
+  QuestionCircleOutlined
 } from '@ant-design/icons';
 import AuthGuard from '@/components/AuthGuard';
 import { useAuth } from '@/store/hooks';
@@ -25,10 +26,10 @@ export default function AdminLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
-}>) {
-  const [collapsed, setCollapsed] = useState(false);
+}>) {  const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileMenuVisible, setMobileMenuVisible] = useState(false);
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const { token } = theme.useToken();
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -60,9 +61,13 @@ export default function AdminLayout({
       window.removeEventListener('resize', checkIfMobile);
     };
   }, []);
-  
-  // Handle logout
+    // Handle logout
+  const showLogoutConfirm = () => {
+    setLogoutModalVisible(true);
+  };
+
   const handleLogout = () => {
+    setLogoutModalVisible(false);
     logout();
     router.push('/login');
   };
@@ -177,7 +182,8 @@ export default function AdminLayout({
               left: 0,
               zIndex: 1001,
               boxShadow: '2px 0 8px rgba(0,0,0,0.1)'
-            }}          >            <div className="logo" style={{ 
+            }}          >            
+            <div className="logo" style={{ 
               height: '120px', 
               display: 'flex', 
               justifyContent: 'center', 
@@ -268,7 +274,7 @@ export default function AdminLayout({
                         key: '3',
                         icon: <LogoutOutlined />,
                         label: 'Đăng xuất',
-                        onClick: handleLogout,
+                        onClick: showLogoutConfirm,
                       },
                     ]
                   }}>
@@ -386,7 +392,7 @@ export default function AdminLayout({
                         key: '3',
                         icon: <LogoutOutlined />,
                         label: 'Đăng xuất',
-                        onClick: handleLogout,
+                        onClick: showLogoutConfirm,
                       },
                     ]
                   }}>
@@ -413,6 +419,24 @@ export default function AdminLayout({
             {children}
           </Content>
         </Layout>
+
+        {/* Logout Confirmation Modal */}
+        <Modal
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <QuestionCircleOutlined style={{ color: '#faad14' }} />
+              <span>Xác nhận đăng xuất</span>
+            </div>
+          }
+          open={logoutModalVisible}
+          onOk={handleLogout}
+          onCancel={() => setLogoutModalVisible(false)}
+          okText="Đồng ý"
+          cancelText="Hủy"
+          okButtonProps={{ danger: true }}
+        >
+          <p>Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?</p>
+        </Modal>
       </Layout>
     </AuthGuard>
   );

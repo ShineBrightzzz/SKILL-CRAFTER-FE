@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/store/hooks';
+import { Modal } from 'antd';
+import { QuestionCircleOutlined } from '@ant-design/icons';
 
 const navigation = [
   { name: 'Trang chủ', href: '/' },
@@ -14,18 +16,30 @@ const navigation = [
 export default function MobileNav() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const { user, logout } = useAuth();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
   // Function to get display name
   const getDisplayName = () => {
     if (user?.familyName && user?.givenName) {
       return `${user.familyName} ${user.givenName}`;
     }
     return user?.username || '';
+  };
+
+  // Function to handle logout confirmation
+  const showLogoutConfirm = () => {
+    setLogoutModalVisible(true);
+  };
+
+  // Function to perform logout
+  const handleLogout = () => {
+    logout();
+    setIsOpen(false);
+    setLogoutModalVisible(false);
   };
   // Return a consistent initial UI structure to prevent hydration errors
   return (
@@ -140,12 +154,8 @@ export default function MobileNav() {
                   >
                     Lịch sử giao dịch
                   </Link>
-                  
-                  <button
-                    onClick={() => {
-                      logout();
-                      setIsOpen(false);
-                    }}
+                    <button
+                    onClick={showLogoutConfirm}
                     className="block w-full text-left text-gray-600 hover:text-blue-600 transition py-3 px-2 rounded-md hover:bg-gray-50"
                   >
                     Đăng xuất
@@ -175,8 +185,25 @@ export default function MobileNav() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>      )}
+
+      {/* Logout Confirmation Modal */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <QuestionCircleOutlined style={{ color: '#faad14' }} />
+            <span>Xác nhận đăng xuất</span>
+          </div>
+        }
+        open={logoutModalVisible}
+        onOk={handleLogout}
+        onCancel={() => setLogoutModalVisible(false)}
+        okText="Đồng ý"
+        cancelText="Hủy"
+        okButtonProps={{ danger: true }}
+      >
+        <p>Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?</p>
+      </Modal>
     </div>
   );
 }

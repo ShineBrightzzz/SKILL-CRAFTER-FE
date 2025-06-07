@@ -5,7 +5,7 @@ import Link from 'next/link';
 import MobileNav from './MobileNav';
 import { useAuth } from '@/store/hooks';
 import Image from 'next/image';
-import { Badge } from 'antd';
+import { Badge, Modal } from 'antd';
 import { QuestionCircleOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import NotificationDropdown from './NotificationDropdown';
 import { useGetCartByUserIdQuery } from '@/services/cart.service';
@@ -23,6 +23,7 @@ const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const ability = useAbility();
   
   // Check if user can create courses
@@ -39,13 +40,24 @@ const Navbar: React.FC = () => {
   useEffect(() => {
     setMounted(true);
   }, []);
-
   // Function to get display name
   const getDisplayName = () => {
     if (user?.familyName && user?.givenName) {
       return `${user.familyName} ${user.givenName}`;
     }
     return user?.username || '';
+  };
+
+  // Function to handle logout confirmation
+  const showLogoutConfirm = () => {
+    setLogoutModalVisible(true);
+    setShowUserMenu(false);
+  };
+
+  // Function to perform logout
+  const handleLogout = () => {
+    logout();
+    setLogoutModalVisible(false);
   };
 
   return (
@@ -169,13 +181,9 @@ const Navbar: React.FC = () => {
                         onClick={() => setShowUserMenu(false)}
                       >
                         Lịch sử giao dịch
-                      </Link>
-                      <div className="border-t border-gray-100 my-1"></div>
+                      </Link>                      <div className="border-t border-gray-100 my-1"></div>
                       <button
-                        onClick={() => {
-                          logout();
-                          setShowUserMenu(false);
-                        }}
+                        onClick={showLogoutConfirm}
                         className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       >
                         Đăng xuất
@@ -185,10 +193,27 @@ const Navbar: React.FC = () => {
                 </div>
               </div>
             )}
-          </div>
-          <MobileNav />
+          </div>          <MobileNav />
         </div>
       </div>
+      
+      {/* Logout Confirmation Modal */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <QuestionCircleOutlined style={{ color: '#faad14' }} />
+            <span>Xác nhận đăng xuất</span>
+          </div>
+        }
+        open={logoutModalVisible}
+        onOk={handleLogout}
+        onCancel={() => setLogoutModalVisible(false)}
+        okText="Đồng ý"
+        cancelText="Hủy"
+        okButtonProps={{ danger: true }}
+      >
+        <p>Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?</p>
+      </Modal>
     </nav>
   );
 };
