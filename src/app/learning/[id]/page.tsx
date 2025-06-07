@@ -627,77 +627,79 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
       ) : (
         // Learning page with lesson content
         <div className="flex h-[calc(100vh-64px)]">
-          {/* Sidebar */}
-          <div className="w-64 bg-white border-r overflow-y-auto">
-            <div className="p-4">
-              <h3 className="text-sm font-medium text-gray-500 mb-4">NỘI DUNG KHÓA HỌC</h3>
-              {chaptersLoading ? (
-                <div className="text-center py-4">
-                  <Spin />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {chapters.map((chapter, index) => (
-                    <div key={chapter.id}>
-                      <button
-                        onClick={() => toggleChapter(chapter.id)}
-                        className="flex items-center w-full text-left mb-2"
-                      >
-                        {expandedChapters.has(chapter.id) ? (
-                          <ChevronDownIcon className="h-4 w-4 mr-2" />
-                        ) : (
-                          <ChevronRightIcon className="h-4 w-4 mr-2" />
-                        )}
-                        <span className="text-sm font-medium">
-                          Chương {index + 1}: {chapter.name}
-                        </span>
-                      </button>
-                      
-                      {expandedChapters.has(chapter.id) && (
-                        <div className="ml-6">
-                          {loadingStates[chapter.id] ? (
-                            <div className="py-2 text-gray-500">
-                              <Spin size="small" />
-                            </div>
+          {/* Sidebar - hidden for coding lessons */}
+          {currentLesson?.type !== 3 && (
+            <div className="w-64 bg-white border-r overflow-y-auto">
+              <div className="p-4">
+                <h3 className="text-sm font-medium text-gray-500 mb-4">NỘI DUNG KHÓA HỌC</h3>
+                {chaptersLoading ? (
+                  <div className="text-center py-4">
+                    <Spin />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {chapters.map((chapter, index) => (
+                      <div key={chapter.id}>
+                        <button
+                          onClick={() => toggleChapter(chapter.id)}
+                          className="flex items-center w-full text-left mb-2"
+                        >
+                          {expandedChapters.has(chapter.id) ? (
+                            <ChevronDownIcon className="h-4 w-4 mr-2" />
                           ) : (
-                            <ul className="space-y-2">
-                              {(loadedLessons[chapter.id] || []).map((lesson) => (                                <li key={lesson.id}>
-                                  <button
-                                    onClick={() => {
-                                      changeLesson(lesson);
-                                      switchToLearning();
-                                    }}
-                                    className={classNames(
-                                      'flex items-center w-full text-left px-2 py-1 rounded text-sm',
-                                      currentLesson?.id === lesson.id
-                                        ? 'bg-blue-50 text-blue-600'
-                                        : 'hover:bg-gray-50'
-                                    )}
-                                  >
-                                    {lesson.isCompleted ? (
-                                      <CheckCircleIcon className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                                    ) : (
-                                      <div className="h-4 w-4 border border-gray-300 rounded-full mr-2 flex-shrink-0" />
-                                    )}
-                                    <span className="truncate">{lesson.title}</span>
-                                  </button>
-                                </li>
-                              ))}
-                            </ul>
+                            <ChevronRightIcon className="h-4 w-4 mr-2" />
                           )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+                          <span className="text-sm font-medium">
+                            Chương {index + 1}: {chapter.name}
+                          </span>
+                        </button>
+                        
+                        {expandedChapters.has(chapter.id) && (
+                          <div className="ml-6">
+                            {loadingStates[chapter.id] ? (
+                              <div className="py-2 text-gray-500">
+                                <Spin size="small" />
+                              </div>
+                            ) : (
+                              <ul className="space-y-2">
+                                {(loadedLessons[chapter.id] || []).map((lesson) => (                                <li key={lesson.id}>
+                                    <button
+                                      onClick={() => {
+                                        changeLesson(lesson);
+                                        switchToLearning();
+                                      }}
+                                      className={classNames(
+                                        'flex items-center w-full text-left px-2 py-1 rounded text-sm',
+                                        currentLesson?.id === lesson.id
+                                          ? 'bg-blue-50 text-blue-600'
+                                          : 'hover:bg-gray-50'
+                                      )}
+                                    >
+                                      {lesson.isCompleted ? (
+                                        <CheckCircleIcon className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
+                                      ) : (
+                                        <div className="h-4 w-4 border border-gray-300 rounded-full mr-2 flex-shrink-0" />
+                                      )}
+                                      <span className="truncate">{lesson.title}</span>
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Main content */}
+          {/* Main content - full width for coding lessons, else normal */}
           <div className="flex-1 overflow-y-auto bg-white">
             {currentLesson ? (
-              <div>
+              <div className={currentLesson.type === 3 ? "flex flex-col h-full" : ""}>
                 {/* Navigation header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b">
                   <div className="flex items-center space-x-4">
@@ -717,48 +719,63 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                 </div>
 
                 {/* Lesson content */}
-                <div className="p-6">
-                  {currentLesson.type === 1 && currentLesson.quizData && (
-                    <Quiz
-                      quizData={currentLesson.quizData}
-                      onComplete={handleCompleteLesson}
-                    />
-                  )}
-                  
-                  {currentLesson.type === 2 && currentLesson.videoUrl && (
-                    <div className="aspect-w-16 aspect-h-9">
-                      <VideoPlayer src={currentLesson.videoUrl} />
+                {currentLesson.type === 3 ? (
+                  // Split screen layout for coding lessons
+                  <div className="flex flex-1 overflow-hidden">
+                    {/* Left panel - lesson content */}
+                    <div className="w-1/2 overflow-y-auto p-6 border-r">
+                      {currentLesson.content && (
+                        <MarkdownCode content={currentLesson.content} />
+                      )}
                     </div>
-                  )}
-                    {currentLesson.type === 3 && (
-                    <CodeEditor                      
-                      initialCode={currentLesson.initialCode || '// Write your code here'}
-                      programmingLanguage={validateProgrammingLanguage(currentLesson.programmingLanguage)}
-                      onComplete={handleCompleteLesson}
-                      lessonId={currentLesson.id}
-                      userId={currentUser?.id}
-                      useReduxStore={true}
-                    />
-                  )}
-                  
-                  {currentLesson.type === 4 && currentLesson.content && (
-                    <MarkdownCode content={currentLesson.content} />
-                  )}
+                    
+                    {/* Right panel - code editor */}
+                    <div className="w-1/2 overflow-y-auto">
+                      <CodeEditor
+                        initialCode={currentLesson.initialCode || '// Write your code here'}
+                        programmingLanguage={validateProgrammingLanguage(currentLesson.programmingLanguage)}
+                        onComplete={handleCompleteLesson}
+                        lessonId={currentLesson.id}
+                        userId={currentUser?.id}
+                        useReduxStore={true}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  // Regular layout for other lesson types
+                  <div className="p-6">
+                    {currentLesson.type === 1 && currentLesson.quizData && (
+                      <Quiz
+                        quizData={currentLesson.quizData}
+                        onComplete={handleCompleteLesson}
+                      />
+                    )}
+                    
+                    {currentLesson.type === 2 && currentLesson.videoUrl && (
+                      <div className="aspect-w-16 aspect-h-9">
+                        <VideoPlayer src={currentLesson.videoUrl} />
+                      </div>
+                    )}
+                    
+                    {currentLesson.type === 4 && currentLesson.content && (
+                      <MarkdownCode content={currentLesson.content} />
+                    )}
 
-                  {/* Complete lesson button for video and reading lessons */}
-                  {(currentLesson.type === 2 || currentLesson.type === 4) && (
-                    <div className="mt-6">
-                      <Button
-                        type="primary"
-                        onClick={handleCompleteLesson}
-                        loading={completingLesson}
-                        disabled={currentLesson.isCompleted}
-                      >
-                        {currentLesson.isCompleted ? 'Đã hoàn thành' : 'Đánh dấu đã học xong'}
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                    {/* Complete lesson button for video and reading lessons */}
+                    {(currentLesson.type === 2 || currentLesson.type === 4) && (
+                      <div className="mt-6">
+                        <Button
+                          type="primary"
+                          onClick={handleCompleteLesson}
+                          loading={completingLesson}
+                          disabled={currentLesson.isCompleted}
+                        >
+                          {currentLesson.isCompleted ? 'Đã hoàn thành' : 'Đánh dấu đã học xong'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex items-center justify-center h-full p-6">
