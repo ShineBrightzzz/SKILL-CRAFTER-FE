@@ -53,11 +53,10 @@ const RolesManagement = () => {
   const { data: allPermissions } = useGetAllPermissionsQuery({});
   const [createRole] = useCreateRoleMutation();
   const [updateRole] = useUpdateRoleMutation();
-  const [deleteRole] = useDeleteRoleMutation();
-    const { data: rolePermissions, refetch: refetchPermissions } = useGetRolePermissionsQuery(
-    editingRole?.id ?? 'skip', 
+  const [deleteRole] = useDeleteRoleMutation();  const { data: rolePermissions, refetch: refetchPermissions } = useGetRolePermissionsQuery(
+    editingRole?.id ?? -1, 
     { skip: !editingRole?.id }
-  ); 
+  );
 
   // Group permissions by module
   const groupedPermissions = React.useMemo(() => {
@@ -103,8 +102,7 @@ const RolesManagement = () => {
       setSelectedPermissions([]);
     }
   }, [rolePermissions, editingRole]);
-
-  const handlePermissionChange = (permissionId: string, checked: boolean) => {
+  const handlePermissionChange = (permissionId: Permission['id'], checked: boolean) => {
     setSelectedPermissions(prev => 
       checked 
         ? [...prev, permissionId]
@@ -116,17 +114,21 @@ const RolesManagement = () => {
     setIsModalVisible(false);
     form.resetFields();
     setSelectedPermissions([]);
-  };  const handleSubmit = async (values: any) => {
+  };  interface RoleFormData {
+    name: string;
+    description?: string;
+    active: boolean;
+  }
+
+  const handleSubmit = async (values: RoleFormData) => {
     try {
-      const submitData = {
+      const submitData: Partial<Role> = {
         name: values.name,
         description: values.description,
         active: values.active,
         permissionIds: selectedPermissions
-      };
-
-      if (editingRole) {
-        await updateRole({ id: editingRole.id, body: submitData }).unwrap();
+      };      if (editingRole) {
+        await updateRole({ id: editingRole.id!, body: submitData }).unwrap();
         message.success('Cập nhật vai trò thành công!');
       } else {
         await createRole({ body: submitData }).unwrap();
@@ -138,11 +140,14 @@ const RolesManagement = () => {
       message.error('Có lỗi xảy ra!');
       console.error(error);
     }
-  };
-
-  const handleDelete = async (id: string) => {
+  };  const handleDelete = async (id: Role['id']) => {
     if (!ability.can(Action.Delete, Subject.Role)) {
       message.error('Bạn không có quyền xóa vai trò');
+      return;
+    }
+
+    if (typeof id !== 'number') {
+      message.error('ID vai trò không hợp lệ');
       return;
     }
 
@@ -151,8 +156,7 @@ const RolesManagement = () => {
       content: 'Hành động này không thể hoàn tác.',
       okText: 'Xóa',
       okType: 'danger',
-      cancelText: 'Hủy',
-      onOk: async () => {
+      cancelText: 'Hủy',      onOk: async () => {
         try {
           await deleteRole({ id }).unwrap();
           message.success('Xóa vai trò thành công!');
@@ -200,10 +204,9 @@ const RolesManagement = () => {
             </Button>
           )}
           {ability.can(Action.Delete, Subject.Role) && (
-            <Button 
-              danger 
+            <Button              danger 
               icon={<DeleteOutlined />}
-              onClick={() => handleDelete(record.id)}
+              onClick={() => handleDelete(record.id!)}
             >
               Xóa
             </Button>
@@ -234,11 +237,10 @@ const RolesManagement = () => {
               icon={<EditOutlined />}
               onClick={() => showModal(record)}
             />
-            <Button 
-              danger 
+            <Button              danger 
               size="small"
               icon={<DeleteOutlined />}
-              onClick={() => handleDelete(record.id)}
+              onClick={() => handleDelete(record.id!)}
             />
           </Space>
         );

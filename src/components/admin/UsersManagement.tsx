@@ -24,7 +24,7 @@ interface UserFormData {
   familyName: string;
   givenName: string;
   password: string;
-  role?: string;
+  roleId?: number;
 }
 
 interface RoleFormData {
@@ -107,9 +107,7 @@ const UsersManagement: React.FC = () => {
   };
 
   const handleAssignRoleSubmit = async (values: RoleFormData) => {
-    if (!selectedUser) return;
-
-    try {      const roleAssignment: RoleAssignmentDTO = {
+    if (!selectedUser) return;    try {      const roleAssignment: RoleAssignmentDTO = {
         roleId: String(values.role)
       };
 
@@ -159,14 +157,13 @@ const UsersManagement: React.FC = () => {
       title: 'Tên',
       dataIndex: 'givenName',
       key: 'givenName'
-    },    {
-      title: 'Vai trò',
+    },    {      title: 'Vai trò',
       dataIndex: 'roleId',
       key: 'roleId',
       render: (roleId: number | null) => {
         if (!roleId) return 'Chưa có vai trò';
         
-        // Tìm role dựa trên roleId (so sánh number với number)
+        // Find role by roleId
         const role = rolesData?.data?.result?.find((r: Role) => r.id === roleId);
         return role?.name || 'Không tìm thấy vai trò';
       }

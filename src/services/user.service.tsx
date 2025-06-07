@@ -121,7 +121,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
           if (data.roleId) {
             try {
               const permissionsResult = await dispatch(
-                roleApiSlice.endpoints.getRolePermissions.initiate(String(data.roleId))
+                roleApiSlice.endpoints.getRolePermissions.initiate(data.roleId)
               );
               
               if ('data' in permissionsResult) {
@@ -139,7 +139,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
           if (data.roleId) {
             try {
               const permissionsResult = await dispatch(
-                roleApiSlice.endpoints.getRolePermissions.initiate(String(data.roleId))
+                roleApiSlice.endpoints.getRolePermissions.initiate(data.roleId)
               );
               
               if ('data' in permissionsResult) {

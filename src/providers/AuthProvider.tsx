@@ -305,7 +305,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {  const tok
 
           // Handle permissions
           if (userInfo.roleId) {
-            const permissions = await getPermissionByRole(String(userInfo.roleId)).unwrap();
+            const permissions = await getPermissionByRole(userInfo.roleId).unwrap();
             dispatch(setAbility(permissions?.data || []));
           }
 
@@ -347,7 +347,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {  const tok
 
               // Get and dispatch permissions if roleId exists
               if (userInfo.roleId) {
-                const permissions = await getPermissionByRole(String(userInfo.roleId)).unwrap();
+                const permissions = await getPermissionByRole(userInfo.roleId).unwrap();
                 dispatch(setAbility(permissions?.data || []));
               }
 

@@ -11,11 +11,11 @@ export interface PaginationParams {
 
 // Define the Role type
 export interface Role {
-  id: number;
+  id?: number;
   name?: string;
   description?: string;
   active?: boolean;
-  permissionIds?: number[];
+  permissionIds?: string[];
   createdAt?: string | null;
   updatedAt?: string;
   createdBy?: string | null;
@@ -78,7 +78,7 @@ export const roleApiSlice = apiSlice.injectEndpoints({
               { type: 'Roles' as const, id: 'ACTIVE' },
             ]
           : [{ type: 'Roles' as const, id: 'ACTIVE' }],
-    }),    getRolePermissions: builder.query<{ data: Permission[] }, string>({
+    }),    getRolePermissions: builder.query<{ data: Permission[] }, number>({
       query: (roleId) => `/api/roles/${roleId}/permissions`,
       providesTags: (result, error, roleId) => [
         { type: 'Roles' as const, id: `${roleId}-permissions` },
@@ -93,8 +93,7 @@ export const roleApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: [{ type: 'Roles' as const, id: 'LIST' }],
     }),
-    
-    updateRole: builder.mutation<Role, { id: string; body: Partial<Role> }>({
+      updateRole: builder.mutation<Role, { id: number; body: Partial<Role> }>({
       query: ({ id, body }) => ({
         url: `/api/roles/${id}`,
         method: 'PUT',
@@ -106,8 +105,7 @@ export const roleApiSlice = apiSlice.injectEndpoints({
         { type: 'Roles' as const, id: 'ACTIVE' },
       ],
     }),
-    
-    deleteRole: builder.mutation<void, { id: string }>({
+      deleteRole: builder.mutation<void, { id: number }>({
       query: ({id}) => ({
         url: `/api/roles/${id}`,
         method: 'DELETE',
