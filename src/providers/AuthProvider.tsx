@@ -19,6 +19,21 @@ import { useLazyGetRolePermissionsQuery } from '@/services/role.service';
 import { useLogoutMutation } from '@/services/auth.service';
 import { Permission } from '@/services/permission.service';
 import { getAccessToken, setAccessToken } from '@/services/api';
+import { jwtDecode } from 'jwt-decode';
+
+// Interface for decoded JWT token
+interface DecodedToken {
+  exp: number; // Expiration time (in seconds since Unix epoch)
+  sub: string; // Subject (usually user ID)
+  // Add other claims as needed
+}
+
+// Interface for token refresh timer
+interface RefreshTimerInfo {
+  timerId: NodeJS.Timeout | null;
+  expiresAt: number | null;
+  refreshing: boolean;
+}
 
 interface PermissionResponse {
   result: Permission[];
@@ -49,11 +64,11 @@ export { AuthContext };
 
 export const useAuthSession = () => useContext(AuthContext);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const tokenRef = useRef<string | null>(null);
+export function AuthProvider({ children }: { children: ReactNode }) {  const tokenRef = useRef<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const refreshTimerRef = useRef<RefreshTimerInfo>({ timerId: null, expiresAt: null, refreshing: false });
   const dispatch = useDispatch();
   const router = useRouter();
   const [getUserById] = useLazyGetAccountByIdQuery();
@@ -61,7 +76,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [refreshToken] = useRefreshTokenMutation();
   const [logoutApi] = useLogoutMutation();
 
+  // Helper function to decode JWT token and extract expiration time
+  const getTokenExpirationTime = useCallback((token: string): number | null => {
+    try {
+      const decoded = jwtDecode<DecodedToken>(token);
+      return decoded.exp * 1000; // Convert from seconds to milliseconds
+    } catch (error) {
+      console.error('Error decoding token:', error);
+      return null;
+    }
+  }, []);
+  // Function to handle authentication failures
   const handleAuthFailure = useCallback((shouldRedirect = true) => {
+    // Clear token refresh timer
+    if (refreshTimerRef.current.timerId) {
+      clearTimeout(refreshTimerRef.current.timerId);
+      refreshTimerRef.current = { timerId: null, expiresAt: null, refreshing: false };
+    }
+    
     // Clear in-memory token
     setAccessToken(null);
     // Clear localStorage
@@ -80,7 +112,189 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push('/login');
       }
     }
-  }, [dispatch, router]);
+  }, [dispatch, router]);  // Function to refresh the access token
+  const refreshAccessToken = useCallback(async () => {
+    if (!currentUserId) {
+      console.log(`[${new Date().toLocaleString()}] Cannot refresh token - no user ID`);
+      return null;
+    }
+    
+    // Check if we already have a pending refresh request
+    if (refreshTimerRef.current.refreshing) {
+      console.log(`[${new Date().toLocaleString()}] Token refresh already in progress, skipping`);
+      return null;
+    }
+    
+    try {
+      // Mark that we're in the process of refreshing
+      refreshTimerRef.current.refreshing = true;
+      
+      console.log(`[${new Date().toLocaleString()}] Refreshing access token...`);
+      const result = await refreshToken().unwrap();
+      
+      if (result.data?.accessToken) {
+        const newAccessToken = result.data.accessToken;
+        
+        // Update in-memory token
+        setAccessToken(newAccessToken);
+        tokenRef.current = newAccessToken;
+        
+        // Clear any existing timer before scheduling a new one
+        if (refreshTimerRef.current.timerId) {
+          clearTimeout(refreshTimerRef.current.timerId);
+          refreshTimerRef.current.timerId = null;
+        }
+        
+        // Schedule the next refresh
+        const expirationTime = getTokenExpirationTime(newAccessToken);
+        if (expirationTime) {
+          const currentTime = Date.now();
+          const timeUntilExpiry = expirationTime - currentTime;
+          const refreshDelay = Math.max(timeUntilExpiry - 60000, 1000); // At least 1 second delay
+          
+          console.log(`[${new Date().toLocaleString()}] Setting up new refresh timer for ${new Date(expirationTime).toLocaleString()}`);
+          
+          refreshTimerRef.current = {
+            timerId: setTimeout(() => refreshAccessToken(), refreshDelay),
+            expiresAt: expirationTime,
+            refreshing: false
+          };
+        } else {
+          console.error(`[${new Date().toLocaleString()}] Could not determine expiration time for new token`);
+          refreshTimerRef.current.refreshing = false;
+        }
+        
+        console.log(`[${new Date().toLocaleString()}] Access token refreshed successfully`);
+        
+        return newAccessToken;
+      } else {
+        console.error('Token refresh failed: No access token in response');
+        handleAuthFailure(false);
+      }
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      handleAuthFailure(false);
+    } finally {
+      // Clear the refreshing flag if it hasn't been done already
+      if (refreshTimerRef.current) {
+        refreshTimerRef.current.refreshing = false;
+      }
+    }
+    
+    return null;
+  }, [currentUserId, refreshToken, handleAuthFailure, getTokenExpirationTime]);
+  // Function to schedule token refresh 1 minute before expiration
+  const scheduleTokenRefresh = useCallback((token: string) => {
+    // Clear any existing timer
+    if (refreshTimerRef.current.timerId) {
+      clearTimeout(refreshTimerRef.current.timerId);
+      refreshTimerRef.current.timerId = null;
+    }
+
+    const expirationTime = getTokenExpirationTime(token);
+    if (!expirationTime) {
+      console.error('Could not determine token expiration time');
+      return;
+    }
+
+    const currentTime = Date.now();
+    const timeUntilExpiry = expirationTime - currentTime;
+    
+    // If token is already expired or will expire in less than 1 minute, refresh immediately
+    if (timeUntilExpiry <= 60000) {
+      console.log('Token expires soon or is already expired, refreshing immediately');
+      refreshAccessToken();
+      return;
+    }
+    
+    // Schedule refresh 1 minute before expiration
+    const refreshDelay = timeUntilExpiry - 60000; // 1 minute before expiry
+    
+    console.log(`Token will expire at ${new Date(expirationTime).toLocaleString()}, scheduling refresh in ${Math.floor(refreshDelay / 1000)} seconds`);
+    
+    refreshTimerRef.current = {
+      timerId: setTimeout(() => refreshAccessToken(), refreshDelay),
+      expiresAt: expirationTime,
+      refreshing: refreshTimerRef.current.refreshing
+    };  }, [getTokenExpirationTime, refreshAccessToken]);
+  // Handle browser visibility changes to manage token refresh
+  useEffect(() => {
+    // Function to check and possibly refresh token when page becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log(`[${new Date().toLocaleString()}] Page became visible - checking token status`);
+        const token = tokenRef.current;
+        if (token) {
+          const expirationTime = getTokenExpirationTime(token);
+          if (expirationTime) {
+            const now = Date.now();
+            // If token expires in less than 10 minutes, refresh it proactively
+            if (expirationTime - now < 600000) {
+              console.log(`[${new Date().toLocaleString()}] Tab activated - token expires soon, refreshing now`);
+              refreshAccessToken().then(newToken => {
+                if (newToken) {
+                  console.log(`[${new Date().toLocaleString()}] Token refreshed successfully after tab activation`);
+                } else {
+                  console.error(`[${new Date().toLocaleString()}] Failed to refresh token after tab activation`);
+                }
+              });
+            } else {
+              // Ensure the refresh timer is properly scheduled
+              console.log(`[${new Date().toLocaleString()}] Tab activated - verifying refresh timer is set`);
+              if (!refreshTimerRef.current.timerId) {
+                console.log(`[${new Date().toLocaleString()}] No refresh timer found, scheduling one now`);
+                scheduleTokenRefresh(token);
+              }
+            }
+          }
+        }
+      }
+    };
+
+    // Add event listener for visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Cleanup event listener on unmount
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [getTokenExpirationTime, refreshAccessToken, scheduleTokenRefresh]);
+  // Effect to automatically refresh token periodically even when app is active
+  useEffect(() => {
+    // Auto check token status every 5 minutes when app is running
+    const intervalId = setInterval(() => {
+      const token = tokenRef.current;
+      if (token) {
+        const expirationTime = getTokenExpirationTime(token);
+        if (expirationTime) {
+          const now = Date.now();
+          const timeUntilExpiry = expirationTime - now;
+          
+          // If token will expire in the next 5 minutes, refresh it
+          if (timeUntilExpiry <= 300000) { // 5 minutes in milliseconds
+            console.log(`[${new Date().toLocaleString()}] Periodic token check - expiring soon, refreshing now`);
+            refreshAccessToken().then(newToken => {
+              if (newToken) {
+                console.log(`[${new Date().toLocaleString()}] Token refreshed successfully during periodic check`);
+              } else {
+                console.error(`[${new Date().toLocaleString()}] Failed to refresh token during periodic check`);
+              }
+            });
+          } else {
+            console.log(`[${new Date().toLocaleString()}] Periodic token check - token valid, expires in ${Math.round(timeUntilExpiry/60000)} minutes`);
+            // Ensure the refresh timer is properly scheduled for future refresh
+            if (!refreshTimerRef.current.timerId) {
+              console.log(`[${new Date().toLocaleString()}] No refresh timer found, scheduling one now`);
+              scheduleTokenRefresh(token);
+            }
+          }
+        }
+      }
+    }, 300000); // Check every 5 minutes
+    
+    // Cleanup interval on unmount
+    return () => clearInterval(intervalId);
+  }, [getTokenExpirationTime, refreshAccessToken]);
 
   useEffect(() => {
     (async (): Promise<void> => {
@@ -121,6 +335,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           tokenRef.current = token;
           setCurrentUserId(userId);
           setIsAuthenticated(true);
+          
+          // Schedule token refresh based on expiration time
+          scheduleTokenRefresh(token);
         } else if (userId) {
           // If no token in memory but we have userId, try to refresh it using the HTTP-only cookie
           try {
@@ -157,6 +374,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
 
               setIsAuthenticated(true);
+              
+              // Schedule token refresh based on expiration time
+              scheduleTokenRefresh(newAccessToken);
             } else {
               handleAuthFailure(false);
             }
@@ -172,7 +392,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     })();
-  }, [dispatch, getUserById, getPermissionByRole, refreshToken, handleAuthFailure]);
+  }, [dispatch, getUserById, getPermissionByRole, refreshToken, handleAuthFailure, scheduleTokenRefresh]);
 
   const signIn = useCallback(async (token: string) => {
     try {
@@ -186,11 +406,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       tokenRef.current = token;
       setCurrentUserId(userId);
       
+      // Schedule token refresh based on expiration time
+      scheduleTokenRefresh(token);
     } catch (error) {
       console.error('Error during sign in:', error);
       handleAuthFailure();
     }
-  }, [handleAuthFailure]);
+  }, [handleAuthFailure, scheduleTokenRefresh]);
 
   const signOut = useCallback(async () => {
     try {
