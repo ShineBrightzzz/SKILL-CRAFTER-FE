@@ -30,7 +30,6 @@ export default function AuthGuard({ children, requiredRole }: AuthGuardProps) {
         return;
       }
 
-      console.log(user?.isAdmin, 'user.isAdmin');
       
       // Check for admin access to admin pages
       const isAdminRoute = pathname?.startsWith('/admin');
