@@ -9,6 +9,8 @@ import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronUpIcon, Chec
 import { skipToken } from '@reduxjs/toolkit/query/react';
 import classNames from 'classnames';
 import { useAuth } from '@/store/hooks';
+import { useAbility } from '@/store/hooks/abilityHooks';
+import { Action, Subject } from '@/utils/ability';
 import { 
   useGetCourseByIdQuery, 
   useEnrollCourseMutation, 
@@ -106,7 +108,11 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   const router = useRouter();
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
   const { user: currentUser } = useAuth();
+  const ability = useAbility();
   
+  // Check permissions
+  const canAddToCart = ability.can(Action.Create, Subject.Cart);
+  const canEnroll = ability.can(Action.Register, Subject.Enrollment);
   // Course enrollment mutation
   const [enrollCourse, { isLoading: isEnrolling }] = useEnrollCourseMutation();
 
@@ -190,10 +196,14 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
   const switchToOverview = useCallback(() => {
     setIsLearningMode(false);
   }, []);
-
   const switchToLearning = useCallback((selectedLesson?: Lesson) => {
     if (!effectivelyEnrolled) {
       toast.error('Bạn cần đăng ký khóa học để có thể học');
+      return;
+    }
+
+    if (!canEnroll) {
+      toast.error('Bạn không có quyền đăng kí khóa học này');
       return;
     }
 
@@ -208,7 +218,7 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
       }
     }
     setIsLearningMode(true);
-  }, [changeLesson, effectivelyEnrolled]);  // Get lessons for chapters
+  }, [changeLesson, effectivelyEnrolled, canEnroll]);  // Get lessons for chapters
   const { data: lessonsData } = useGetLessonsByChapterIdQuery(
     activeChapterId ?? skipToken
   );
@@ -353,10 +363,14 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
       setCompletingLesson(false);
     }
   };
-
   // Handle enrollment
   const handleEnrollment = async () => {
     if (!currentUser || !course) return;
+    
+    if (!canEnroll) {
+      toast.error('Bạn không có quyền đăng ký khóa học này');
+      return;
+    }
     
     try {
       const response = await enrollCourse({ 
@@ -373,19 +387,23 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
       toast.error('Có lỗi xảy ra khi đăng ký khóa học');
     }
   };
-
   // Handle adding course to cart
   const handleAddToCart = async () => {
-  if (!currentUser || !params.id) {
-    toast.error('Không thể thêm khóa học vào giỏ hàng');
-    return;
-  }
+    if (!currentUser || !params.id) {
+      toast.error('Không thể thêm khóa học vào giỏ hàng');
+      return;
+    }
     
-  try {
-    await addToCart({
-      userId: currentUser.id,
-      courseId: params.id
-    }).unwrap();
+    if (!canAddToCart) {
+      toast.error('Bạn không có quyền thêm khóa học vào giỏ hàng');
+      return;
+    }
+    
+    try {
+      await addToCart({
+        userId: currentUser.id,
+        courseId: params.id
+      }).unwrap();
       
       toast.success('Đã thêm khóa học vào giỏ hàng');
     } catch (error) {
@@ -393,13 +411,15 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
       toast.error('Có lỗi xảy ra khi thêm vào giỏ hàng');
     }
   };
-
   useEffect(() => {
     if (isLearningMode && !effectivelyEnrolled) {
       setIsLearningMode(false);
       toast.error('Bạn cần đăng ký khóa học để có thể học');
+    } else if (isLearningMode && !canEnroll) {
+      setIsLearningMode(false);
+      toast.error('Bạn không có quyền truy cập nội dung khóa học này');
     }
-  }, [isLearningMode, effectivelyEnrolled]);
+  }, [isLearningMode, effectivelyEnrolled, canEnroll]);
 
   // Main content render
   if (courseLoading) {
@@ -531,10 +551,9 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
             </div>
 
             {/* Course Actions Card */}
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-lg shadow-lg p-6 sticky top-4">
+            <div className="lg:col-span-1">              <div className="bg-white rounded-lg shadow-lg p-6 sticky top-4">
                 <div className="text-center mb-6">
-                  {effectivelyEnrolled ? (
+                  {effectivelyEnrolled && canEnroll ? (
                     <Button
                       type="primary"
                       onClick={() => switchToLearning()}
@@ -544,7 +563,7 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                     </Button>
                   ) : (
                     <>
-                      {!isInCart && (
+                      {!isInCart && canAddToCart && (
                         <Button
                           type="primary"
                           onClick={handleAddToCart}
@@ -558,6 +577,18 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                       {isInCart && (
                         <p className="text-blue-600 mb-4 text-lg">
                           Khóa học này đã có trong giỏ hàng
+                        </p>
+                      )}
+                      
+                      {!canAddToCart && !effectivelyEnrolled && (
+                        <p className="text-red-600 mb-4 text-lg">
+                          Bạn không có quyền thêm khóa học vào giỏ hàng
+                        </p>
+                      )}
+                      
+                      {effectivelyEnrolled && !canEnroll && (
+                        <p className="text-red-600 mb-4 text-lg">
+                          Bạn không có quyền truy cập nội dung khóa học
                         </p>
                       )}
                     </>

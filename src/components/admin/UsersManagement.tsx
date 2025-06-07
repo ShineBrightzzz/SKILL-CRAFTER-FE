@@ -98,12 +98,19 @@ const UsersManagement: React.FC = () => {
       message.error('Có lỗi xảy ra khi tạo người dùng!');
       console.error(error);
     }
-  };
-  const handleAssignRole = (user: User) => {
+  };  const handleAssignRole = (user: User) => {
     setSelectedUser(user);
-    roleForm.setFieldsValue({
-      role: user.roleId ? String(user.roleId) : undefined
-    });
+    
+    // Set the role ID as the form value
+    const roleId = user.roleId;
+    
+    // Need to wait for roles data to be loaded
+    if (rolesData?.data?.result) {
+      roleForm.setFieldsValue({
+        role: roleId ? String(roleId) : undefined
+      });
+    }
+    
     setIsAssignRoleModalVisible(true);
   };
 
@@ -328,15 +335,19 @@ const UsersManagement: React.FC = () => {
           form={roleForm}
           layout="vertical"
           onFinish={handleAssignRoleSubmit}
-        >
-          <Form.Item
+        >          <Form.Item
             name="role"
             label="Vai trò"
-            rules={[{ required: true, message: 'Vui lòng chọn vai trò!' }]}
-          >
-            <Select placeholder="Chọn vai trò">
+            rules={[{ required: true, message: 'Vui lòng chọn vai trò!' }]}          >            <Select 
+              placeholder="Chọn vai trò"
+              showSearch
+              optionFilterProp="children"
+            >
               {rolesData?.data?.result?.map((role: Role) => (
-                <Select.Option key={role.id} value={role.id}>
+                <Select.Option 
+                  key={role.id} 
+                  value={role.id}
+                >
                   {role.name}
                 </Select.Option>
               ))}

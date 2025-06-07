@@ -158,9 +158,8 @@ export default function AdminLayout({
     if (pathname.includes('/admin/roles')) return 'Quản lý vai trò';
     return 'Admin';
   };
-  
-  return (
-    <AuthGuard requiredRole="admin">
+    return (
+    <AuthGuard>
       <Layout style={{ minHeight: '100vh' }}>
         {/* Desktop Sidebar */}
         {!isMobile && (

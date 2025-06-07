@@ -23,21 +23,22 @@ export default function AuthGuard({ children, requiredRole }: AuthGuardProps) {
       const isPublicRoute = publicRoutes.some(route => 
         pathname === route || pathname?.startsWith(`${route}/`)
       );
-        if (!isAuthenticated && !isPublicRoute) {
+      
+      // If not authenticated and not on a public route, redirect to login
+      if (!isAuthenticated && !isPublicRoute) {
         router.push('/login');
         return;
       }
-        // For testing purposes, we're allowing all authenticated users to access all routes
-      // regardless of their role
+
+      console.log(user?.isAdmin, 'user.isAdmin');
       
-      /* Original role check code (commented out for testing)
-      if (isAuthenticated && requiredRole && user?.role !== requiredRole) {
-        // Show an error message when a user tries to access a page they don't have permission for
-        alert('Bạn không có quyền truy cập trang này');
-        router.push('/'); // Redirect to home if user doesn't have required role
+      // Check for admin access to admin pages
+      const isAdminRoute = pathname?.startsWith('/admin');
+      if (isAuthenticated && isAdminRoute && !user?.isAdmin) {
+        // Show an error message when a user tries to access admin page without admin rights
+        router.push('/'); // Redirect to home if user doesn't have admin access
         return;
       }
-      */
     }
   }, [isAuthenticated, isLoading, pathname, router, requiredRole, user]);
 

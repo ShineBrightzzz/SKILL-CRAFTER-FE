@@ -105,8 +105,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
           if (data.refreshToken) {
             setDebugRefreshToken(data.refreshToken);
           }
-          
-          // Update Redux store with user data
+            // Update Redux store with user data
           dispatch(setUser({
             id: data.id,
             username: data.username,
@@ -114,7 +113,8 @@ export const userApiSlice = apiSlice.injectEndpoints({
             familyName: data.familyName,
             givenName: data.givenName,
             pictureUrl: data.pictureUrl,
-            roleId: data.roleId
+            roleId: data.roleId,
+            isAdmin: data.isAdmin
           }));
 
           // Fetch and dispatch permissions if roleId exists
@@ -208,9 +208,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
             // Store new refresh token for development/debugging
             if (data.refreshToken) {
               setDebugRefreshToken(data.refreshToken);
-            }
-
-            // Update user data in Redux store
+            }            // Update user data in Redux store
             if (data.id) {              
               const userData = {
                 id: data.id,
@@ -220,7 +218,8 @@ export const userApiSlice = apiSlice.injectEndpoints({
                 familyName: data.familyName,
                 givenName: data.givenName,
                 pictureUrl: data.pictureUrl || undefined,
-                roleId: data.roleId || null
+                roleId: data.roleId || null,
+                isAdmin: data.isAdmin
               };
               dispatch(setUser(userData));
             }
@@ -330,29 +329,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
         { type: 'Users' as const, id: 'LIST' },
       ],
     }),
-
-    updateRole: builder.mutation<ApiResponse<User>, { accountId: string; body: RoleAssignmentDTO }>({
-      query: ({ accountId, body }) => ({
-        url: `/accounts/${accountId}/role`,
-        method: 'PUT',
-        body,
-      }),
-      invalidatesTags: (result, error, { accountId }) => [
-        { type: 'Users' as const, id: accountId },
-        { type: 'Users' as const, id: 'LIST' },
-      ],
-    }),
-
-    removeRole: builder.mutation<ApiResponse<User>, string>({
-      query: (accountId) => ({
-        url: `/accounts/${accountId}/role`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: (result, error, accountId) => [
-        { type: 'Users' as const, id: accountId },
-        { type: 'Users' as const, id: 'LIST' },
-      ],
-    }),    
+   
   
   }),
   overrideExisting: true,
@@ -373,8 +350,6 @@ export const {
   useDeleteAccountMutation,
 
   // Role management hooks
-  useAssignRoleMutation,
-  useUpdateRoleMutation,
-  useRemoveRoleMutation,
+  useAssignRoleMutation
 
 } = userApiSlice;
