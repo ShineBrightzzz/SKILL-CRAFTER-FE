@@ -129,7 +129,6 @@ const UsersManagement: React.FC = () => {
     }
   };
 
-  console.log(rolesData)
 
   const handleAssignRoleCancel = () => {
     setIsAssignRoleModalVisible(false);

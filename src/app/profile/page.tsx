@@ -10,16 +10,20 @@ const ProfilePage = () => {
   const { user } = useAuth();
   const [form] = Form.useForm();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [updateAccount, { isLoading: isUpdating }] = useUpdateAccountMutation();
-
-  useEffect(() => {
+  const [userEmail, setUserEmail] = useState<string>('');
+  const [updateAccount, { isLoading: isUpdating }] = useUpdateAccountMutation();  useEffect(() => {
     if (user) {
+      // Set email state
+      setUserEmail(user.email || '');
+      
+      // Set each field individually to ensure proper values
       form.setFieldsValue({
-        username: user.username,
-        email: user.email,
-        familyName: user.familyName,
-        givenName: user.givenName
+        username: user.username || '',
+        email: user.email || '',
+        familyName: user.familyName || '',
+        givenName: user.givenName || ''
       });
+      
       setAvatarUrl(user.pictureUrl || null);
     }
   }, [user, form]);
@@ -99,10 +103,20 @@ const ProfilePage = () => {
               accept="image/*"
             >
               <Button icon={<UploadOutlined />}>Thay đổi ảnh đại diện</Button>
-            </Upload>
+            </Upload>          </div>
+
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-semibold">{user.familyName} {user.givenName}</h2>
+            {user.email && (
+              <div className="flex items-center justify-center mt-2">
+                <MailOutlined className="mr-2 text-blue-500" />
+                <p className="text-gray-700 font-medium">{user.email}</p>
+              </div>
+            )}
+            {!user.email && <p className="text-red-500 mt-2">Email chưa được cập nhật</p>}
           </div>
 
-          <Divider />          <Form
+          <Divider /><Form
             form={form}
             layout="vertical"
             onFinish={handleSubmit}
@@ -123,9 +137,7 @@ const ProfilePage = () => {
               >
                 <Input placeholder="Nhập tên" />
               </Form.Item>
-            </div>
-
-            <Form.Item
+            </div>            <Form.Item
               name="username"
               label="Tên đăng nhập"
               rules={[{ required: true, message: 'Vui lòng nhập tên đăng nhập' }]}
@@ -135,21 +147,20 @@ const ProfilePage = () => {
                 placeholder="Nhập tên đăng nhập"
                 disabled
               />
-            </Form.Item>
-
-            <Form.Item
-              name="email"
+            </Form.Item>            <Form.Item
               label="Email"
               rules={[
                 { required: true, message: 'Vui lòng nhập email' },
                 { type: 'email', message: 'Email không hợp lệ' }
               ]}
-            >              <Input
+            >
+              <Input
                 prefix={<MailOutlined />}
-                placeholder="Nhập email"
                 disabled
-              />
-            </Form.Item>
+                className="opacity-100 text-gray-700 !text-black"
+                style={{ color: 'black', background: '#f5f5f5' }}
+                value={userEmail}
+              />            </Form.Item>
 
             <Form.Item
               name="password"
@@ -161,9 +172,7 @@ const ProfilePage = () => {
               <Input.Password
                 placeholder="Nhập mật khẩu mới (để trống nếu không thay đổi)"
               />
-            </Form.Item>
-
-            <Form.Item className="text-right">
+            </Form.Item>            <Form.Item className="text-right">
               <Button
                 type="primary"
                 htmlType="submit"

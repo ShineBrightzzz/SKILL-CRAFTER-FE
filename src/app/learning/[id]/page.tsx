@@ -699,12 +699,14 @@ export default function CourseLearningPage({ params, searchParams }: PageProps) 
                       <VideoPlayer src={currentLesson.videoUrl} />
                     </div>
                   )}
-                  
-                  {currentLesson.type === 3 && (
+                    {currentLesson.type === 3 && (
                     <CodeEditor                      
                       initialCode={currentLesson.initialCode || '// Write your code here'}
                       programmingLanguage={validateProgrammingLanguage(currentLesson.programmingLanguage)}
                       onComplete={handleCompleteLesson}
+                      lessonId={currentLesson.id}
+                      userId={currentUser?.id}
+                      useReduxStore={true}
                     />
                   )}
                   

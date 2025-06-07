@@ -43,7 +43,7 @@ export default function CodeEditor({
   initialCode = '', 
   programmingLanguage: inputLanguage = 'java',
   className = '',
-  lessonId = '',
+  lessonId,
   userId = '',
   onCodeChange,
   onComplete,
@@ -52,9 +52,29 @@ export default function CodeEditor({
   const currentLanguage = validateProgrammingLanguage(inputLanguage);
   const reduxCodeHook = useReduxStore && lessonId ? useUserCode(lessonId) : null;
   
+  // Responsive height state for better display in learning environment
+  const [editorHeight, setEditorHeight] = useState('500px');
+  
+  // Set editor height based on viewport on component mount
+  useEffect(() => {
+    function updateEditorHeight() {
+      const vh = window.innerHeight;
+      // Adjust the calculation based on the container in learning/[id]
+      // Leave space for toolbar, input area and results
+      const newHeight = Math.max(300, vh - 400) + 'px';
+      setEditorHeight(newHeight);
+    }
+    
+    updateEditorHeight();
+    window.addEventListener('resize', updateEditorHeight);
+    return () => window.removeEventListener('resize', updateEditorHeight);
+  }, []);
+  
   const [code, setCode] = useState(
     reduxCodeHook?.code || initialCode
   );
+  
+  const [userInput, setUserInput] = useState('');
   
   const [result, setResult] = useState<{
     success: boolean;
@@ -85,14 +105,14 @@ export default function CodeEditor({
       onCodeChange(value);
     }
   };
-
   const handleRunCode = async () => {
     try {
       const languageId = LANGUAGE_IDS[currentLanguage];
       
       const response = await runCode({
         language_id: languageId,
-        source_code: code
+        source_code: code,
+        stdin: userInput || undefined
       }).unwrap();
       
       if (response.success) {
@@ -139,10 +159,20 @@ export default function CodeEditor({
         memoryUsed: 0
       });
     }
-  };
-
-  const handleSubmitCode = async () => {
+  };  const handleSubmitCode = async () => {
     try {
+      // Validate lessonId is present
+      if (!lessonId) {
+        setResult({
+          success: false,
+          output: null,
+          error: 'Invalid submission: lessonId is required',
+          executionTime: 0,
+          memoryUsed: 0
+        });
+        return;
+      }
+
       const languageId = LANGUAGE_IDS[currentLanguage];
 
       const response = await submitCode({
@@ -260,14 +290,16 @@ export default function CodeEditor({
               </svg>
             )}
             {isRunning ? 'Running...' : 'Run Code'}
-          </button>
-          <button
+          </button>          <button
             className={`px-3 py-1.5 rounded-md text-sm transition-colors flex items-center gap-2
               ${isSubmitting 
                 ? 'bg-gray-600 cursor-not-allowed' 
+                : !lessonId
+                ? 'bg-gray-600 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700'}`}
             onClick={handleSubmitCode}
-            disabled={isRunning || isSubmitting}
+            disabled={isRunning || isSubmitting || !lessonId}
+            title={!lessonId ? 'Lesson ID is required for submission' : ''}
           >
             {isSubmitting ? (
               <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
@@ -286,7 +318,7 @@ export default function CodeEditor({
 
       {/* Editor */}      
       <Editor
-        height="500px"
+        height={editorHeight}
         defaultLanguage={currentLanguage}
         language={currentLanguage}
         value={code}
@@ -317,11 +349,23 @@ export default function CodeEditor({
             enabled: true
           }
         }}
-      />
-
-      {/* Result Panel */}
+      />      {/* User Input Panel */}
+      <div className="border-t border-gray-700 bg-[#1e1e1e] p-4">
+        <label className="block text-sm text-gray-400 mb-2">
+          Input (Optional):
+        </label>
+        <textarea
+          value={userInput}
+          onChange={(e) => setUserInput(e.target.value)}
+          className="w-full p-3 bg-gray-800 rounded-md text-sm text-white focus:ring-2 focus:ring-blue-600 focus:outline-none resize-y min-h-[60px] max-h-[150px]"
+          placeholder="Enter your input here..."
+        />
+        <p className="mt-1 text-xs text-gray-400">
+          Input will be passed to your program as stdin. For multiple inputs, enter each value on a new line.
+        </p>
+      </div>      {/* Result Panel */}
       {result && (
-        <div className={`border-t border-gray-700 bg-[#1e1e1e] text-white p-4 ${
+        <div className={`border-t border-gray-700 bg-[#1e1e1e] text-white p-4 max-h-none ${
           result.success ? 'bg-opacity-90' : 'bg-opacity-95'
         }`}>
           <div className="flex items-center justify-between mb-2">
@@ -344,16 +388,14 @@ export default function CodeEditor({
                 Time: {result.executionTime}ms | Memory: {result.memoryUsed}KB
               </div>
             )}
-          </div>
-
-          {result.error && result.error !== '' && result.error !== 'null' ? (
-            <pre className="bg-red-900 bg-opacity-20 p-3 rounded-md text-red-300 text-sm overflow-auto">
+          </div>{result.error && result.error !== '' && result.error !== 'null' ? (
+            <div className="bg-red-900 bg-opacity-20 p-3 rounded-md text-red-300 text-sm whitespace-pre-wrap break-words max-h-none">
               {result.error}
-            </pre>
+            </div>
           ) : (
-            <pre className="bg-gray-900 bg-opacity-50 p-3 rounded-md text-gray-300 text-sm overflow-auto">
+            <div className="bg-gray-900 bg-opacity-50 p-3 rounded-md text-gray-300 text-sm whitespace-pre-wrap break-words max-h-none">
               {result.output || 'No output'}
-            </pre>
+            </div>
           )}
 
           {(result.testCasesPassed !== undefined && result.testCasesPassed !== null && 

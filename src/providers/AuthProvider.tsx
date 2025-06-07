@@ -115,13 +115,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {  const tok
   }, [dispatch, router]);  // Function to refresh the access token
   const refreshAccessToken = useCallback(async () => {
     if (!currentUserId) {
-      console.log(`[${new Date().toLocaleString()}] Cannot refresh token - no user ID`);
       return null;
     }
     
     // Check if we already have a pending refresh request
     if (refreshTimerRef.current.refreshing) {
-      console.log(`[${new Date().toLocaleString()}] Token refresh already in progress, skipping`);
       return null;
     }
     
@@ -129,7 +127,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {  const tok
       // Mark that we're in the process of refreshing
       refreshTimerRef.current.refreshing = true;
       
-      console.log(`[${new Date().toLocaleString()}] Refreshing access token...`);
       const result = await refreshToken().unwrap();
       
       if (result.data?.accessToken) {
@@ -152,7 +149,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {  const tok
           const timeUntilExpiry = expirationTime - currentTime;
           const refreshDelay = Math.max(timeUntilExpiry - 60000, 1000); // At least 1 second delay
           
-          console.log(`[${new Date().toLocaleString()}] Setting up new refresh timer for ${new Date(expirationTime).toLocaleString()}`);
           
           refreshTimerRef.current = {
             timerId: setTimeout(() => refreshAccessToken(), refreshDelay),
@@ -164,7 +160,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {  const tok
           refreshTimerRef.current.refreshing = false;
         }
         
-        console.log(`[${new Date().toLocaleString()}] Access token refreshed successfully`);
         
         return newAccessToken;
       } else {
@@ -202,7 +197,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {  const tok
     
     // If token is already expired or will expire in less than 1 minute, refresh immediately
     if (timeUntilExpiry <= 60000) {
-      console.log('Token expires soon or is already expired, refreshing immediately');
       refreshAccessToken();
       return;
     }
@@ -210,7 +204,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {  const tok
     // Schedule refresh 1 minute before expiration
     const refreshDelay = timeUntilExpiry - 60000; // 1 minute before expiry
     
-    console.log(`Token will expire at ${new Date(expirationTime).toLocaleString()}, scheduling refresh in ${Math.floor(refreshDelay / 1000)} seconds`);
     
     refreshTimerRef.current = {
       timerId: setTimeout(() => refreshAccessToken(), refreshDelay),
@@ -222,7 +215,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {  const tok
     // Function to check and possibly refresh token when page becomes visible
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log(`[${new Date().toLocaleString()}] Page became visible - checking token status`);
         const token = tokenRef.current;
         if (token) {
           const expirationTime = getTokenExpirationTime(token);
@@ -230,19 +222,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {  const tok
             const now = Date.now();
             // If token expires in less than 10 minutes, refresh it proactively
             if (expirationTime - now < 600000) {
-              console.log(`[${new Date().toLocaleString()}] Tab activated - token expires soon, refreshing now`);
               refreshAccessToken().then(newToken => {
                 if (newToken) {
-                  console.log(`[${new Date().toLocaleString()}] Token refreshed successfully after tab activation`);
                 } else {
-                  console.error(`[${new Date().toLocaleString()}] Failed to refresh token after tab activation`);
                 }
               });
             } else {
               // Ensure the refresh timer is properly scheduled
-              console.log(`[${new Date().toLocaleString()}] Tab activated - verifying refresh timer is set`);
               if (!refreshTimerRef.current.timerId) {
-                console.log(`[${new Date().toLocaleString()}] No refresh timer found, scheduling one now`);
                 scheduleTokenRefresh(token);
               }
             }
@@ -272,19 +259,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {  const tok
           
           // If token will expire in the next 5 minutes, refresh it
           if (timeUntilExpiry <= 300000) { // 5 minutes in milliseconds
-            console.log(`[${new Date().toLocaleString()}] Periodic token check - expiring soon, refreshing now`);
-            refreshAccessToken().then(newToken => {
-              if (newToken) {
-                console.log(`[${new Date().toLocaleString()}] Token refreshed successfully during periodic check`);
-              } else {
-                console.error(`[${new Date().toLocaleString()}] Failed to refresh token during periodic check`);
-              }
-            });
+            refreshAccessToken();
           } else {
-            console.log(`[${new Date().toLocaleString()}] Periodic token check - token valid, expires in ${Math.round(timeUntilExpiry/60000)} minutes`);
             // Ensure the refresh timer is properly scheduled for future refresh
             if (!refreshTimerRef.current.timerId) {
-              console.log(`[${new Date().toLocaleString()}] No refresh timer found, scheduling one now`);
               scheduleTokenRefresh(token);
             }
           }

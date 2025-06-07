@@ -72,26 +72,27 @@ export default function LessonPreview({ lesson }: LessonPreviewProps) {
               </div>
             )}
           </div>
-        );
-
-      case 3: // Programming exercise
+        );      case 3: // Programming exercise
         return (
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="bg-white p-4 rounded-md border">
+          <div className="grid md:grid-cols-2 gap-4 overflow-hidden">
+            <div className="bg-white p-4 rounded-md border overflow-hidden">
               <h3 className="text-lg font-medium mb-4">Yêu cầu bài tập:</h3>
               {lesson.content ? (
-                <MarkdownCode content={lesson.content} />
+                <div className="overflow-auto max-h-[500px]">
+                  <MarkdownCode content={lesson.content} />
+                </div>
               ) : (
                 <Empty description="Chưa có nội dung bài tập." />
               )}
-            </div>
-            <div className="bg-gray-50 rounded-md border">
-              <h3 className="text-lg font-medium p-4 border-b">Editor:</h3>              <div className="h-[400px]">
+            </div><div className="bg-gray-50 rounded-md border overflow-hidden">
+              <h3 className="text-lg font-medium p-4 border-b">Editor:</h3>
+                <div className="h-[400px] w-full overflow-hidden">
                 <CodeEditor
                   initialCode={lesson.initialCode || '// Mã khởi tạo cho học viên'}
                   programmingLanguage={validateProgrammingLanguage(lesson.programmingLanguage)}
+                  lessonId={lesson.id}
                 />
-              </div>
+                </div>
             </div>
           </div>
         );
