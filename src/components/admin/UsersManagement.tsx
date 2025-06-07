@@ -28,7 +28,7 @@ interface UserFormData {
 }
 
 interface RoleFormData {
-  role: string;
+  role: number;
 }
 
 const UsersManagement: React.FC = () => {
@@ -46,28 +46,28 @@ const UsersManagement: React.FC = () => {
     size: pageSize,
     search: searchTerm.trim()
   });
-  const { data: rolesData } = useGetAllRolesQuery({} as PaginationParams);
+  const { data: rolesData, isLoading: rolesLoading } = useGetAllRolesQuery({
+    page: 1,
+    size: 1000 // Load nhiều roles để đảm bảo lấy được tất cả
+  });
   const [createUser] = useCreateAccountMutation();
   const [assignRole] = useAssignRoleMutation();
-
   useEffect(() => {
     if (error) {
       message.error('Có lỗi khi tải dữ liệu người dùng');
       console.error('Users load error:', error);
     }
   }, [error]);
-
-  const handleSearch = (value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
-  };
-
   const users = usersResponse?.data?.result || [];
   const paginationMeta = usersResponse?.data?.meta || { 
     page: 1, 
     pageSize: 10, 
-    pages: 1,
-    total: 0
+    pages: 1,    total: 0
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
   };
 
   const showCreateModal = () => {
@@ -100,26 +100,17 @@ const UsersManagement: React.FC = () => {
     }
   };  const handleAssignRole = (user: User) => {
     setSelectedUser(user);
-    
-    // Set the role ID as the form value
-    const roleId = user.roleId;
-    
-    // Need to wait for roles data to be loaded
-    if (rolesData?.data?.result) {
-      roleForm.setFieldsValue({
-        role: roleId ? String(roleId) : undefined
-      });
-    }
-    
+    roleForm.setFieldsValue({
+      role: user.roleId ? user.roleId : undefined
+    });
     setIsAssignRoleModalVisible(true);
   };
 
   const handleAssignRoleSubmit = async (values: RoleFormData) => {
     if (!selectedUser) return;
 
-    try {
-      const roleAssignment: RoleAssignmentDTO = {
-        roleId: values.role
+    try {      const roleAssignment: RoleAssignmentDTO = {
+        roleId: String(values.role)
       };
 
       await assignRole({ 
@@ -136,13 +127,12 @@ const UsersManagement: React.FC = () => {
     }
   };
 
-
   const handleAssignRoleCancel = () => {
     setIsAssignRoleModalVisible(false);
     roleForm.resetFields();
     setSelectedUser(null);
   };
-  const columns: ColumnType<User[]>[] = [
+  const columns: any[] = [
     {
       title: 'ID',
       dataIndex: 'id',
@@ -169,14 +159,16 @@ const UsersManagement: React.FC = () => {
       title: 'Tên',
       dataIndex: 'givenName',
       key: 'givenName'
-    },
-    {
+    },    {
       title: 'Vai trò',
       dataIndex: 'roleId',
-      key: 'role',
-      render: (roleId: number | null, record: any) => {
-        const role = rolesData?.data?.result?.find((r: Role) => Number(r.id) === roleId);
-        return role?.name || 'Chưa có vai trò';
+      key: 'roleId',
+      render: (roleId: number | null) => {
+        if (!roleId) return 'Chưa có vai trò';
+        
+        // Tìm role dựa trên roleId (so sánh number với number)
+        const role = rolesData?.data?.result?.find((r: Role) => r.id === roleId);
+        return role?.name || 'Không tìm thấy vai trò';
       }
     },
     {
@@ -335,19 +327,15 @@ const UsersManagement: React.FC = () => {
           form={roleForm}
           layout="vertical"
           onFinish={handleAssignRoleSubmit}
-        >          <Form.Item
+        >
+          <Form.Item
             name="role"
             label="Vai trò"
-            rules={[{ required: true, message: 'Vui lòng chọn vai trò!' }]}          >            <Select 
-              placeholder="Chọn vai trò"
-              showSearch
-              optionFilterProp="children"
-            >
+            rules={[{ required: true, message: 'Vui lòng chọn vai trò!' }]}
+          >
+            <Select placeholder="Chọn vai trò">
               {rolesData?.data?.result?.map((role: Role) => (
-                <Select.Option 
-                  key={role.id} 
-                  value={role.id}
-                >
+                <Select.Option key={role.id} value={role.id}>
                   {role.name}
                 </Select.Option>
               ))}

@@ -11,11 +11,15 @@ export interface PaginationParams {
 
 // Define the Role type
 export interface Role {
-  id: string;
+  id: number;
   name?: string;
   description?: string;
   active?: boolean;
-  // Add other role properties as needed
+  permissionIds?: number[];
+  createdAt?: string | null;
+  updatedAt?: string;
+  createdBy?: string | null;
+  updatedBy?: string;
 }
 
 // Response type for multiple roles
