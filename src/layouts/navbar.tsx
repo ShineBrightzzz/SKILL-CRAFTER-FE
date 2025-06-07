@@ -15,6 +15,7 @@ import { useDispatch } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { useMediaQuery } from 'react-responsive';
 import Image from 'next/image';
+import { useAuthSession } from '@/providers/AuthProvider';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -26,14 +27,10 @@ const Navbar: React.FC<NavbarProps> = ({ collapsed }) => {
   const router = useRouter();
   const user = useSelector((state: any) => state.user);
   const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
+  const { signOut } = useAuthSession();
 
-  const handleLogout = () => {
-    // Clear localStorage items
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('userId');
-
-
-    // Redirect to login page
+  const handleLogout = async () => {
+    await signOut();
     router.push('/login');
   };
   const menu = (

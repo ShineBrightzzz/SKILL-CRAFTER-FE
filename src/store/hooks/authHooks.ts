@@ -19,29 +19,20 @@ export const useAuth = () => {
   
   // Use the API-based logout
   const [logoutApi] = useLogoutMutation();
-  
-  const logout = useCallback(async () => {
-    Modal.confirm({
-      title: 'Xác nhận đăng xuất',
-      content: 'Bạn có chắc chắn muốn đăng xuất không?',
-      okText: 'Đăng xuất',
-      cancelText: 'Hủy',
-      onOk: async () => {
-        try {
-          // Call the logout API which will clear the HTTP-only cookie
-          await logoutApi().unwrap();
-        } catch (error) {
-          console.error('Error during logout API call:', error);
-        } finally {
-          // Always clear local state even if API call fails
-          dispatch(authActions.logout());
-          setAccessToken(null);
-          localStorage.removeItem('userId');
-          // Reload the page after logout
-          window.location.reload();
-        }
-      }
-    });
+    const logout = useCallback(async () => {
+    try {
+      // Call the logout API which will clear the HTTP-only cookie
+      await logoutApi().unwrap();
+    } catch (error) {
+      console.error('Error during logout API call:', error);
+    } finally {
+      // Always clear local state even if API call fails
+      dispatch(authActions.logout());
+      setAccessToken(null);
+      localStorage.removeItem('userId');
+      // Reload the page after logout
+      window.location.reload();
+    }
   }, [dispatch, logoutApi]);
 
   return {
