@@ -54,7 +54,7 @@ export const googleAuthApiSlice = apiSlice.injectEndpoints({
           if (userData.roleId) {
             try {
               const permissionsResult = await dispatch(
-                roleApiSlice.endpoints.getRolePermissions.initiate(String(userData.roleId))
+                roleApiSlice.endpoints.getRolePermissions.initiate(userData.roleId)
               );
               
               if ('data' in permissionsResult) {
